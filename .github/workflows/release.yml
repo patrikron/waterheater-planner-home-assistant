@@ -23,7 +23,7 @@ jobs:
           echo "tag=$tag manifest=$version"
           test "$tag" = "$version" || { echo "::error::Tag $GITHUB_REF_NAME does not match manifest version $version"; exit 1; }
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - run: pip install pytest
