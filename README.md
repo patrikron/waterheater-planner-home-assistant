@@ -1,18 +1,13 @@
 # Water Heater Planner
 
-[![Tests](https://github.com/YOUR-GITHUB-USER/waterheater-planner/actions/workflows/tests.yml/badge.svg)](https://github.com/YOUR-GITHUB-USER/waterheater-planner/actions/workflows/tests.yml)
-[![Validate](https://github.com/YOUR-GITHUB-USER/waterheater-planner/actions/workflows/validate.yml/badge.svg)](https://github.com/YOUR-GITHUB-USER/waterheater-planner/actions/workflows/validate.yml)
+[![Tests](https://github.com/patrikron/waterheater-planner-home-assistant/actions/workflows/tests.yml/badge.svg)](https://github.com/patrikron/waterheater-planner-home-assistant/actions/workflows/tests.yml)
+[![Validate](https://github.com/patrikron/waterheater-planner-home-assistant/actions/workflows/validate.yml/badge.svg)](https://github.com/patrikron/waterheater-planner-home-assistant/actions/workflows/validate.yml)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 
 *Svenska: [README.sv.md](README.sv.md)*
 
 A Home Assistant integration that heats a **hot water tank** when electricity is cheap, when the sun
 shines, or a mix of both. It works with any water heater that is controlled by a plain on/off switch.
-
-It uses the same approach as [SpotNav](https://github.com/henrikekblad/spotnav-home-assistant) does for
-EV charging: the electricity price comes from a price sensor you already have in Home Assistant (Nord Pool,
-ENTSO-e, Energi Data Service, ...), the solar forecast comes from the sources that feed the Energy
-dashboard, and a Lovelace card shows the plan, the cost and the settings.
 
 <p align="center"><img src="docs/images/en/overview-cheapest.png" width="360" alt="The card in Cheapest mode"></p>
 
@@ -41,7 +36,7 @@ dashboard, and a Lovelace card shows the plan, the cost and the settings.
   reaches the target, so a wrong volume or power makes the plan less exact, never the result wrong.
 - **Learns the energy need** from your real heatings, which matters when the temperature sensor sits on
   the outside of the tank.
-- **Comfort floor** with an optional price cap, a **base temperature** for solar mode, a **price limit
+- **Comfort floor** with an optional price cap, a **base temperature** for solar and hybrid mode, a **price limit
   for sun hours**, a "Heat now" boost, and a plain thermostat fallback when prices are missing.
 - **A card** with the plan, the cost, a price chart that shows when the heater really ran, the last
   heating's energy and cost, and all settings.
@@ -51,7 +46,7 @@ dashboard, and a Lovelace card shows the plan, the cost and the settings.
 ### HACS (custom repository)
 
 1. In HACS, open the menu → **Custom repositories** and add
-   `https://github.com/YOUR-GITHUB-USER/waterheater-planner` with the category **Integration**.
+   `https://github.com/patrikron/waterheater-planner-home-assistant` with the category **Integration**.
 2. Install **Water Heater Planner** and restart Home Assistant.
 
 ### Manually
@@ -171,7 +166,7 @@ and dashboards. Values are stored and survive restarts.
 | **Automatic** | `switch` Automatic | on | on / off | Off = the planner leaves the heater switch completely alone. |
 | **Heat now** | `switch` Heat now | off | on / off | Heat to the target now, whatever the price. Switches itself off when the target is reached. |
 
-Settings that only apply to **Solar** and **Hybrid** (the first two show in both, the rest only in Solar):
+Settings that only apply to **Solar** and **Hybrid** (the first two and the base temperature rows show in both, the rest only in Solar):
 
 | Setting | Entity | Default | Range | What it does |
 |---|---|---|---|---|
@@ -179,7 +174,7 @@ Settings that only apply to **Solar** and **Hybrid** (the first two show in both
 | **House base load** | `number` House base load | 500 W | 0–10000 W | What the house draws anyway. Taken off the solar forecast when sun hours are chosen: an hour counts as a sun hour only if the forecast minus the base load reaches *Surplus to start*. Does not affect the live start and stop, which use the grid sensor. |
 | **Sun hours, price limit** | `number` Solar mode: price limit | 0 (off) | 0–1000 öre/kWh | See [below](#price-limit-for-sun-hours-solar-mode). |
 | **Sell surplus outside the chosen hours** | `switch` Solar mode: sell surplus outside the chosen sun hours | on | on / off | Off: surplus is used in every hour. Shown in Solar mode when the price limit is set. |
-| **Sun hours: only with surplus** | `switch` Solar mode: heat in sun hours only when the surplus is enough, Solar mode: sell surplus outside the chosen sun hours | off | on / off | The chosen sun hours heat only on real surplus; the grid never fills in. Shown in Solar mode when the price limit is set. |
+| **Sun hours: only with surplus** | `switch` Solar mode: heat in sun hours only when the surplus is enough | off | on / off | The chosen sun hours heat only on real surplus; the grid never fills in. Shown in Solar mode when the price limit is set. |
 | **Price the sun (sell value)** | `switch` Solar mode: price the sun as unsold electricity | on | on / off | Only the cost calculation. See [below](#price-limit-for-sun-hours-solar-mode). Shown when the price limit is above 0. |
 | **Night base temp (Solar/Hybrid)** | `number` Base temperature (solar mode) | 0 (off) | 0–60 °C | Shown in every mode; used in Solar and Hybrid mode. See [below](#base-temperature-solar-and-hybrid-mode). |
 | **Base temp ready by** | `time` Base temperature ready by | 07:00 | any time | When the base temperature should be reached. Shown when a base temperature is set. |
@@ -307,7 +302,7 @@ Everything is grouped under one device. Names are translated (English and Swedis
 | `select` | Mode | |
 | `number` | Target temperature, Comfort floor, Comfort floor max price, Grid re-heat below, Max heating periods, Energy correction, Surplus to start, House base load, Solar mode: price limit, Base temperature (solar mode) | See the settings table. |
 | `time` | Ready by, Base temperature ready by | |
-| `switch` | Automatic, Heat now, Learn energy need, Solar mode: price the sun as unsold electricity, Solar mode: heat in sun hours only when the surplus is enough | |
+| `switch` | Automatic, Heat now, Learn energy need, Solar mode: price the sun as unsold electricity, Solar mode: sell surplus outside the chosen sun hours, Solar mode: heat in sun hours only when the surplus is enough | |
 
 ### Status values
 
@@ -322,7 +317,7 @@ Everything is grouped under one device. Names are translated (English and Swedis
 | Heating (cheap power) | Heating in a planned cheap slot. |
 | Heating (solar) | Heating on live solar surplus. |
 | Heating (sun hour) | Heating in a sun hour chosen by the price limit. |
-| Heating (base temperature) | Solar mode is heating to the base temperature. |
+| Heating (base temperature) | Solar or Hybrid mode is heating to the base temperature. |
 | Heating (comfort floor) | The water was below the comfort floor. |
 | Heating now | *Heat now* is on. |
 | Manual heating | The switch was turned on outside the planner (by hand or by another automation). The planner leaves it on until the target is reached or you turn it off (at most 6 hours). |

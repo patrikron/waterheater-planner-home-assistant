@@ -1,18 +1,13 @@
 # Water Heater Planner
 
-[![Tests](https://github.com/YOUR-GITHUB-USER/waterheater-planner/actions/workflows/tests.yml/badge.svg)](https://github.com/YOUR-GITHUB-USER/waterheater-planner/actions/workflows/tests.yml)
-[![Validate](https://github.com/YOUR-GITHUB-USER/waterheater-planner/actions/workflows/validate.yml/badge.svg)](https://github.com/YOUR-GITHUB-USER/waterheater-planner/actions/workflows/validate.yml)
+[![Tests](https://github.com/patrikron/waterheater-planner-home-assistant/actions/workflows/tests.yml/badge.svg)](https://github.com/patrikron/waterheater-planner-home-assistant/actions/workflows/tests.yml)
+[![Validate](https://github.com/patrikron/waterheater-planner-home-assistant/actions/workflows/validate.yml/badge.svg)](https://github.com/patrikron/waterheater-planner-home-assistant/actions/workflows/validate.yml)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 
 *English: [README.md](README.md)*
 
 En integration för Home Assistant som värmer **varmvattenberedaren** när elen är billig, när solen skiner,
 eller en blandning. Den fungerar med varje beredare som styrs av en vanlig av/på-brytare.
-
-Upplägget är detsamma som i [SpotNav](https://github.com/henrikekblad/spotnav-home-assistant) för
-elbilsladdning: elpriset kommer från en prissensor du redan har i Home Assistant (Nord Pool, ENTSO-e,
-Energi Data Service, ...), solprognosen från källorna som matar Energy-panelen, och ett Lovelace-kort visar
-planen, kostnaden och inställningarna.
 
 <p align="center"><img src="docs/images/sv/overview-cheapest.png" width="360" alt="Kortet i läget Billigast"></p>
 
@@ -41,7 +36,7 @@ planen, kostnaden och inställningarna.
   vattentemperaturen når målet, så fel volym eller effekt gör planen mindre exakt men aldrig resultatet fel.
 - **Lär sig energibehovet** från dina riktiga värmningar, vilket spelar roll när temperaturgivaren sitter
   på utsidan av tanken.
-- **Komfortgräns** med valfritt pristak, **grundtemperatur** för Sol-läge, **elprisgräns för soltimmar**,
+- **Komfortgräns** med valfritt pristak, **grundtemperatur** för Sol- och Hybrid-läge, **elprisgräns för soltimmar**,
   en "Värm nu"-knapp och vanlig termostatlogik som reserv när priser saknas.
 - **Ett kort** med plan, kostnad, ett prisdiagram som visar när beredaren faktiskt värmt, energi och
   kostnad för senaste värmningen och alla inställningar.
@@ -51,7 +46,7 @@ planen, kostnaden och inställningarna.
 ### HACS (egen repository)
 
 1. Öppna menyn i HACS → **Anpassade repositories** och lägg till
-   `https://github.com/YOUR-GITHUB-USER/waterheater-planner` med kategorin **Integration**.
+   `https://github.com/patrikron/waterheater-planner-home-assistant` med kategorin **Integration**.
 2. Installera **Water Heater Planner** och starta om Home Assistant.
 
 ### Manuellt
@@ -173,7 +168,7 @@ automationer och dashboards. Värdena sparas och finns kvar efter omstart.
 | **Automatik** | `switch` Automatik | på | på / av | Av = planeraren låter beredarens strömbrytare vara helt ifred. |
 | **Värm nu** | `switch` Värm nu | av | på / av | Värm till målet nu, oavsett pris. Slår av sig själv när målet nåtts. |
 
-Inställningar som bara gäller **Sol** och **Hybrid** (de två första visas i båda, resten bara i Sol):
+Inställningar som bara gäller **Sol** och **Hybrid** (de två första och raderna för grundtemperatur visas i båda, resten bara i Sol):
 
 | Inställning | Entitet | Standard | Intervall | Vad den gör |
 |---|---|---|---|---|
@@ -181,7 +176,7 @@ Inställningar som bara gäller **Sol** och **Hybrid** (de två första visas i 
 | **Husets grundlast** | `number` Husets grundlast | 500 W | 0–10000 W | Vad huset drar ändå. Dras av solprognosen när soltimmar väljs: en timme räknas som soltimme först när prognosen minus grundlasten når *Överskott för start*. Påverkar inte den faktiska starten och stoppet, som använder nätsensorn. |
 | **Soltimmar, elprisgräns** | `number` Sol-läge: elprisgräns | 0 (av) | 0–1000 öre/kWh | Se [nedan](#elprisgräns-för-soltimmar-sol-läge). |
 | **Sälj överskott utanför valda timmar** | `switch` Sol-läge: sälj överskott utanför valda soltimmar | på | på / av | Av: överskott utnyttjas i alla timmar. Visas i Sol-läge när elprisgränsen är satt. |
-| **Soltimmar: bara vid överskott** | `switch` Sol-läge: värm i soltimmar bara när överskottet räcker, Sol-läge: sälj överskott utanför valda soltimmar | av | på / av | De valda soltimmarna värmer bara på verkligt överskott; nätet fyller aldrig i. Visas i Sol-läge när elprisgränsen är satt. |
+| **Soltimmar: bara vid överskott** | `switch` Sol-läge: värm i soltimmar bara när överskottet räcker | av | på / av | De valda soltimmarna värmer bara på verkligt överskott; nätet fyller aldrig i. Visas i Sol-läge när elprisgränsen är satt. |
 | **Sol har ett pris (säljvärde)** | `switch` Sol-läge: sol prissätts som utebliven försäljning | på | på / av | Bara kostnadsberäkningen. Se [nedan](#elprisgräns-för-soltimmar-sol-läge). Visas när elprisgränsen är över 0. |
 | **Grundtemp. natt (Sol/Hybrid)** | `number` Grundtemperatur (sol-läge) | 0 (av) | 0–60 °C | Visas i alla lägen; används i Sol- och Hybrid-läge. Se [nedan](#grundtemperatur-sol--och-hybrid-läge). |
 | **Grundtemp. klar senast** | `time` Grundtemperatur klar senast | 07:00 | valfri tid | När grundtemperaturen ska vara nådd. Visas när en grundtemperatur är satt. |
@@ -306,7 +301,7 @@ Allt hör till en enhet. Namnen är översatta (svenska och engelska).
 | `select` | Läge | |
 | `number` | Måltemperatur, Komfortgräns, Max elpris för komfortgräns, Värm på nätet först under, Max antal värmeperioder, Energikorrigering, Överskott för start, Husets grundlast, Sol-läge: elprisgräns, Grundtemperatur (sol-läge) | Se inställningstabellen. |
 | `time` | Färdigt senast, Grundtemperatur klar senast | |
-| `switch` | Automatik, Värm nu, Lär energibehovet, Sol-läge: sol prissätts som utebliven försäljning, Sol-läge: värm i soltimmar bara när överskottet räcker | |
+| `switch` | Automatik, Värm nu, Lär energibehovet, Sol-läge: sol prissätts som utebliven försäljning, Sol-läge: sälj överskott utanför valda soltimmar, Sol-läge: värm i soltimmar bara när överskottet räcker | |
 
 ### Statusvärden
 
@@ -321,7 +316,7 @@ Allt hör till en enhet. Namnen är översatta (svenska och engelska).
 | Värmer (billig el) | Värmer i en planerad billig kvart. |
 | Värmer (sol) | Värmer på verkligt solöverskott. |
 | Värmer (soltimme) | Värmer i en soltimme som valts av elprisgränsen. |
-| Värmer (grundtemperatur) | Sol-läget värmer till grundtemperaturen. |
+| Värmer (grundtemperatur) | Sol- eller Hybrid-läget värmer till grundtemperaturen. |
 | Värmer (komfortgräns) | Vattnet var under komfortgränsen. |
 | Värmer nu | *Värm nu* är på. |
 | Manuell värmning | Strömbrytaren slogs på utanför planeraren (för hand eller av en annan automation). Planeraren låter den vara på tills målet nåtts eller du stänger av den (högst 6 timmar). |
