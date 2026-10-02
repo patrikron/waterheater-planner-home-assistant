@@ -1,0 +1,16 @@
+{
+  "domain": "waterheater_planner",
+  "name": "Water Heater Planner",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [
+    "http",
+    "frontend"
+  ],
+  "documentation": "https://github.com/YOUR-GITHUB-USER/waterheater-planner",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/YOUR-GITHUB-USER/waterheater-planner/issues",
+  "requirements": [],
+  "version": "0.14.0"
+}

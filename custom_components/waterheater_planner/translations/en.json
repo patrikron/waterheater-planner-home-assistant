@@ -1,0 +1,243 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Water heater",
+        "description": "Pick the heater's switch, the water temperature sensor and the price sensor.",
+        "data": {
+          "name": "Name",
+          "switch_entity": "Switch (on/off)",
+          "temperature_entity": "Temperature sensor (water)",
+          "power_w": "Power",
+          "volume_l": "Tank volume",
+          "price_entity": "Price sensor",
+          "heater_power_entity": "Heater power sensor (optional)",
+          "energy_day_entity": "Energy today (optional)",
+          "energy_week_entity": "Energy this week (optional)",
+          "energy_month_entity": "Energy this month (optional)"
+        },
+        "data_description": {
+          "volume_l": "Needed to work out how long heating takes.",
+          "power_w": "The heater's power when the element is on.",
+          "price_entity": "The sensor that provides the electricity price, e.g. Nord Pool. It must show prices per hour or quarter (attributes raw_today/raw_tomorrow, prices or today/tomorrow). If it already includes tax, grid fee and VAT, leave the next step empty.",
+          "heater_power_entity": "Measures the heater's real power (W). Used to learn the energy need exactly. Without it, full power is assumed while the switch is on.",
+          "energy_day_entity": "The heater's energy so far today (kWh). Shown in the card's usage popup. Without it, what the integration has measured itself is used.",
+          "energy_week_entity": "The heater's energy so far this week (kWh).",
+          "energy_month_entity": "The heater's energy so far this month (kWh)."
+        }
+      },
+      "solar": {
+        "title": "Solar (optional)",
+        "description": "Needed for Solar and Hybrid modes. Skip it if you only want Cheapest.",
+        "data": {
+          "grid_power_entity": "Grid power (W)",
+          "grid_power_inverted": "Grid power: positive = export",
+          "battery_power_entity": "House battery power (W)",
+          "battery_power_inverted": "Battery: positive = discharging",
+          "solar_forecast_entries": "Solar forecast sources",
+          "house_baseline_w": "House base load",
+          "solar_start_w": "Surplus needed to start"
+        },
+        "data_description": {
+          "grid_power_entity": "Positive = importing from the grid.",
+          "solar_start_w": "Defaults to 80 % of the heater's power."
+        }
+      },
+      "fiscal": {
+        "title": "Electricity price",
+        "description": "Only fill this in if the price sensor shows the bare spot price. If it already includes tax, grid fee and VAT, leave the fields empty. The unit follows the sensor (e.g. cent/kWh).",
+        "data": {
+          "tax_minor": "Energy tax",
+          "transfer_minor": "Grid fee",
+          "vat_percent": "VAT"
+        }
+      }
+    },
+    "error": {
+      "price_sensor_missing": "The sensor was not found.",
+      "price_sensor_unsupported": "The sensor has no price list. Pick a price sensor with the attributes raw_today/raw_tomorrow, prices or today/tomorrow."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Water heater",
+        "data": {
+          "switch_entity": "Switch (on/off)",
+          "temperature_entity": "Temperature sensor (water)",
+          "power_w": "Power",
+          "volume_l": "Tank volume",
+          "price_entity": "Price sensor",
+          "heater_power_entity": "Heater power sensor (optional)",
+          "energy_day_entity": "Energy today (optional)",
+          "energy_week_entity": "Energy this week (optional)",
+          "energy_month_entity": "Energy this month (optional)"
+        },
+        "data_description": {
+          "price_entity": "The sensor that provides the electricity price, e.g. Nord Pool. It must show prices per hour or quarter (attributes raw_today/raw_tomorrow, prices or today/tomorrow). If it already includes tax, grid fee and VAT, leave the next step empty.",
+          "heater_power_entity": "Measures the heater's real power (W). Used to learn the energy need exactly. Without it, full power is assumed while the switch is on.",
+          "energy_day_entity": "The heater's energy so far today (kWh). Shown in the card's usage popup. Without it, what the integration has measured itself is used.",
+          "energy_week_entity": "The heater's energy so far this week (kWh).",
+          "energy_month_entity": "The heater's energy so far this month (kWh)."
+        }
+      },
+      "solar": {
+        "title": "Solar (optional)",
+        "data": {
+          "grid_power_entity": "Grid power (W)",
+          "grid_power_inverted": "Grid power: positive = export",
+          "battery_power_entity": "House battery power (W)",
+          "battery_power_inverted": "Battery: positive = discharging",
+          "solar_forecast_entries": "Solar forecast sources",
+          "house_baseline_w": "House base load",
+          "solar_start_w": "Surplus needed to start"
+        }
+      },
+      "fiscal": {
+        "title": "Electricity price",
+        "data": {
+          "tax_minor": "Energy tax",
+          "transfer_minor": "Grid fee",
+          "vat_percent": "VAT"
+        },
+        "description": "Only fill this in if the price sensor shows the bare spot price. If it already includes tax, grid fee and VAT, leave the fields empty. The unit follows the sensor (e.g. cent/kWh)."
+      }
+    },
+    "error": {
+      "price_sensor_missing": "The sensor was not found.",
+      "price_sensor_unsupported": "The sensor has no price list. Pick a price sensor with the attributes raw_today/raw_tomorrow, prices or today/tomorrow."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "disabled": "Off (manual control)",
+          "no_temperature": "No temperature",
+          "switch_unavailable": "Switch unavailable",
+          "at_target": "Target reached",
+          "idle": "Idle",
+          "waiting_cheap": "Waiting for a cheap hour",
+          "waiting_sun": "Waiting for sun",
+          "heating_grid": "Heating (cheap power)",
+          "heating_solar": "Heating (solar)",
+          "heating_sun_slot": "Heating (sun hour)",
+          "heating_base": "Heating (base temperature)",
+          "comfort_floor": "Heating (comfort floor)",
+          "boost": "Heating now",
+          "no_prices": "No price data",
+          "no_surplus_sensor": "Grid sensor missing",
+          "floor_price_cap": "Waiting (price above the comfort cap)",
+          "manual": "Manual heating"
+        }
+      },
+      "planned_cost": {
+        "name": "Planned cost"
+      },
+      "last_heating_energy": {
+        "name": "Energy, last heating"
+      },
+      "cost_day": {
+        "name": "Cost today"
+      },
+      "cost_week": {
+        "name": "Cost this week"
+      },
+      "cost_month": {
+        "name": "Cost this month"
+      },
+      "last_heating_cost": {
+        "name": "Cost, last heating"
+      },
+      "energy_needed": {
+        "name": "Energy needed"
+      },
+      "runtime": {
+        "name": "Planned heating time"
+      },
+      "next_start": {
+        "name": "Next start"
+      },
+      "current_price": {
+        "name": "Current price"
+      },
+      "solar_surplus": {
+        "name": "Solar surplus"
+      },
+      "energy_correction": {
+        "name": "Energy correction"
+      }
+    },
+    "select": {
+      "mode": {
+        "name": "Mode",
+        "state": {
+          "cheapest": "Cheapest",
+          "solar": "Solar",
+          "hybrid": "Hybrid"
+        }
+      }
+    },
+    "number": {
+      "target_temperature": {
+        "name": "Target temperature"
+      },
+      "min_temperature": {
+        "name": "Comfort floor"
+      },
+      "max_periods": {
+        "name": "Max heating periods"
+      },
+      "energy_adjust": {
+        "name": "Energy correction"
+      },
+      "floor_max_price": {
+        "name": "Comfort floor max price"
+      },
+      "base_temperature": {
+        "name": "Base temperature (solar mode)"
+      },
+      "regrid_below": {
+        "name": "Grid re-heat below"
+      },
+      "solar_price_cap": {
+        "name": "Solar mode: price limit"
+      },
+      "solar_start": {
+        "name": "Surplus to start"
+      },
+      "house_baseline": {
+        "name": "House base load"
+      }
+    },
+    "time": {
+      "ready_by": {
+        "name": "Ready by"
+      },
+      "base_by": {
+        "name": "Base temperature ready by"
+      }
+    },
+    "switch": {
+      "automatic": {
+        "name": "Automatic"
+      },
+      "boost": {
+        "name": "Heat now"
+      },
+      "learn_energy": {
+        "name": "Learn energy need"
+      },
+      "sell_other_sun": {
+        "name": "Solar mode: sell surplus outside the chosen sun hours"
+      },
+      "sun_surplus_only": {
+        "name": "Solar mode: heat in sun hours only when the surplus is enough"
+      },
+      "sun_priced": {
+        "name": "Solar mode: price the sun as unsold electricity"
+      }
+    }
+  }
+}

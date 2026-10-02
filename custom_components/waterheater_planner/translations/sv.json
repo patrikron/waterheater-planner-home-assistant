@@ -1,0 +1,243 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Varmvattenberedare",
+        "description": "Välj beredarens strömbrytare, temperatursensor och prissensor.",
+        "data": {
+          "name": "Namn",
+          "switch_entity": "Strömbrytare (på/av)",
+          "temperature_entity": "Temperatursensor (vattnet)",
+          "power_w": "Effekt",
+          "volume_l": "Tankens volym",
+          "price_entity": "Prissensor",
+          "heater_power_entity": "Beredarens effektsensor (valfri)",
+          "energy_day_entity": "Energi idag (valfri)",
+          "energy_week_entity": "Energi denna vecka (valfri)",
+          "energy_month_entity": "Energi denna månad (valfri)"
+        },
+        "data_description": {
+          "volume_l": "Behövs för att räkna ut hur lång tid uppvärmningen tar.",
+          "power_w": "Beredarens effekt när elementet är på.",
+          "price_entity": "Sensorn som ger elpriset, t.ex. Nord Pool. Välj en som visar priset per timme eller kvart (attributen raw_today/raw_tomorrow, prices eller today/tomorrow). Väljer du en sensor som redan innehåller skatt, nätavgift och moms behöver du inte fylla i något i nästa steg.",
+          "heater_power_entity": "Mäter beredarens verkliga effekt (W). Används för att lära sig energibehovet exakt. Utan den antas full effekt när strömbrytaren är på.",
+          "energy_day_entity": "Beredarens energi hittills idag (kWh). Visas i kortets förbrukningsruta. Utan den används det integrationen själv har mätt.",
+          "energy_week_entity": "Beredarens energi hittills denna vecka (kWh).",
+          "energy_month_entity": "Beredarens energi hittills denna månad (kWh)."
+        }
+      },
+      "solar": {
+        "title": "Sol (valfritt)",
+        "description": "Behövs för lägena Sol och Hybrid. Hoppa över om du bara vill köra Billigast.",
+        "data": {
+          "grid_power_entity": "Elnätseffekt (W)",
+          "grid_power_inverted": "Elnätseffekt: positivt värde = export",
+          "battery_power_entity": "Husbatteriets effekt (W)",
+          "battery_power_inverted": "Batteri: positivt värde = urladdning",
+          "solar_forecast_entries": "Solprognoskällor",
+          "house_baseline_w": "Husets grundlast",
+          "solar_start_w": "Överskott för start"
+        },
+        "data_description": {
+          "grid_power_entity": "Positivt = import från nätet.",
+          "solar_start_w": "Standard är 80 % av beredarens effekt."
+        }
+      },
+      "fiscal": {
+        "title": "Elpris",
+        "description": "Fyll bara i detta om prissensorn visar rent spotpris. Visar den redan pris inklusive skatt, nätavgift och moms, lämna fälten tomma. Enheten följer sensorn (t.ex. öre/kWh).",
+        "data": {
+          "tax_minor": "Energiskatt",
+          "transfer_minor": "Nätavgift",
+          "vat_percent": "Moms"
+        }
+      }
+    },
+    "error": {
+      "price_sensor_missing": "Sensorn hittades inte.",
+      "price_sensor_unsupported": "Sensorn har ingen prislista. Välj en prissensor med attributen raw_today/raw_tomorrow, prices eller today/tomorrow."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Varmvattenberedare",
+        "data": {
+          "switch_entity": "Strömbrytare (på/av)",
+          "temperature_entity": "Temperatursensor (vattnet)",
+          "power_w": "Effekt",
+          "volume_l": "Tankens volym",
+          "price_entity": "Prissensor",
+          "heater_power_entity": "Beredarens effektsensor (valfri)",
+          "energy_day_entity": "Energi idag (valfri)",
+          "energy_week_entity": "Energi denna vecka (valfri)",
+          "energy_month_entity": "Energi denna månad (valfri)"
+        },
+        "data_description": {
+          "price_entity": "Sensorn som ger elpriset, t.ex. Nord Pool. Välj en som visar priset per timme eller kvart (attributen raw_today/raw_tomorrow, prices eller today/tomorrow). Väljer du en sensor som redan innehåller skatt, nätavgift och moms behöver du inte fylla i något i nästa steg.",
+          "heater_power_entity": "Mäter beredarens verkliga effekt (W). Används för att lära sig energibehovet exakt. Utan den antas full effekt när strömbrytaren är på.",
+          "energy_day_entity": "Beredarens energi hittills idag (kWh). Visas i kortets förbrukningsruta. Utan den används det integrationen själv har mätt.",
+          "energy_week_entity": "Beredarens energi hittills denna vecka (kWh).",
+          "energy_month_entity": "Beredarens energi hittills denna månad (kWh)."
+        }
+      },
+      "solar": {
+        "title": "Sol (valfritt)",
+        "data": {
+          "grid_power_entity": "Elnätseffekt (W)",
+          "grid_power_inverted": "Elnätseffekt: positivt värde = export",
+          "battery_power_entity": "Husbatteriets effekt (W)",
+          "battery_power_inverted": "Batteri: positivt värde = urladdning",
+          "solar_forecast_entries": "Solprognoskällor",
+          "house_baseline_w": "Husets grundlast",
+          "solar_start_w": "Överskott för start"
+        }
+      },
+      "fiscal": {
+        "title": "Elpris",
+        "data": {
+          "tax_minor": "Energiskatt",
+          "transfer_minor": "Nätavgift",
+          "vat_percent": "Moms"
+        },
+        "description": "Fyll bara i detta om prissensorn visar rent spotpris. Visar den redan pris inklusive skatt, nätavgift och moms, lämna fälten tomma. Enheten följer sensorn (t.ex. öre/kWh)."
+      }
+    },
+    "error": {
+      "price_sensor_missing": "Sensorn hittades inte.",
+      "price_sensor_unsupported": "Sensorn har ingen prislista. Välj en prissensor med attributen raw_today/raw_tomorrow, prices eller today/tomorrow."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "disabled": "Av (manuell styrning)",
+          "no_temperature": "Temperatur saknas",
+          "switch_unavailable": "Strömbrytaren svarar inte",
+          "at_target": "Måltemperatur nådd",
+          "idle": "Vilar",
+          "waiting_cheap": "Väntar på billig tid",
+          "waiting_sun": "Väntar på sol",
+          "heating_grid": "Värmer (billig el)",
+          "heating_solar": "Värmer (sol)",
+          "heating_sun_slot": "Värmer (soltimme)",
+          "heating_base": "Värmer (grundtemperatur)",
+          "comfort_floor": "Värmer (komfortgräns)",
+          "boost": "Värmer nu",
+          "no_prices": "Elpris saknas",
+          "no_surplus_sensor": "Elnätssensor saknas",
+          "floor_price_cap": "Väntar (priset över komforttaket)",
+          "manual": "Manuell värmning"
+        }
+      },
+      "planned_cost": {
+        "name": "Planerad kostnad"
+      },
+      "last_heating_energy": {
+        "name": "Energi senaste värmning"
+      },
+      "cost_day": {
+        "name": "Kostnad idag"
+      },
+      "cost_week": {
+        "name": "Kostnad denna vecka"
+      },
+      "cost_month": {
+        "name": "Kostnad denna månad"
+      },
+      "last_heating_cost": {
+        "name": "Kostnad senaste värmning"
+      },
+      "energy_needed": {
+        "name": "Energi som behövs"
+      },
+      "runtime": {
+        "name": "Planerad värmetid"
+      },
+      "next_start": {
+        "name": "Nästa start"
+      },
+      "current_price": {
+        "name": "Elpris just nu"
+      },
+      "solar_surplus": {
+        "name": "Solöverskott"
+      },
+      "energy_correction": {
+        "name": "Energikorrigering"
+      }
+    },
+    "select": {
+      "mode": {
+        "name": "Läge",
+        "state": {
+          "cheapest": "Billigast",
+          "solar": "Sol",
+          "hybrid": "Hybrid"
+        }
+      }
+    },
+    "number": {
+      "target_temperature": {
+        "name": "Måltemperatur"
+      },
+      "min_temperature": {
+        "name": "Komfortgräns"
+      },
+      "max_periods": {
+        "name": "Max antal värmeperioder"
+      },
+      "energy_adjust": {
+        "name": "Energikorrigering"
+      },
+      "floor_max_price": {
+        "name": "Max elpris för komfortgräns"
+      },
+      "base_temperature": {
+        "name": "Grundtemperatur (sol-läge)"
+      },
+      "regrid_below": {
+        "name": "Värm på nätet först under"
+      },
+      "solar_price_cap": {
+        "name": "Sol-läge: elprisgräns"
+      },
+      "solar_start": {
+        "name": "Överskott för start"
+      },
+      "house_baseline": {
+        "name": "Husets grundlast"
+      }
+    },
+    "time": {
+      "ready_by": {
+        "name": "Färdigt senast"
+      },
+      "base_by": {
+        "name": "Grundtemperatur klar senast"
+      }
+    },
+    "switch": {
+      "automatic": {
+        "name": "Automatik"
+      },
+      "boost": {
+        "name": "Värm nu"
+      },
+      "learn_energy": {
+        "name": "Lär energibehovet"
+      },
+      "sun_priced": {
+        "name": "Sol-läge: sol prissätts som utebliven försäljning"
+      },
+      "sell_other_sun": {
+        "name": "Sol-läge: sälj överskott utanför valda soltimmar"
+      },
+      "sun_surplus_only": {
+        "name": "Sol-läge: värm i soltimmar bara när överskottet räcker"
+      }
+    }
+  }
+}
