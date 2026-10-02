@@ -1,0 +1,40 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      description: See the integration in Settings → Devices & services, or manifest.json.
+    validations:
+      required: true
+  - type: input
+    id: ha
+    attributes:
+      label: Home Assistant version
+    validations:
+      required: true
+  - type: input
+    id: price
+    attributes:
+      label: Price sensor
+      description: Which integration provides it (Nord Pool, ENTSO-e, ...) and its entity id.
+  - type: textarea
+    id: state
+    attributes:
+      label: Status sensor attributes
+      description: Developer tools → States → the integration's Status sensor. Remove anything private.
+      render: yaml
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "Add `custom_components.waterheater_planner: debug` under `logger:` and paste the relevant lines."
+      render: text

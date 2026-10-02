@@ -1,0 +1,67 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: pip install pytest pyflakes
+      - name: Lint
+        run: python -m pyflakes custom_components tests docs/tools
+      - name: Test
+        run: python -m pytest -q
+
+  card:
+    name: Card (JavaScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Syntax check
+        run: node --check custom_components/waterheater_planner/www/waterheater-planner-card.js
+
+  json:
+    name: Manifest and translations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          base = pathlib.Path("custom_components/waterheater_planner")
+          for path in [base / "manifest.json", pathlib.Path("hacs.json"), *sorted((base / "translations").glob("*.json"))]:
+              json.loads(path.read_text(encoding="utf-8"))
+              print("ok", path)
+          en = json.loads((base / "translations" / "en.json").read_text(encoding="utf-8"))
+          sv = json.loads((base / "translations" / "sv.json").read_text(encoding="utf-8"))
+
+          def keys(node, prefix=""):
+              if isinstance(node, dict):
+                  for k, v in node.items():
+                      yield from keys(v, f"{prefix}.{k}")
+              else:
+                  yield prefix
+
+          missing = set(keys(en)) ^ set(keys(sv))
+          assert not missing, f"translations differ: {sorted(missing)}"
+          PY
