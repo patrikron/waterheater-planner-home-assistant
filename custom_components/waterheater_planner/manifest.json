@@ -1,6 +1,9 @@
 {
   "domain": "waterheater_planner",
   "name": "Water Heater Planner",
+  "after_dependencies": [
+    "recorder"
+  ],
   "codeowners": [],
   "config_flow": true,
   "dependencies": [
