@@ -10,6 +10,7 @@ made-up tank, run through the real planner so the plans on the card are genuine 
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import types
@@ -43,6 +44,9 @@ ENTITIES = {
     "max_periods": "number.varmvattenberedare_max_heating_periods",
     "energy_adjust": "number.varmvattenberedare_energy_correction",
     "floor_max_price": "number.varmvattenberedare_comfort_floor_max_price",
+    "wait_saving": "number.varmvattenberedare_wait_saving",
+    "early_start_pct": "number.varmvattenberedare_early_start_pct",
+    "early_keep_pct": "number.varmvattenberedare_early_keep_pct",
     "base_temperature": "number.varmvattenberedare_base_temperature",
     "regrid_below": "number.varmvattenberedare_grid_re_heat_below",
     "solar_price_cap": "number.varmvattenberedare_solar_price_limit",
@@ -108,7 +112,7 @@ def scenario(now: datetime, temp: float, status: str, heater_on: bool, surplus: 
         "solar_price_cap": s.solar_price_cap, "solar_start": 2400, "house_baseline": 500,
         "sun_priced_setting": s.sun_priced, "sun_surplus_only": False, "sell_other_sun": True, "base_c": s.base_c, "base_temperature": s.base_c,
         "base_by": s.base_by.strftime("%H:%M"), "max_periods": s.max_periods, "energy_adjust": s.energy_adjust_pct,
-        "floor_max_price": s.floor_max_price, "energy_auto": True, "energy_learned": -48.7, "energy_in_use": -48.7,
+        "floor_max_price": s.floor_max_price, "wait_saving": 10, "early_start_pct": 25, "early_keep_pct": 12, "energy_auto": True, "energy_learned": -48.7, "energy_in_use": -48.7,
         "energy_samples": 7, "automatic": True, "boost": False, "heater_on": heater_on, "switch_entity": "switch.vvb", "temperature_entity": "sensor.vvb_temp",
         "power_w": 3000, "currency": "SEK", "major_unit": "kr", "minor_unit": "öre", "price_area": "sensor.nordpool_kwh_se4_sek_3_10_025",
         "price_now": cur, "price_error": None, "surplus_w": surplus,
@@ -179,6 +183,8 @@ body{{margin:0;padding:16px;background:var(--primary-background-color);color:var
         ("settings-solar", "solar", "light", "open"),
         ("settings-cheapest", "cheapest", "dark", "open"),
         ("usage", "solar", "dark", "collapsed"),
+        ("compact", "hybrid", "dark", "collapsed"),
+        ("compact-open", "hybrid", "dark", "collapsed"),
     ]
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -190,14 +196,17 @@ body{{margin:0;padding:16px;background:var(--primary-background-color);color:var
                 page.clock.install(time=datetime.fromisoformat(sc["now"]))
                 page.goto(html.as_uri())
                 page.evaluate("t => document.body.classList.toggle('light', t === 'light')", theme)
-                page.evaluate("""([sc, lang, settings]) => {
+                page.evaluate("""([sc, lang, settings, name, icon]) => {
                   const el = document.getElementById('c');
                   const hass = { states: { 'sensor.vvb_status': { entity_id: 'sensor.vvb_status', state: sc.state, last_updated: 'x', attributes: sc.attrs } },
                     language: lang, locale: { language: lang }, config: { time_zone: 'Europe/Stockholm' }, callService: () => Promise.resolve() };
-                  el.setConfig({ entity: 'sensor.vvb_status', name: lang === 'sv' ? 'Varmvatten' : 'Hot water', settings });
+                  el.setConfig({ entity: 'sensor.vvb_status', name: lang === 'sv' ? 'Varmvatten' : 'Hot water', settings, view: name.startsWith('compact') ? 'compact' : 'full', icon });
                   el.hass = hass;
-                }""", [sc, lang, settings])
+                }""", [sc, lang, settings, name, os.environ.get('WH_ICON', 'large')])
                 page.wait_for_timeout(500)
+                if name == "compact-open":
+                    page.evaluate("document.getElementById('c').shadowRoot.querySelector('[data-action=more]').click()")
+                    page.wait_for_timeout(300)
                 if name == "usage":
                     page.evaluate("document.getElementById('c').shadowRoot.querySelector('[data-action=usage]').click()")
                     page.wait_for_timeout(300)

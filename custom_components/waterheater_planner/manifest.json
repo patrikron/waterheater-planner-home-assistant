@@ -1,16 +1,19 @@
 {
   "domain": "waterheater_planner",
   "name": "Water Heater Planner",
+  "after_dependencies": [
+    "recorder"
+  ],
   "codeowners": [],
   "config_flow": true,
   "dependencies": [
     "http",
     "frontend"
   ],
-  "documentation": "https://github.com/YOUR-GITHUB-USER/waterheater-planner",
+  "documentation": "https://github.com/patrikron/waterheater-planner-home-assistant",
   "integration_type": "service",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/YOUR-GITHUB-USER/waterheater-planner/issues",
+  "issue_tracker": "https://github.com/patrikron/waterheater-planner-home-assistant/issues",
   "requirements": [],
-  "version": "0.14.0"
+  "version": "0.19.0"
 }

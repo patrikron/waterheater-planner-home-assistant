@@ -195,6 +195,15 @@
       "floor_max_price": {
         "name": "Comfort floor max price"
       },
+      "wait_saving": {
+        "name": "Wait for a cheaper hour only if it saves"
+      },
+      "early_start_pct": {
+        "name": "Early start: surplus to start"
+      },
+      "early_keep_pct": {
+        "name": "Early start: surplus to keep going"
+      },
       "base_temperature": {
         "name": "Base temperature (solar mode)"
       },

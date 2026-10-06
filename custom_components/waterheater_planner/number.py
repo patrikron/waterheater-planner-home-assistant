@@ -13,7 +13,7 @@ from .entity import WaterHeaterEntity
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities: AddEntitiesCallback) -> None:
     c = entry.runtime_data
-    async_add_entities([TargetTemperature(c), MinTemperature(c), MaxPeriods(c), EnergyAdjust(c), FloorMaxPrice(c), BaseTemperature(c), RegridBelow(c), SolarPriceCap(c), SolarStart(c), HouseBaseline(c)])
+    async_add_entities([TargetTemperature(c), MinTemperature(c), MaxPeriods(c), EnergyAdjust(c), FloorMaxPrice(c), WaitSaving(c), EarlyStartPct(c), EarlyKeepPct(c), BaseTemperature(c), RegridBelow(c), SolarPriceCap(c), SolarStart(c), HouseBaseline(c)])
 
 
 class TargetTemperature(WaterHeaterEntity, NumberEntity):
@@ -113,6 +113,66 @@ class FloorMaxPrice(WaterHeaterEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         await self.controller.async_update_settings(floor_max_price=float(value))
+
+
+class WaitSaving(WaterHeaterEntity, NumberEntity):
+    """Wait for a cheaper hour only if it saves at least this much (minor unit per kWh). 0 = always the cheapest."""
+
+    _attr_native_min_value = 0
+    _attr_native_max_value = 200
+    _attr_native_step = 1
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, c: WaterHeaterController) -> None:
+        super().__init__(c, "wait_saving")
+        self._attr_native_unit_of_measurement = f"{c.unit.minor_unit}/kWh"
+
+    @property
+    def native_value(self) -> float:
+        return self.controller.settings.wait_saving
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.controller.async_update_settings(wait_saving=float(value))
+
+
+class EarlyStartPct(WaterHeaterEntity, NumberEntity):
+    """Hybrid with "wait only if it saves": solar surplus (% of the heater's power) that starts heating ahead of the plan."""
+
+    _attr_native_min_value = 1
+    _attr_native_max_value = 100
+    _attr_native_step = 1
+    _attr_native_unit_of_measurement = "%"
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, c: WaterHeaterController) -> None:
+        super().__init__(c, "early_start_pct")
+
+    @property
+    def native_value(self) -> float:
+        return self.controller.settings.early_start_pct
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.controller.async_update_settings(early_start_pct=float(value))
+
+
+class EarlyKeepPct(WaterHeaterEntity, NumberEntity):
+    """... and the surplus (% of the heater's power) it needs to keep going once started."""
+
+    _attr_native_min_value = 0
+    _attr_native_max_value = 100
+    _attr_native_step = 1
+    _attr_native_unit_of_measurement = "%"
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, c: WaterHeaterController) -> None:
+        super().__init__(c, "early_keep_pct")
+
+    @property
+    def native_value(self) -> float:
+        return self.controller.settings.early_keep_pct
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.controller.async_update_settings(early_keep_pct=float(value))
 
 
 class BaseTemperature(WaterHeaterEntity, NumberEntity):

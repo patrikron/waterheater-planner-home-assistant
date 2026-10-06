@@ -195,6 +195,15 @@
       "floor_max_price": {
         "name": "Max elpris för komfortgräns"
       },
+      "wait_saving": {
+        "name": "Vänta på billigare timme bara om det sparar"
+      },
+      "early_start_pct": {
+        "name": "Tidig start: överskott för att starta"
+      },
+      "early_keep_pct": {
+        "name": "Tidig start: överskott för att fortsätta"
+      },
       "base_temperature": {
         "name": "Grundtemperatur (sol-läge)"
       },

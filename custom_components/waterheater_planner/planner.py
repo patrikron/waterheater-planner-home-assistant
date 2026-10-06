@@ -79,6 +79,8 @@ class PlanInputs:
     #: ... and the sun is then priced at the slot price (unsold electricity) instead of counted as free.
     sun_priced: bool = True
     sun_surplus_only: bool = False  # chosen sun hours only heat on real surplus: the grid never fills in
+    #: Waiting for a cheaper hour must save at least this much (minor unit/kWh) or heating starts now. 0 = off.
+    wait_saving: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,6 +129,8 @@ class Plan:
     force_now: bool = False
     #: Solar mode with a price limit: slots in sun hours where the heater may run, whatever the live surplus.
     sun_slots: tuple[tuple[datetime, datetime], ...] = ()
+    #: The plan starts later, but waiting saves less than the "wait only if it saves" setting: with sun to spare, start now.
+    heat_now_ok: bool = False
 
     @property
     def saving_minor(self) -> float:
@@ -282,6 +286,32 @@ def _allocate(
         previous_index = index
         previous_full = use >= slot.kwh(power_kw) - _EPS
     return periods, total_cost
+
+
+def _wait_pays_little(
+    window: Sequence[WindowSlot], indices: list[int], need_kwh: float, power_kw: float, now: datetime, wait_saving: float
+) -> bool:
+    """True if the plan starts later but waiting saves less than `wait_saving` per kWh.
+
+    The cheapest plan is compared with heating from now without a break. Costs are the real prices. The planner
+    keeps the cheapest plan; the engine uses this to start earlier when there is sun to spare right now.
+    """
+    if wait_saving <= 0 or not indices or not window or window[indices[0]].start <= now or window[0].start > now:
+        return False
+    _, best_cost = _allocate(window, indices, need_kwh, power_kw)
+    now_indices: list[int] = []
+    remaining = need_kwh
+    for i, slot in enumerate(window):
+        if remaining <= _EPS:
+            break
+        if i and window[i - 1].end != slot.start:
+            return False  # a gap in the prices: no unbroken heating from now
+        now_indices.append(i)
+        remaining -= slot.kwh(power_kw)
+    if remaining > _EPS:
+        return False
+    _, now_cost = _allocate(window, now_indices, need_kwh, power_kw)
+    return now_cost - best_cost < wait_saving * need_kwh
 
 
 def _cost_starting_now(window: Sequence[WindowSlot], need_kwh: float, power_kw: float) -> float:
@@ -655,6 +685,7 @@ def build_plan(inputs: PlanInputs) -> Plan:
     unit_kwh = power_kw * UNIT_MIN / 60.0
     need_units = max(1, math.ceil(grid_kwh / unit_kwh - _EPS))
     indices = select_cheapest(window, need_units, inputs.max_periods, power_kw)
+    early_ok = indices is not None and _wait_pays_little(window, indices, grid_kwh, power_kw, now, inputs.wait_saving)
     status = "ok"
     force_now = False
     if indices is None:
@@ -678,4 +709,5 @@ def build_plan(inputs: PlanInputs) -> Plan:
         hybrid_state=hybrid_state,
         waiting_for_prices=waiting,
         force_now=force_now,
+        heat_now_ok=early_ok,
     )
