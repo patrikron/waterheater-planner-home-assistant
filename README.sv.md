@@ -437,8 +437,9 @@ HACS-valideringen vid varje push, och en release bygger en zip av integrationen 
 
 ## Om projektet
 
-Den här integrationen är skriven med hjälp av [Claude](https://claude.ai) (Anthropic), under min ledning och
-körs i mitt eget hem. Jag använder den dagligen. Felrapporter och pull requests är välkomna.
+Den här integrationen är skriven med hjälp av [Claude](https://claude.ai) (Anthropic), under min ledning.
+Den är byggd utifrån mina egna behov och körs i mitt eget hem, så den passar kanske inte alla upplägg.
+Felrapporter och pull requests är välkomna, men jag tittar på dem på min fritid, så svar kan ta tid.
 
 ## Licens
 
