@@ -72,8 +72,18 @@ snabbomstart räcker). Ändras bara kortfilen räcker en hård omladdning av web
 
 ## Inställning vid installation
 
-Installationen har tre steg. Samma tre steg finns senare under **Konfigurera** på integrationen
-(ändringar laddar om integrationen).
+Första frågan är **typ av installation**:
+
+- **Enkel** frågar bara efter det viktigaste: beredaren (strömbrytare, temperatursensor, prissensor, effekt
+  och volym) och, om du vill, nätsensor och solprognos. Kortet visar då bara måltemperatur, komfortgräns,
+  färdigt senast, energikorrigering, lär energibehov, automatik och värm nu. Allt annat behåller sina
+  standardvärden och fungerar som vanligt.
+- **Avancerad** har alla val nedan och alla inställningar i kortet.
+
+Du kan byta när som helst under **Konfigurera** på integrationen (ändringen laddar om integrationen). Värden
+du har satt i avancerat läge finns kvar när du byter till enkel. Installationer från före det här valet är
+fortsatt avancerade. Resten av installationen har upp till tre steg. Val som är markerade *(avancerat)*
+visas bara i avancerat läge.
 
 ### Steg 1: beredaren
 
@@ -85,8 +95,8 @@ Installationen har tre steg. Samma tre steg finns senare under **Konfigurera** p
 | **Temperatursensor (vattnet)** | ja | En sensor (eller `input_number`) med vattentemperaturen i °C. |
 | **Effekt** | ja | Beredarens effekt i W när elementet är på. Standard 3000. |
 | **Tankens volym** | ja | Liter. Standard 200. |
-| **Energi idag / denna vecka / denna månad** | nej | Beredarens egna energiräknare (kWh). Visas i förbrukningsrutan. |
-| **Beredarens effektsensor** | nej | Mäter beredarens verkliga effekt. Gör inlärningen av energibehovet exakt och ger exakta värden i sensorn *Energi senaste värmning*. Utan den antas full effekt när strömbrytaren är på. |
+| **Energi idag / denna vecka / denna månad** *(avancerat)* | nej | Beredarens egna energiräknare (kWh). Visas i förbrukningsrutan. |
+| **Beredarens effektsensor** *(avancerat)* | nej | Mäter beredarens verkliga effekt. Gör inlärningen av energibehovet exakt och ger exakta värden i sensorn *Energi senaste värmning*. Utan den antas full effekt när strömbrytaren är på. |
 
 ### Steg 2: sol (valfritt)
 
@@ -96,13 +106,13 @@ Behövs för lägena *Sol* och *Hybrid*. Hoppa över om du bara vill köra *Bill
 |---|---|
 | **Elnätseffekt (W)** | En sensor för husets totala effekt mot elnätet. **Positivt = import från nätet, negativt = export.** Så upptäcks överskottet. Den ska mäta vid huvudsäkringen och inkludera beredaren. |
 | **Elnätseffekt: positivt värde = export** | Bocka i om din sensor har omvänt tecken. |
-| **Husbatteriets effekt (W)** | Valfri. Positivt = laddar. Batteriladdning räknas då som överskott som kan användas. |
-| **Batteri: positivt värde = urladdning** | Bocka i om batterisensorn har omvänt tecken. |
+| **Husbatteriets effekt (W)** *(avancerat)* | Valfri. Positivt = laddar. Batteriladdning räknas då som överskott som kan användas. |
+| **Batteri: positivt värde = urladdning** *(avancerat)* | Bocka i om batterisensorn har omvänt tecken. |
 | **Solprognoskällor** | Integrationerna som ger solprognos till Energy-panelen (Forecast.Solar, Solcast, Open-Meteo, ...). Används för att välja soltimmar i *Hybrid* och i *Sol* med elprisgräns. |
-| **Husets grundlast** | Vad huset drar ändå (W). Dras av prognosen. Standard 500. Kan också ändras i kortet. |
-| **Överskott för start** | Överskott (W) innan beredaren startar på sol. Standard är 80 % av beredarens effekt. Kan också ändras i kortet. |
+| **Husets grundlast** *(avancerat)* | Vad huset drar ändå (W). Dras av prognosen. Standard 500. Kan också ändras i kortet. |
+| **Överskott för start** *(avancerat)* | Överskott (W) innan beredaren startar på sol. Standard är 80 % av beredarens effekt. Kan också ändras i kortet. |
 
-### Steg 3: pristillägg (valfritt)
+### Steg 3: pristillägg (valfritt, avancerat)
 
 Fyll bara i detta om prissensorn visar **rent spotpris**. Visar sensorn redan pris inklusive skatt,
 nätavgift och moms, lämna fälten tomma.

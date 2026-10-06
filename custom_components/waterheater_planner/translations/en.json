@@ -2,6 +2,13 @@
   "config": {
     "step": {
       "user": {
+        "title": "Set-up type",
+        "description": "Simple shows only the essentials and works well for most. Advanced shows every setting. You can change this later under Configure.",
+        "data": {
+          "level": "Level"
+        }
+      },
+      "heater": {
         "title": "Water heater",
         "description": "Pick the heater's switch, the water temperature sensor and the price sensor.",
         "data": {
@@ -61,6 +68,13 @@
   "options": {
     "step": {
       "init": {
+        "title": "Set-up type",
+        "description": "Simple shows only the essentials and works well for most. Advanced shows every setting. You can change this later under Configure.",
+        "data": {
+          "level": "Level"
+        }
+      },
+      "heater": {
         "title": "Water heater",
         "data": {
           "switch_entity": "Switch (on/off)",
@@ -246,6 +260,14 @@
       },
       "sun_priced": {
         "name": "Solar mode: price the sun as unsold electricity"
+      }
+    }
+  },
+  "selector": {
+    "level": {
+      "options": {
+        "simple": "Simple: the essentials",
+        "advanced": "Advanced: every setting"
       }
     }
   }

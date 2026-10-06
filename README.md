@@ -71,8 +71,17 @@ restart is enough). A change in the card file only needs a hard refresh of the b
 
 ## Setup
 
-The setup has three steps. The same three steps are available later under **Configure** on the integration
-(changing them reloads the integration).
+The first question is the **set-up type**:
+
+- **Simple** asks only for the essentials: the heater (switch, temperature sensor, price sensor, power and
+  volume) and, optionally, grid power and the solar forecast. The card then shows just the target
+  temperature, comfort floor, ready by, energy correction, learn energy need, automatic and heat now. Everything
+  else keeps its default and keeps working.
+- **Advanced** has every option below and every setting in the card.
+
+You can switch at any time under **Configure** on the integration (changing it reloads the integration). Values
+you set in advanced mode are kept when you switch to simple. Installations from before this choice stay
+advanced. The rest of the setup has up to three steps; options marked *(advanced)* only appear in advanced mode.
 
 ### Step 1: the heater
 
@@ -84,8 +93,8 @@ The setup has three steps. The same three steps are available later under **Conf
 | **Temperature sensor (water)** | yes | A sensor (or `input_number`) with the water temperature in °C. |
 | **Power** | yes | The heater's power in W when the element is on. Default 3000. |
 | **Tank volume** | yes | Litres. Default 200. |
-| **Energy today / this week / this month** | no | The heater's own energy counters (kWh). Used in the usage popup. |
-| **Heater power sensor** | no | Measures the heater's real power. Makes the learning of the energy need exact and gives the *Energy, last heating* sensor exact values. Without it, full power is assumed while the switch is on. |
+| **Energy today / this week / this month** *(advanced)* | no | The heater's own energy counters (kWh). Used in the usage popup. |
+| **Heater power sensor** *(advanced)* | no | Measures the heater's real power. Makes the learning of the energy need exact and gives the *Energy, last heating* sensor exact values. Without it, full power is assumed while the switch is on. |
 
 ### Step 2: solar (optional)
 
@@ -95,13 +104,13 @@ Needed for *Solar* and *Hybrid* mode. Skip it if you only want *Cheapest*.
 |---|---|
 | **Grid power (W)** | A sensor for the house's total grid power. **Positive = importing from the grid, negative = exporting.** This is how surplus is detected; it must be measured at the main fuse and include the heater. |
 | **Grid power: positive = export** | Tick this if your sensor has the opposite sign. |
-| **House battery power (W)** | Optional. Positive = charging. Battery charging then counts as surplus that can be used. |
-| **Battery: positive = discharging** | Tick this if your battery sensor has the opposite sign. |
+| **House battery power (W)** *(advanced)* | Optional. Positive = charging. Battery charging then counts as surplus that can be used. |
+| **Battery: positive = discharging** *(advanced)* | Tick this if your battery sensor has the opposite sign. |
 | **Solar forecast sources** | The integrations that provide a solar forecast for the Energy dashboard (Forecast.Solar, Solcast, Open-Meteo, ...). Used to pick sun hours in *Hybrid* mode and in *Solar* mode with a price limit. |
-| **House base load** | What the house draws anyway (W). Taken off the forecast. Default 500. Can also be changed on the card. |
-| **Surplus needed to start** | Surplus (W) before the heater starts on solar. Default is 80 % of the heater's power. Can also be changed on the card. |
+| **House base load** *(advanced)* | What the house draws anyway (W). Taken off the forecast. Default 500. Can also be changed on the card. |
+| **Surplus needed to start** *(advanced)* | Surplus (W) before the heater starts on solar. Default is 80 % of the heater's power. Can also be changed on the card. |
 
-### Step 3: electricity price add-ons (optional)
+### Step 3: electricity price add-ons (optional, advanced)
 
 Only fill this in if the price sensor shows the **bare spot price**. If the sensor already includes tax,
 grid fee and VAT, leave the fields empty.

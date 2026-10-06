@@ -26,6 +26,7 @@ CONF_ENERGY_WEEK: Final = "energy_week_entity"
 CONF_ENERGY_MONTH: Final = "energy_month_entity"
 CONF_HOUSE_BASELINE_W: Final = "house_baseline_w"
 CONF_SOLAR_START_W: Final = "solar_start_w"
+CONF_ADVANCED: Final = "advanced"  # False = simple setup/card; a missing value (older entries) counts as advanced
 
 DEFAULT_HOUSE_BASELINE_W: Final = 500.0
 

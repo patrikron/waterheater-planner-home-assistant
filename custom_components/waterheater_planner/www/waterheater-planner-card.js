@@ -20,7 +20,7 @@
  * All grey text goes through one CSS variable, --wh-dim, set on ha-card.
  */
 
-const WH_CARD_VERSION = "0.2.0";
+const WH_CARD_VERSION = "0.3.0";
 
 const WH_TEXT = {
   sv: {
@@ -869,27 +869,29 @@ class WaterHeaterPlannerCard extends HTMLElement {
       <div class="row"><span>${whEsc(label)}</span>
         <span class="stepper"><button data-action="step" data-key="${key}" data-delta="${-step}" aria-label="${whEsc(label)} −">−</button><output>${shown ?? (label === t.floor && value <= 0 ? whEsc(t.floorOff) : this._num(value, 0))}</output><button data-action="step" data-key="${key}" data-delta="${step}" aria-label="${whEsc(label)} +">+</button></span></div>`;
     const adjust = Number(a.energy_adjust || 0);
+    // Simple set-up (chosen when the integration was added): only the essentials. Older entries have no value and stay advanced.
+    const simple = a.advanced === false;
     return `
       <button class="toggle" data-action="toggle" aria-expanded="${open}"><span>${whEsc(t.settings)}</span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="settings ${open ? "open" : ""}">
         ${stepper("target_temperature", a.target_temperature, t.targetTemp)}
         ${stepper("min_temperature", a.min_temperature, t.floor)}
-        ${a.entities?.floor_max_price && a.min_temperature > 0 ? stepper("floor_max_price", Number(a.floor_max_price || 0), t.floorCap, 10, Number(a.floor_max_price || 0) > 0 ? `${this._num(Number(a.floor_max_price), 0)} ${whEsc(a.minor_unit || "")}` : whEsc(t.noLimit)) : ""}
-        ${a.mode === "hybrid" && a.entities?.wait_saving ? stepper("wait_saving", Number(a.wait_saving || 0), t.waitSaving, 1, Number(a.wait_saving || 0) > 0 ? `${this._num(Number(a.wait_saving), 0)} ${whEsc(a.minor_unit || "")}` : whEsc(t.baseOff)) : ""}
-        ${a.mode === "hybrid" && a.entities?.early_start_pct && Number(a.wait_saving || 0) > 0 ? stepper("early_start_pct", Number(a.early_start_pct), t.earlyStart, 5, `${this._num(Number(a.early_start_pct), 0)} %`) : ""}
-        ${a.mode === "hybrid" && a.entities?.early_keep_pct && Number(a.wait_saving || 0) > 0 ? stepper("early_keep_pct", Number(a.early_keep_pct), t.earlyKeep, 1, `${this._num(Number(a.early_keep_pct), 0)} %`) : ""}
-        ${a.entities?.regrid_below ? stepper("regrid_below", Number(a.regrid_c || 0), t.regrid, 1, Number(a.regrid_c || 0) > 0 ? `${this._num(Number(a.regrid_c), 0)} °C` : whEsc(t.baseOff)) : ""}
-        ${a.mode !== "cheapest" && a.entities?.solar_start ? stepper("solar_start", Number(a.solar_start), t.solarStart, 100, `${this._num(Number(a.solar_start), 0)} W`) : ""}
-        ${a.mode !== "cheapest" && a.entities?.house_baseline ? stepper("house_baseline", Number(a.house_baseline), t.houseBase, 100, `${this._num(Number(a.house_baseline), 0)} W`) : ""}
-        ${a.mode === "solar" && a.entities?.solar_price_cap ? stepper("solar_price_cap", Number(a.solar_price_cap || 0), t.solarCap, 10, Number(a.solar_price_cap || 0) > 0 ? `${this._num(Number(a.solar_price_cap), 0)} ${whEsc(a.minor_unit || "")}` : whEsc(t.baseOff)) : ""}
-        ${a.mode === "solar" && a.entities?.sun_priced && Number(a.solar_price_cap || 0) > 0 ? `<div class="row"><span>${whEsc(t.sunPricedSwitch)}</span><button class="switch" role="switch" data-action="sunpriced" aria-checked="${!!a.sun_priced_setting}" aria-label="${whEsc(t.sunPricedSwitch)}"></button></div>` : ""}
-        ${a.mode === "solar" && a.entities?.sell_other_sun && Number(a.solar_price_cap || 0) > 0 ? `<div class="row"><span>${whEsc(t.sellOther)}</span><button class="switch" role="switch" data-action="sellother" aria-checked="${!!a.sell_other_sun}" aria-label="${whEsc(t.sellOther)}"></button></div>` : ""}
-        ${a.mode === "solar" && a.entities?.sun_surplus_only && Number(a.solar_price_cap || 0) > 0 ? `<div class="row"><span>${whEsc(t.surplusOnly)}</span><button class="switch" role="switch" data-action="surplusonly" aria-checked="${!!a.sun_surplus_only}" aria-label="${whEsc(t.surplusOnly)}"></button></div>` : ""}
-        ${a.entities?.base_temperature ? stepper("base_temperature", Number(a.base_c || 0), t.baseTemp, 1, Number(a.base_c || 0) > 0 ? `${this._num(Number(a.base_c), 0)} °C` : whEsc(t.baseOff)) : ""}
-        ${a.entities?.base_by && Number(a.base_c || 0) > 0 ? `<div class="row"><span>${whEsc(t.baseBy)}</span><input type="time" data-action="baseby" value="${whEsc(a.base_by)}" aria-label="${whEsc(t.baseBy)}"></div>` : ""}
+        ${simple ? "" : (a.entities?.floor_max_price && a.min_temperature > 0 ? stepper("floor_max_price", Number(a.floor_max_price || 0), t.floorCap, 10, Number(a.floor_max_price || 0) > 0 ? `${this._num(Number(a.floor_max_price), 0)} ${whEsc(a.minor_unit || "")}` : whEsc(t.noLimit)) : "")}
+        ${simple ? "" : (a.mode === "hybrid" && a.entities?.wait_saving ? stepper("wait_saving", Number(a.wait_saving || 0), t.waitSaving, 1, Number(a.wait_saving || 0) > 0 ? `${this._num(Number(a.wait_saving), 0)} ${whEsc(a.minor_unit || "")}` : whEsc(t.baseOff)) : "")}
+        ${simple ? "" : (a.mode === "hybrid" && a.entities?.early_start_pct && Number(a.wait_saving || 0) > 0 ? stepper("early_start_pct", Number(a.early_start_pct), t.earlyStart, 5, `${this._num(Number(a.early_start_pct), 0)} %`) : "")}
+        ${simple ? "" : (a.mode === "hybrid" && a.entities?.early_keep_pct && Number(a.wait_saving || 0) > 0 ? stepper("early_keep_pct", Number(a.early_keep_pct), t.earlyKeep, 1, `${this._num(Number(a.early_keep_pct), 0)} %`) : "")}
+        ${simple ? "" : (a.entities?.regrid_below ? stepper("regrid_below", Number(a.regrid_c || 0), t.regrid, 1, Number(a.regrid_c || 0) > 0 ? `${this._num(Number(a.regrid_c), 0)} °C` : whEsc(t.baseOff)) : "")}
+        ${simple ? "" : (a.mode !== "cheapest" && a.entities?.solar_start ? stepper("solar_start", Number(a.solar_start), t.solarStart, 100, `${this._num(Number(a.solar_start), 0)} W`) : "")}
+        ${simple ? "" : (a.mode !== "cheapest" && a.entities?.house_baseline ? stepper("house_baseline", Number(a.house_baseline), t.houseBase, 100, `${this._num(Number(a.house_baseline), 0)} W`) : "")}
+        ${simple ? "" : (a.mode === "solar" && a.entities?.solar_price_cap ? stepper("solar_price_cap", Number(a.solar_price_cap || 0), t.solarCap, 10, Number(a.solar_price_cap || 0) > 0 ? `${this._num(Number(a.solar_price_cap), 0)} ${whEsc(a.minor_unit || "")}` : whEsc(t.baseOff)) : "")}
+        ${simple ? "" : (a.mode === "solar" && a.entities?.sun_priced && Number(a.solar_price_cap || 0) > 0 ? `<div class="row"><span>${whEsc(t.sunPricedSwitch)}</span><button class="switch" role="switch" data-action="sunpriced" aria-checked="${!!a.sun_priced_setting}" aria-label="${whEsc(t.sunPricedSwitch)}"></button></div>` : "")}
+        ${simple ? "" : (a.mode === "solar" && a.entities?.sell_other_sun && Number(a.solar_price_cap || 0) > 0 ? `<div class="row"><span>${whEsc(t.sellOther)}</span><button class="switch" role="switch" data-action="sellother" aria-checked="${!!a.sell_other_sun}" aria-label="${whEsc(t.sellOther)}"></button></div>` : "")}
+        ${simple ? "" : (a.mode === "solar" && a.entities?.sun_surplus_only && Number(a.solar_price_cap || 0) > 0 ? `<div class="row"><span>${whEsc(t.surplusOnly)}</span><button class="switch" role="switch" data-action="surplusonly" aria-checked="${!!a.sun_surplus_only}" aria-label="${whEsc(t.surplusOnly)}"></button></div>` : "")}
+        ${simple ? "" : (a.entities?.base_temperature ? stepper("base_temperature", Number(a.base_c || 0), t.baseTemp, 1, Number(a.base_c || 0) > 0 ? `${this._num(Number(a.base_c), 0)} °C` : whEsc(t.baseOff)) : "")}
+        ${simple ? "" : (a.entities?.base_by && Number(a.base_c || 0) > 0 ? `<div class="row"><span>${whEsc(t.baseBy)}</span><input type="time" data-action="baseby" value="${whEsc(a.base_by)}" aria-label="${whEsc(t.baseBy)}"></div>` : "")}
         <div class="row"><span>${whEsc(t.readyBy)}</span><input type="time" data-action="ready" value="${whEsc(a.ready_by)}" aria-label="${whEsc(t.readyBy)}"></div>
-        ${stepper("max_periods", a.max_periods, t.maxPeriods)}
+        ${simple ? "" : (stepper("max_periods", a.max_periods, t.maxPeriods))}
         ${this._energyRows(a, stepper, adjust)}
         <div class="row"><span>${whEsc(t.automatic)}</span><button class="switch" role="switch" data-action="automatic" aria-checked="${a.automatic}" aria-label="${whEsc(t.automatic)}"></button></div>
         <button class="boost" data-action="boost" aria-pressed="${a.boost}">${whEsc(a.boost ? t.boostOn : t.boost)}</button>

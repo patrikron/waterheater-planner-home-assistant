@@ -2,6 +2,13 @@
   "config": {
     "step": {
       "user": {
+        "title": "Typ av installation",
+        "description": "Enkel visar bara det viktigaste och räcker för de flesta. Avancerad visar alla inställningar. Du kan ändra detta senare under Konfigurera.",
+        "data": {
+          "level": "Nivå"
+        }
+      },
+      "heater": {
         "title": "Varmvattenberedare",
         "description": "Välj beredarens strömbrytare, temperatursensor och prissensor.",
         "data": {
@@ -61,6 +68,13 @@
   "options": {
     "step": {
       "init": {
+        "title": "Typ av installation",
+        "description": "Enkel visar bara det viktigaste och räcker för de flesta. Avancerad visar alla inställningar. Du kan ändra detta senare under Konfigurera.",
+        "data": {
+          "level": "Nivå"
+        }
+      },
+      "heater": {
         "title": "Varmvattenberedare",
         "data": {
           "switch_entity": "Strömbrytare (på/av)",
@@ -246,6 +260,14 @@
       },
       "sun_surplus_only": {
         "name": "Sol-läge: värm i soltimmar bara när överskottet räcker"
+      }
+    }
+  },
+  "selector": {
+    "level": {
+      "options": {
+        "simple": "Enkel: det viktigaste",
+        "advanced": "Avancerad: alla inställningar"
       }
     }
   }

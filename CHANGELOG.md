@@ -2,6 +2,9 @@
 
 Versions follow `version` in `custom_components/waterheater_planner/manifest.json`.
 
+## 0.20.0
+- **Simple or advanced set-up:** the first question when adding the integration (and under *Configure*) is *Simple* or *Advanced*. Simple asks only for the essentials, and the card shows only target temperature, comfort floor, ready by, energy correction, learn energy need, automatic and heat now. Advanced is everything, as before. Existing installations stay advanced; values set in advanced mode are kept when switching to simple. New status attribute `advanced`; card version 0.3.0.
+
 ## 0.19.0
 - New card option `secondary_text: theme | bright | primary` (also in the card editor, *Grey texts*) for readability in dark themes. All grey text uses one CSS variable, `--wh-dim`, set on `ha-card`. Card version 0.2.0.
 

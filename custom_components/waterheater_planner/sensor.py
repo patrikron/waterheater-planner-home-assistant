@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_SWITCH, CONF_TEMPERATURE, DOMAIN
+from .const import CONF_ADVANCED, CONF_SWITCH, CONF_TEMPERATURE, DOMAIN
 from .controller import WaterHeaterController
 from .engine import STATUSES
 from .entity import WaterHeaterEntity
@@ -132,6 +132,7 @@ class StatusSensor(WaterHeaterEntity, SensorEntity):
             "early_start_pct": s.early_start_pct,
             "early_keep_pct": s.early_keep_pct,
             "energy_auto": s.energy_auto,
+            "advanced": bool(c.config.get(CONF_ADVANCED, True)),
             **self._last_heating_attrs(),
             "energy_learned": None if c.learner.correction_pct is None else round(c.learner.correction_pct, 1),
             "energy_in_use": round(c.engine.energy_correction_pct, 1),
