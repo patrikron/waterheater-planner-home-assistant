@@ -43,11 +43,22 @@ eller en blandning. Den fungerar med varje beredare som styrs av en vanlig av/p�
 
 ## Installation
 
-### HACS (egen repository)
+### HACS (rekommenderas)
 
-1. Öppna menyn i HACS → **Anpassade repositories** och lägg till
-   `https://github.com/patrikron/waterheater-planner-home-assistant` med kategorin **Integration**.
-2. Installera **Water Heater Planner** och starta om Home Assistant.
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=patrikron&repository=waterheater-planner-home-assistant&category=integration)
+
+Eller för hand:
+
+1. Öppna **HACS** i Home Assistant och klicka på menyn (⋮ uppe till höger) → **Anpassade arkiv**.
+2. Klistra in `https://github.com/patrikron/waterheater-planner-home-assistant`, välj kategorin
+   **Integration** och klicka på **Lägg till**.
+3. Sök efter **Water Heater Planner** i HACS, öppna den och klicka på **Ladda ner** (välj senaste versionen).
+4. Starta om Home Assistant.
+
+HACS visar sedan nya versioner som uppdateringar. Ladda ner uppdateringen och starta om Home Assistant.
+Dina inställningar behålls. Har du tidigare installerat genom att kopiera filer: ta bort den gamla mappen
+`custom_components/waterheater_planner` först, men ta **inte** bort integrationen under Enheter & tjänster
+(då försvinner inställningarna).
 
 ### Manuellt
 

@@ -43,11 +43,21 @@ shines, or a mix of both. It works with any water heater that is controlled by a
 
 ## Installation
 
-### HACS (custom repository)
+### HACS (recommended)
 
-1. In HACS, open the menu → **Custom repositories** and add
-   `https://github.com/patrikron/waterheater-planner-home-assistant` with the category **Integration**.
-2. Install **Water Heater Planner** and restart Home Assistant.
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=patrikron&repository=waterheater-planner-home-assistant&category=integration)
+
+Or by hand:
+
+1. Open **HACS** in Home Assistant, click the menu (⋮, top right) → **Custom repositories**.
+2. Paste `https://github.com/patrikron/waterheater-planner-home-assistant`, choose the category
+   **Integration** and click **Add**.
+3. Search for **Water Heater Planner** in HACS, open it and click **Download** (pick the latest version).
+4. Restart Home Assistant.
+
+HACS then shows new versions as updates. Download the update and restart Home Assistant. Your settings are
+kept. If you installed by copying files before, delete the old `custom_components/waterheater_planner`
+folder first, but do **not** remove the integration under Devices & services (that would delete its settings).
 
 ### Manually
 
