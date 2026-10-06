@@ -613,3 +613,71 @@ def test_surplus_only_off_still_fills_in_from_the_grid():
     plan = build_plan(engine.plan_inputs(noon, 40.0))
     assert plan.grid_kwh > 0.0
     assert engine.decide(noon, 40.0, plan, -500.0, False).status == "heating_sun_slot"
+
+
+def _early_sun_case(wait_saving, surplus_w):
+    from custom_components.waterheater_planner.planner import PriceSlot as PS
+    engine = make_engine(mode="hybrid", target_c=60, ready_by=time(18, 0), min_c=0, wait_saving=wait_saving)
+    base = START.replace(minute=0, second=0, microsecond=0)
+    # Now costs 50; an hour later 47 (3 cheaper); everything else is dear.
+    engine.price_slots = tuple(PS(base + timedelta(minutes=15 * i), 50 if i < 4 else 47 if i < 8 else 90) for i in range(96))
+    plan = build_plan(engine.plan_inputs(base, 45.0))
+    return engine, plan, base, surplus_w
+
+
+def test_small_saving_plus_sun_to_spare_heats_now():
+    engine, plan, now, surplus = _early_sun_case(wait_saving=10, surplus_w=1200)
+    assert plan.heat_now_ok and not plan.runs_at(now)
+    d = engine.decide(now, 45.0, plan, 1200.0, switch_on=False)
+    assert d.command is True and d.status == "heating_solar"
+
+
+def test_small_saving_but_no_sun_keeps_waiting():
+    engine, plan, now, _ = _early_sun_case(wait_saving=10, surplus_w=100)
+    d = engine.decide(now, 45.0, plan, 100.0, switch_on=False)
+    assert d.command is False and d.status == "waiting_cheap"
+
+
+def test_without_the_setting_sun_to_spare_does_not_start_early():
+    engine, plan, now, _ = _early_sun_case(wait_saving=0, surplus_w=1200)
+    assert not plan.heat_now_ok
+    d = engine.decide(now, 45.0, plan, 1200.0, switch_on=False)
+    assert d.status == "waiting_cheap"
+
+
+def test_early_start_levels_are_settings():
+    engine, plan, now, _ = _early_sun_case(wait_saving=10, surplus_w=0)
+    power = engine.config.power_w
+    engine.settings.early_start_pct = 50.0
+    assert engine.decide(now, 45.0, plan, power * 0.4, switch_on=False).status == "waiting_cheap"
+    assert engine.decide(now + timedelta(seconds=30), 45.0, plan, power * 0.6, switch_on=False).status == "heating_solar"
+    engine.settings.early_keep_pct = 40.0  # keeps going down to 40 %
+    assert engine.decide(now + timedelta(seconds=60), 45.0, plan, power * 0.45, switch_on=True).status == "heating_solar"
+    assert engine.decide(now + timedelta(seconds=90), 45.0, plan, power * 0.3, switch_on=True).status == "waiting_cheap"
+
+
+def test_a_heating_that_finishes_just_after_ready_by_does_not_guard_the_evening():
+    # Began at 17:30 for the 18:00 deadline, reached the target at 18:02: the next day's heating is planned as usual.
+    engine = make_engine(mode="cheapest", target_c=60, ready_by=time(18, 0), min_c=0, regrid_c=20)
+    began = START - timedelta(minutes=30)  # START is 18:00 local
+    plan = build_plan(engine.plan_inputs(began, 50.0))
+    engine.decide(began, 50.0, plan, None, False)
+    engine.cycle_active = True
+    engine.decide(began, 50.0, plan, None, True)  # the cycle is under way
+    assert engine._cycle_start_s == began.timestamp()
+    done = START + timedelta(minutes=2)
+    engine.decide(done, 60.5, plan, None, True)
+    assert engine.regrid_until == 0.0
+    assert engine.need_kwh(35.0, done + timedelta(hours=1)) > 0.0
+
+
+def test_a_night_heating_still_guards_until_the_next_ready_by():
+    engine = make_engine(mode="cheapest", target_c=60, ready_by=time(18, 0), min_c=0, regrid_c=20)
+    began = START + timedelta(hours=9)  # 03:00 local
+    plan = build_plan(engine.plan_inputs(began, 50.0))
+    engine.cycle_active = True
+    engine.decide(began, 50.0, plan, None, True)
+    done = began + timedelta(hours=1)
+    engine.decide(done, 60.5, plan, None, True)
+    assert engine.regrid_until == engine.deadline(done).timestamp() > done.timestamp()
+    assert engine.need_kwh(35.0, done + timedelta(hours=2)) == 0.0

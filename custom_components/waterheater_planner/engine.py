@@ -69,6 +69,9 @@ class Settings:
     mode: str = MODE_CHEAPEST
     target_c: float = 60.0
     min_c: float = 40.0  # comfort floor; 0 turns it off
+    early_start_pct: float = 25.0  # Hybrid, with wait_saving: surplus (% of the heater's power) that starts it ahead of the plan
+    early_keep_pct: float = 12.0  # ... and that keeps it going once started
+    wait_saving: float = 0.0  # Cheapest/Hybrid: wait for a cheaper hour only if it saves at least this much (minor unit/kWh); 0 = off
     floor_max_price: float = 0.0  # the comfort floor does not heat above this price (minor unit/kWh); 0 = no limit
     ready_by: time = time(16, 0)
     max_periods: int = 4
@@ -114,6 +117,7 @@ class Engine:
     forecast_wh: Mapping[datetime, float] | None = None
 
     cycle_active: bool = False
+    _cycle_start_s: float | None = field(default=None, init=False, repr=False)  # when the running heating began
     floor_active: bool = False
     _floor_capped: bool = field(default=False, init=False, repr=False)
     regrid_active: bool = False  # a re-heating below `regrid_c` has begun and runs on to the target
@@ -128,6 +132,7 @@ class Engine:
     _last_on: float = field(default=-math.inf, init=False, repr=False)
     _last_off: float = field(default=-math.inf, init=False, repr=False)
     _cmd_on_s: float = field(default=-math.inf, init=False, repr=False)  # when the planner last asked for "on"
+    _early_sun: bool = field(default=False, init=False, repr=False)  # Hybrid: heating now on a little sun, ahead of a plan that saves little
     _manual_since: float = field(default=-math.inf, init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -198,7 +203,7 @@ class Engine:
         need = self.need_kwh(temp, now)
         slot = int(now.timestamp() // 900)
         return (
-            slot, s.mode, s.target_c, s.ready_by, s.max_periods, int(need / 0.5), need > 0,
+            slot, s.mode, s.target_c, s.ready_by, s.max_periods, s.wait_saving, s.early_start_pct, s.early_keep_pct, int(need / 0.5), need > 0,
             s.solar_price_cap, s.sun_priced, s.sun_surplus_only, s.regrid_c, self.regrid_armed(now), self.regrid_active, s.base_c, s.base_by, int(self.base_need_kwh(temp) / 0.5),
             hash(self.price_slots), hash(tuple(sorted(self.forecast_wh.items()))) if self.forecast_wh else None,
         )
@@ -221,6 +226,7 @@ class Engine:
             solar_price_cap=s.solar_price_cap if s.mode == MODE_SOLAR else 0.0,
             sun_priced=s.sun_priced,
             sun_surplus_only=s.sun_surplus_only,
+            wait_saving=s.wait_saving,
         )
 
     # ---- live decision -------------------------------------------------------------------
@@ -265,6 +271,10 @@ class Engine:
             self.manual_active = False
 
         decision = self._apply_dwell(now_s, self._decide(now, now_s, temp, plan, available_w), switch_on)
+        if not self.cycle_active:
+            self._cycle_start_s = None
+        elif self._cycle_start_s is None:
+            self._cycle_start_s = now_s
         if decision.command and not switch_on:
             self._cmd_on_s = now_s
         return decision
@@ -292,7 +302,12 @@ class Engine:
             self.regrid_active = True  # a started re-heating runs on to the target
         if temp >= s.target_c:
             if s.regrid_c > 0 and (self.cycle_active or self.manual_active):
-                self.regrid_until = self.deadline(now).timestamp()  # a heating has just reached the target
+                # A heating has just reached the target. It guards until the "ready by" it was heating for. One that
+                # began before a "ready by" that has passed since (it ran a little late) belongs to that one: no guard,
+                # so the evening after it is planned as usual.
+                began = self._cycle_start_s if self._cycle_start_s is not None else now_s
+                until = self.deadline(datetime.fromtimestamp(began, now.tzinfo)).timestamp()
+                self.regrid_until = until if until > now_s else 0.0
             self.manual_active = False
             self.regrid_active = False
             self.cycle_active = False
@@ -366,6 +381,16 @@ class Engine:
         if s.mode in (MODE_SOLAR, MODE_HYBRID) and solar_wanted and not sell_other:
             self.cycle_active = True
             return Decision(True, "heating_solar")
+
+        # Hybrid: the plan waits for a cheaper hour that saves little (see "wait only if it saves"). With some sun to
+        # spare right now, heat now instead. Starts at `early_start_pct` of the heater's power, runs on down to `early_keep_pct`.
+        if s.mode == MODE_HYBRID and s.wait_saving > 0 and need_open and plan is not None and plan.heat_now_ok and available_w is not None:
+            power = self.config.power_w
+            if available_w >= power * (s.early_keep_pct if self._early_sun else s.early_start_pct) / 100.0:
+                self._early_sun = True
+                self.cycle_active = True
+                return Decision(True, "heating_solar")
+        self._early_sun = False
 
         if not need_open and s.mode != MODE_SOLAR:
             return Decision(False, "idle")

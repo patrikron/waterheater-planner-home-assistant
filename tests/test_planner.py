@@ -248,3 +248,33 @@ def test_solar_hours_respect_baseline_and_start_threshold():
     )
     assert [h.start.hour for h in hours] == [10]  # 2400-500 < 2000, 2600-500 >= 2000
     assert hours[0].kwh == pytest.approx(2.1)
+
+
+def _slight_saving_prices():
+    # Now (00:00) costs 50; 45 minutes later it is 47 (only 3 cheaper); the rest is dear.
+    prices = [50] * 24
+    prices[0:3] = [50, 50, 50]
+    prices[3:7] = [47, 47, 47, 47]
+    prices[7:] = [80] * 17
+    return slots_from(prices)
+
+
+def test_small_saving_postpones_heating_without_the_tolerance():
+    plan = build_plan(inputs(price_slots=_slight_saving_prices(), need_kwh=3.0))
+    assert plan.periods[0].start >= T0 + timedelta(minutes=45)
+    assert not plan.heat_now_ok
+
+
+def test_wait_saving_flags_a_small_saving_but_keeps_the_cheapest_plan():
+    plan = build_plan(inputs(price_slots=_slight_saving_prices(), need_kwh=3.0, wait_saving=10))
+    assert plan.heat_now_ok
+    assert plan.periods[0].start >= T0 + timedelta(minutes=45)  # the plan itself is still the cheapest one
+
+
+def test_wait_saving_still_waits_when_the_saving_is_big():
+    prices = [50] * 24
+    prices[8:12] = [10, 10, 10, 10]
+    plan = build_plan(inputs(price_slots=slots_from(prices), need_kwh=3.0, wait_saving=10))
+    assert plan.periods[0].start >= T0 + timedelta(hours=2)
+    assert plan.cost_minor == pytest.approx(3.0 * 10)
+    assert not plan.heat_now_ok

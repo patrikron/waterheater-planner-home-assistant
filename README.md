@@ -129,7 +129,23 @@ type: custom:waterheater-planner-card
 entity: sensor.hot_water_status      # the integration's Status sensor
 name: Hot water                      # optional
 settings: collapsed                  # collapsed (default) | open | hidden
+view: full                           # full (default) | compact
+icon: large                          # large (default) | small | none
+icon_name: mdi:water-boiler          # optional: any Home Assistant icon instead of the built-in tank
+secondary_text: theme                # grey texts: theme (default) | bright | primary
 ```
+
+**Grey texts** (`secondary_text`) are hard to read in some dark themes. `theme` uses the theme's secondary text colour,
+`bright` a lighter mix of the main text colour, and `primary` the same colour as the main text (white in a dark theme).
+The choice is also in the card editor under *Grey texts*.
+
+**Compact view** (`view: compact`) shows only the temperature, the status, the usage button and the mode buttons, plus one line saying when the next heating is planned.
+A **Show more** button folds out the rest (cost, chart, planned heating and settings). `full` shows everything, as before.
+
+<p align="center">
+  <img src="docs/images/en/compact.png" width="300" alt="Compact view">
+  <img src="docs/images/en/compact-open.png" width="300" alt="Compact view, expanded">
+</p>
 
 If the card does not show up in the picker, do a hard refresh (Ctrl+Shift+R, or clear the app cache).
 
@@ -157,6 +173,7 @@ and dashboards. Values are stored and survive restarts.
 | **Mode** | `select` Mode | Hybrid if a solar forecast is configured, else Cheapest | Cheapest / Solar / Hybrid | See [Modes](#modes). |
 | **Target temperature** | `number` Target temperature | 60 °C | 30–85 | Heating stops when the measured water temperature reaches this, whatever the plan says. |
 | **Comfort floor** | `number` Comfort floor | 40 °C | 0–70 (0 = off) | Below this the water is heated immediately, whatever the price. Turns off again 1 °C above. |
+| **Wait only if it saves** | `number` Wait for a cheaper hour only if it saves | 0 (off) | 0–200 öre/kWh | Hybrid: with sun to spare, start now unless a later hour is at least this much cheaper per kWh. See [below](#wait-only-if-it-saves). |
 | **Grid re-heat only below** | `number` Grid re-heat below | 0 (off) | 0–85 °C | A guard against re-heating from the grid after a heating has reached the target. See [below](#grid-re-heat-limit). |
 | **Comfort floor, max price** | `number` Comfort floor max price | 0 (no limit) | 0–1000 öre/kWh | The comfort floor does not heat while the price is above this. The normal plan (cheap hours, sun) and *Heat now* still work. Shown when the comfort floor is on. |
 | **Ready by** | `time` Ready by | 16:00 | any time | The time the water should be hot. The planner picks hours before the next occurrence of this time. |
@@ -245,6 +262,22 @@ that are too small, or that did not reach the target do not count.
 - Point to a **heater power sensor** (optional) if you have one: then the energy is measured exactly.
 - The diagnostic sensor *Energy correction* shows the value in use, and the card shows where it comes from.
 
+### Wait only if it saves
+
+The planner normally picks the very cheapest hours, even if that means waiting for a price that is only a few öre
+lower than now. **Wait only if it saves** (öre/kWh, 0 = off) sets how much cheaper waiting has to be before the
+heater holds back **when there is sun to spare**.
+
+- The plan itself does not change: it still shows the cheapest hours.
+- If the plan starts later, but heating from now without a break would cost less than the setting more per kWh,
+  the heater **starts now as soon as there is some solar surplus**: **Early start at surplus** (default 25 % of the
+  heater's power) to start and **Keep going until surplus below** (default 12 %) to keep going. The status says *Heating (solar)*.
+- Without surplus, it waits for the planned hour as usual. A later hour that is clearly cheaper (more than the
+  setting) is still waited for.
+
+Example: with 10, a later hour that is 3 öre cheaper does not hold the heater back while the sun is shining, but one
+that is 40 öre cheaper does. Hybrid mode only.
+
 ### Grid re-heat limit
 
 **Grid re-heat only below** stops the planner from forcing in new grid heating after a shower, once the
@@ -258,6 +291,9 @@ water has already been heated up for the day.
    in the cheapest hours.
 3. When **Ready by** has passed, the limit is reset and the planner plans the next heating (before the next
    *Ready by*) as usual. It does not apply again until a heating has reached the target.
+
+A heating that began before a *Ready by* that has passed since (it ran a little late, e.g. started 17:30 and finished
+18:02 with *Ready by* 18:00) belongs to that *Ready by* and does not guard the evening and night after it.
 
 Set it to 0 to turn the limit off. The status sensor's `regrid_armed` attribute tells whether it holds right now.
 

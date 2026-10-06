@@ -2,6 +2,33 @@
 
 Versions follow `version` in `custom_components/waterheater_planner/manifest.json`.
 
+## 0.19.0
+- New card option `secondary_text: theme | bright | primary` (also in the card editor, *Grey texts*) for readability in dark themes. All grey text uses one CSS variable, `--wh-dim`, set on `ha-card`. Card version 0.2.0.
+
+## 0.18.3
+- **Grid re-heat limit:** a heating that began before a "Ready by" that has passed (it ran a little late and reached the target just after) no longer guards until the next day's "Ready by". The evening and night after it are planned as usual, so a shower at 19:00 is heated again in the cheapest hours before the next "Ready by".
+
+## 0.18.2
+- The surplus levels for the early start are settings now (Hybrid, shown when **Wait only if it saves** is on): **Early start at surplus** (default 25 % of the heater's power) and **Keep going until surplus below** (default 12 %).
+
+## 0.18.1
+- **Wait only if it saves** now only starts the heater earlier when there is solar surplus (a quarter of the heater's power to start, an eighth to keep going) and waiting would save less than the setting. Without sun to spare the plan is followed. Hybrid mode only; the plan itself is unchanged.
+
+## 0.18.0
+- New setting **Wait only if it saves** (`number` Wait for a cheaper hour only if it saves, öre/kWh): if waiting for a cheaper hour saves less than this per kWh, the heater may start earlier. 0 = off (as before).
+
+## 0.17.0
+- You can choose the card's icon: `icon_name: mdi:water-boiler` (or any Home Assistant icon; the card editor has an icon picker). Empty = the built-in tank icon. The colors still follow the state.
+
+## 0.16.0
+- The card has a tank icon left of the title and temperature. New option `icon: large | small | none` (also in the card editor; default `large`). The icon is turquoise while heating from the grid, yellow while heating on sun and dim when idle. A long status text now wraps inside its chip instead of pushing the buttons to a second row.
+
+## 0.15.1
+- The compact view has a line under the mode buttons that says when the next heating is planned (or that the heater is waiting for sun, for prices, or that nothing is needed).
+
+## 0.15.0
+- New card option `view: compact` (also in the card editor): shows the temperature, status, usage button and mode buttons, with a **Show more** button for the rest. `view: full` (default) is unchanged.
+
 ## 0.14.0
 - Every setting in the card has an explanation: a tooltip on hover, and a tap on the label shows the text under the row (for touch screens).
 

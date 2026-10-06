@@ -9,9 +9,18 @@
  *   entity: sensor.varmvattenberedare_status
  *   name: Varmvatten              # optional
  *   settings: collapsed           # collapsed (default) | open | hidden
+ *   view: full                    # full (default) | compact (temperature, status and modes; the rest folds out)
+ *   icon: large                   # large (default) | small | none
+ *   icon_name: mdi:water-boiler   # optional: any Home Assistant icon instead of the built-in tank
+ *   secondary_text: theme         # grey texts (labels, units, chart axes, explanations):
+ *                                 #   theme (default) = the theme's secondary text colour
+ *                                 #   bright          = lighter, mixed from the primary text colour (82 %)
+ *                                 #   primary         = the same as the main text (white in a dark theme)
+ *
+ * All grey text goes through one CSS variable, --wh-dim, set on ha-card.
  */
 
-const WH_CARD_VERSION = "0.1.0";
+const WH_CARD_VERSION = "0.2.0";
 
 const WH_TEXT = {
   sv: {
@@ -73,6 +82,9 @@ const WH_TEXT = {
     floor: "Komfortgräns",
     floorOff: "av",
     floorCap: "Komfortgräns, max pris",
+    waitSaving: "Vänta bara om det sparar",
+    earlyStart: "Tidig start vid överskott",
+    earlyKeep: "Fortsätt tills överskottet under",
     noLimit: "ingen gräns",
     readyBy: "Färdigt senast",
     solarCap: "Soltimmar, elprisgräns",
@@ -107,6 +119,9 @@ const WH_TEXT = {
     help: {
       target_temperature: "Temperaturen vattnet ska värmas till.",
       min_temperature: "Under den här temperaturen värms vattnet direkt, oavsett plan. Ett skydd mot kallt vatten. 0 = av.",
+      early_start_pct: "Hur mycket solöverskott (i % av beredarens effekt) som krävs för att starta före planen när väntan sparar lite.",
+      early_keep_pct: "När den startat tidigt fortsätter den tills överskottet faller under detta (i % av beredarens effekt).",
+      wait_saving: "Hybrid: finns det sol över, börjar beredaren värma direkt om väntan på en billigare timme sparar mindre än så här per kWh. Utan sol över väntar den på planen. 0 = av.",
       floor_max_price: "Komfortgränsen värmer inte när elpriset är över detta. Då väntar den på den vanliga planen (billiga timmar, sol). 0 = ingen gräns.",
       regrid_below: "Efter att en värmning nått måltemperaturen planeras ingen ny nätvärme före nästa Färdigt senast så länge vattnet är minst så här varmt. Solöverskott får fortfarande värma. Därefter nollställs den. 0 = av.",
       solar_start: "Solöverskott som krävs för att starta värmning på sol. Den stänger av sig när överskottet ligger under hälften av beredarens effekt i 5 minuter.",
@@ -126,6 +141,22 @@ const WH_TEXT = {
     },
     pickSettings: "Inställningar",
     settingsOptions: { collapsed: "Hopfällda", open: "Öppna", hidden: "Dolda" },
+    pickView: "Visning",
+    pickIcon: "Ikon (storlek)",
+    pickDim: "Gråa texter",
+    dimOptions: { theme: "Temats färg", bright: "Ljusare", primary: "Samma som huvudtexten (vit i mörkt tema)" },
+    pickIconName: "Ikon (välj egen, tom = standard)",
+    iconOptions: { large: "Stor", small: "Liten", none: "Ingen" },
+    viewOptions: { full: "Full", compact: "Kompakt" },
+    showMore: "Visa mer",
+    nextHeat: (when) => `Nästa värmning ${when}`,
+    heatingUntil: (when) => `Värmer till ${when}`,
+    nextSun: (when) => `Väntar på sol från ${when}`,
+    nextNone: "Ingen värmning planerad",
+    nextNoNeed: "Ingen värmning behövs",
+    nextPrices: "Väntar på morgondagens priser",
+    nextSolar: "Värmer när solen räcker",
+    showLess: "Visa mindre",
   },
   en: {
     now: "now",
@@ -186,6 +217,9 @@ const WH_TEXT = {
     floor: "Comfort floor",
     floorOff: "off",
     floorCap: "Comfort floor, max price",
+    waitSaving: "Wait only if it saves",
+    earlyStart: "Early start at surplus",
+    earlyKeep: "Keep going until surplus below",
     noLimit: "no limit",
     readyBy: "Ready by",
     solarCap: "Sun hours, price limit",
@@ -220,6 +254,9 @@ const WH_TEXT = {
     help: {
       target_temperature: "The temperature the water is heated to.",
       min_temperature: "Below this temperature the water is heated immediately, whatever the plan. A guard against cold water. 0 = off.",
+      early_start_pct: "How much solar surplus (as % of the heater power) it takes to start ahead of the plan when waiting saves little.",
+      early_keep_pct: "Once started early, it keeps going until the surplus falls below this (as % of the heater power).",
+      wait_saving: "Hybrid: with sun to spare, the heater starts now if waiting for a cheaper hour saves less than this per kWh. Without sun to spare it follows the plan. 0 = off.",
       floor_max_price: "The comfort floor does not heat while the price is above this. It then waits for the normal plan (cheap hours, sun). 0 = no limit.",
       regrid_below: "After a heating has reached the target, no new grid heating is planned before the next Ready by while the water is at least this warm. Solar surplus may still heat. It resets afterwards. 0 = off.",
       solar_start: "Solar surplus needed to start heating on sun. It stops when the surplus stays below half of the heater's power for 5 minutes.",
@@ -239,6 +276,22 @@ const WH_TEXT = {
     },
     pickSettings: "Settings",
     settingsOptions: { collapsed: "Collapsed", open: "Open", hidden: "Hidden" },
+    pickView: "View",
+    pickIcon: "Icon (size)",
+    pickDim: "Grey texts",
+    dimOptions: { theme: "Theme colour", bright: "Brighter", primary: "Same as the main text (white in a dark theme)" },
+    pickIconName: "Icon (pick your own, empty = default)",
+    iconOptions: { large: "Large", small: "Small", none: "None" },
+    viewOptions: { full: "Full", compact: "Compact" },
+    showMore: "Show more",
+    nextHeat: (when) => `Next heating ${when}`,
+    heatingUntil: (when) => `Heating until ${when}`,
+    nextSun: (when) => `Waiting for sun from ${when}`,
+    nextNone: "No heating planned",
+    nextNoNeed: "No heating needed",
+    nextPrices: "Waiting for tomorrow's prices",
+    nextSolar: "Heats when the sun is enough",
+    showLess: "Show less",
   },
 };
 
@@ -271,17 +324,28 @@ const WH_STYLE = `
     padding: 16px 16px 14px;
     overflow: hidden;
   }
+  ha-card.txt-bright { --wh-dim: color-mix(in srgb, var(--primary-text-color, #e6e6e6) 82%, var(--card-background-color, #1c1c1c)); }
+  ha-card.txt-primary { --wh-dim: var(--wh-text); }
   * { box-sizing: border-box; }
   button { font: inherit; color: inherit; cursor: pointer; }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--wh-grid); outline-offset: 2px; }
 
   .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .lead { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .name { font-size: 14px; color: var(--wh-dim); margin-bottom: 2px; }
+  .name svg.wh-icon { width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px; }
+  svg.wh-icon, ha-icon.wh-icon { color: var(--wh-grid); flex: none; }
+  .wh-icon.sun { color: var(--wh-sun); }
+  .wh-icon.idle { color: var(--wh-dim); }
+  ha-icon.wh-icon { display: inline-flex; --mdc-icon-size: 36px; }
+  .name ha-icon.wh-icon { --mdc-icon-size: 16px; vertical-align: -3px; margin-right: 6px; }
+  .lead > ha-icon.wh-icon { margin-top: 8px; align-self: flex-start; }
+  .lead > svg.wh-icon { width: 36px; height: 36px; margin-top: 8px; align-self: flex-start; }
   button.temp { border: 0; background: none; padding: 0; margin: 0; font-family: inherit; cursor: pointer; text-align: left; display: block; }
   button.temp:focus-visible { outline: 2px solid var(--wh-text); outline-offset: 4px; border-radius: 6px; }
   .temp { font-size: 44px; line-height: 1; font-weight: 300; letter-spacing: -1px; color: var(--wh-text); }
   .temp small { font-size: 18px; font-weight: 400; color: var(--wh-dim); letter-spacing: 0; margin-left: 4px; }
-  .right { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; max-width: 70%; }
+  .right { display: flex; align-items: center; justify-content: flex-end; flex-wrap: nowrap; gap: 8px; max-width: 70%; }
   .usagebtn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 999px; cursor: pointer;
     color: var(--wh-dim); background: color-mix(in srgb, var(--wh-text) 8%, transparent); }
   .usagebtn:hover { color: var(--wh-text); }
@@ -306,7 +370,7 @@ const WH_STYLE = `
     color: var(--wh-text);
     background: color-mix(in srgb, var(--wh-text) 8%, transparent);
   }
-  button.chip { border: 0; margin: 0; font-family: inherit; cursor: pointer; }
+  button.chip { min-width: 0; text-align: left; border: 0; margin: 0; font-family: inherit; cursor: pointer; }
   button.chip:focus-visible { outline: 2px solid var(--wh-text); outline-offset: 2px; }
   .chip::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--wh-dim); }
   .chip.grid::before { background: var(--wh-grid); }
@@ -338,6 +402,7 @@ const WH_STYLE = `
   .facts { display: flex; gap: 18px; text-align: right; margin-left: auto; }
   .fact b { display: block; font-size: 16px; font-weight: 500; color: var(--wh-text); white-space: nowrap; }
   .fact span { font-size: 11px; color: var(--wh-dim); white-space: nowrap; }
+  .next { margin: 10px 0 0; font-size: 13px; color: var(--wh-dim); }
   .note { font-size: 13px; color: var(--wh-dim); margin: 6px 0 2px; }
 
   .hint { height: 18px; margin-top: 10px; font-size: 12px; color: var(--wh-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -353,6 +418,7 @@ const WH_STYLE = `
   .period span:last-child { color: var(--wh-dim); text-align: right; }
 
   .toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 10px; padding: 10px 0 2px; border: 0; border-top: 1px solid var(--wh-line); background: none; font-size: 13px; color: var(--wh-dim); }
+  .toggle.more[aria-expanded="true"] { margin-bottom: 12px; }
   .toggle svg { width: 16px; height: 16px; transition: transform .15s; }
   .toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
   .settings { display: none; padding-top: 4px; }
@@ -385,6 +451,7 @@ class WaterHeaterPlannerCard extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this._open = null;
+    this._more = null;
     this._usageOpen = false;
     this._helpOpen = new Set();
     this._sig = "";
@@ -427,8 +494,9 @@ class WaterHeaterPlannerCard extends HTMLElement {
 
   setConfig(config) {
     if (!config || !config.entity) throw new Error("entity is required");
-    this._config = { settings: "collapsed", ...config };
+    this._config = { settings: "collapsed", view: "full", icon: "large", secondary_text: "theme", ...config };
     if (this._open === null) this._open = this._config.settings === "open";
+    if (this._config.view !== "compact") this._more = null;
     this._sig = "";
     this._render();
   }
@@ -481,7 +549,7 @@ class WaterHeaterPlannerCard extends HTMLElement {
 
   _signature(stateObj) {
     const ids = Object.values(stateObj.attributes.entities || {});
-    return [stateObj.last_updated, ...ids.map((id) => this._hass.states[id]?.last_updated)].join("|") + this._lang + this._open + this._usageOpen + [...this._helpOpen].join(",");
+    return [stateObj.last_updated, ...ids.map((id) => this._hass.states[id]?.last_updated)].join("|") + this._lang + this._open + this._more + this._config.view + this._config.icon + this._config.icon_name + this._config.secondary_text + this._usageOpen + [...this._helpOpen].join(",");
   }
 
   // ------------------------------------------------------------------ rendering
@@ -494,10 +562,10 @@ class WaterHeaterPlannerCard extends HTMLElement {
     this._sig = sig;
     const t = this._t;
     if (!stateObj) {
-      this.shadowRoot.innerHTML = `<style>${WH_STYLE}</style><ha-card><div class="error">${whEsc(t.missing(this._config.entity))}</div></ha-card>`;
+      this.shadowRoot.innerHTML = `<style>${WH_STYLE}</style><ha-card class="${this._dimClass}"><div class="error">${whEsc(t.missing(this._config.entity))}</div></ha-card>`;
       return;
     }
-    this.shadowRoot.innerHTML = `<style>${WH_STYLE}</style><ha-card>${this._body(stateObj)}</ha-card>`;
+    this.shadowRoot.innerHTML = `<style>${WH_STYLE}</style><ha-card class="${this._dimClass}">${this._body(stateObj)}</ha-card>`;
     this._decorateHelp();
   }
 
@@ -527,27 +595,73 @@ class WaterHeaterPlannerCard extends HTMLElement {
     const temp = a.temperature;
     const parts = [];
 
+    const icon = this._config.icon || "large";
     const chipKind = WH_CHIP[status] || "";
     const heating = a.heater_on === true;
     const sunHeat = status === "heating_solar" || status === "heating_sun_slot";
     parts.push(`
       <div class="top">
-        <div>
-          <div class="name">${whEsc(name)}</div>
+        <div class="lead">
+          ${icon === "large" ? this._icon(heating, sunHeat) : ""}
+          <div>
+          <div class="name">${icon === "small" ? this._icon(heating, sunHeat) : ""}${whEsc(name)}</div>
           ${a.temperature_entity ? `<button type="button" class="temp" data-action="temp" aria-label="${whEsc(t.tempSensor)}" title="${whEsc(t.tempSensor)}">` : '<div class="temp">'}${temp == null ? "–" : this._num(temp, 1)}<small>°C</small>${a.temperature_entity ? "</button>" : "</div>"}
+          </div>
         </div>
         <div class="right">${`<button type="button" class="usagebtn" data-action="usage" aria-label="${whEsc(t.usage)}" title="${whEsc(t.usage)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>`}<button type="button" class="chip ${chipKind} ${heating ? "on" : ""} ${heating && sunHeat ? "sun" : ""}" data-action="heater">${whEsc(t.status[status] || status)}</button></div>
       </div>
       ${this._gauge(a)}
       ${this._modes(a)}
-      ${this._summary(a)}
+      ${this._compact ? this._nextLine(a) + this._moreToggle() : ""}
+      ${this._compact && !this._more ? "" : `${this._summary(a)}
       ${this._lastHeating(a)}
       ${this._chart(a)}
       ${this._periods(a)}
-      ${this._settings(a)}
+      ${this._settings(a)}`}
       ${this._usageSheet(a)}
     `);
     return parts.join("");
+  }
+
+  /** The tank icon: dim when idle, turquoise while heating from the grid, yellow while heating on sun. */
+  _icon(heating, sunHeat) {
+    const cls = !heating ? "idle" : sunHeat ? "sun" : "";
+    const custom = this._config.icon_name;
+    if (custom) return `<ha-icon class="wh-icon ${cls}" icon="${whEsc(custom)}"></ha-icon>`;
+    return `<svg class="wh-icon ${cls}" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="18" rx="4.5" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="1.8"/><path d="M13 6.5l-3.2 5h2.6l-1 4.5 3.6-5.6h-2.7z" fill="currentColor"/><path d="M8.5 21.5h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+  }
+
+  get _dimClass() {
+    const v = this._config.secondary_text;
+    return v === "bright" ? "txt-bright" : v === "primary" ? "txt-primary" : "";
+  }
+
+  get _compact() { return this._config.view === "compact"; }
+
+  /** One line for the compact view: when the next heating is planned. */
+  _nextLine(a) {
+    if (this._more || a.plan_status === undefined) return "";
+    const t = this._t;
+    const now = Date.now();
+    let text;
+    const period = (a.periods || []).find((p) => p.e > now);
+    const sun = (a.solar_hours || []).find((h) => h.e > now);
+    if (!(a.need_kwh > 0)) text = t.nextNoNeed;
+    else if (period && period.s <= now) text = t.heatingUntil(this._whenLabel(period.e));
+    else if (period) text = t.nextHeat(this._whenLabel(period.s));
+    else if (sun && sun.s <= now) text = t.nextSolar;
+    else if (sun) text = t.nextSun(this._whenLabel(sun.s));
+    else if (a.waiting_for_prices) text = t.nextPrices;
+    else if (a.mode === "solar") text = t.nextSolar;
+    else text = t.nextNone;
+    return `<p class="next">${whEsc(text)}</p>`;
+  }
+
+  _moreToggle() {
+    const t = this._t;
+    const open = !!this._more;
+    return `<button class="toggle more" data-action="more" aria-expanded="${open}"><span>${whEsc(open ? t.showLess : t.showMore)}</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
   }
 
   _usageSheet(a) {
@@ -762,6 +876,9 @@ class WaterHeaterPlannerCard extends HTMLElement {
         ${stepper("target_temperature", a.target_temperature, t.targetTemp)}
         ${stepper("min_temperature", a.min_temperature, t.floor)}
         ${a.entities?.floor_max_price && a.min_temperature > 0 ? stepper("floor_max_price", Number(a.floor_max_price || 0), t.floorCap, 10, Number(a.floor_max_price || 0) > 0 ? `${this._num(Number(a.floor_max_price), 0)} ${whEsc(a.minor_unit || "")}` : whEsc(t.noLimit)) : ""}
+        ${a.mode === "hybrid" && a.entities?.wait_saving ? stepper("wait_saving", Number(a.wait_saving || 0), t.waitSaving, 1, Number(a.wait_saving || 0) > 0 ? `${this._num(Number(a.wait_saving), 0)} ${whEsc(a.minor_unit || "")}` : whEsc(t.baseOff)) : ""}
+        ${a.mode === "hybrid" && a.entities?.early_start_pct && Number(a.wait_saving || 0) > 0 ? stepper("early_start_pct", Number(a.early_start_pct), t.earlyStart, 5, `${this._num(Number(a.early_start_pct), 0)} %`) : ""}
+        ${a.mode === "hybrid" && a.entities?.early_keep_pct && Number(a.wait_saving || 0) > 0 ? stepper("early_keep_pct", Number(a.early_keep_pct), t.earlyKeep, 1, `${this._num(Number(a.early_keep_pct), 0)} %`) : ""}
         ${a.entities?.regrid_below ? stepper("regrid_below", Number(a.regrid_c || 0), t.regrid, 1, Number(a.regrid_c || 0) > 0 ? `${this._num(Number(a.regrid_c), 0)} °C` : whEsc(t.baseOff)) : ""}
         ${a.mode !== "cheapest" && a.entities?.solar_start ? stepper("solar_start", Number(a.solar_start), t.solarStart, 100, `${this._num(Number(a.solar_start), 0)} W`) : ""}
         ${a.mode !== "cheapest" && a.entities?.house_baseline ? stepper("house_baseline", Number(a.house_baseline), t.houseBase, 100, `${this._num(Number(a.house_baseline), 0)} W`) : ""}
@@ -820,6 +937,11 @@ class WaterHeaterPlannerCard extends HTMLElement {
       case "heater":
         if (a.switch_entity) this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId: a.switch_entity } }));
         break;
+      case "more":
+        this._more = !this._more;
+        this._sig = "";
+        this._render();
+        break;
       case "toggle":
         this._open = !this._open;
         this._sig = "";
@@ -827,7 +949,7 @@ class WaterHeaterPlannerCard extends HTMLElement {
         break;
       case "step": {
         const key = el.dataset.key;
-        const limits = { target_temperature: [30, 85], min_temperature: [0, 70], max_periods: [1, 8], energy_adjust: [-50, 100], floor_max_price: [0, 1000], base_temperature: [0, 60], regrid_below: [0, 85], solar_price_cap: [0, 1000], solar_start: [50, 10000], house_baseline: [0, 10000] }[key];
+        const limits = { target_temperature: [30, 85], min_temperature: [0, 70], max_periods: [1, 8], energy_adjust: [-50, 100], floor_max_price: [0, 1000], wait_saving: [0, 200], early_start_pct: [1, 100], early_keep_pct: [0, 100], base_temperature: [0, 60], regrid_below: [0, 85], solar_price_cap: [0, 1000], solar_start: [50, 10000], house_baseline: [0, 10000] }[key];
         const next = Math.max(limits[0], Math.min(limits[1], Number(a[key]) + Number(el.dataset.delta)));
         if (ids[key] && next !== Number(a[key])) this._call("number", "set_value", { entity_id: ids[key], value: next });
         break;
@@ -923,13 +1045,26 @@ class WaterHeaterPlannerCardEditor extends HTMLElement {
       this.appendChild(this._form);
     }
     const lang = (this._hass?.locale?.language || this._hass?.language || "en").startsWith("sv") ? WH_TEXT.sv : WH_TEXT.en;
-    const labels = { entity: lang.pickEntity, name: lang.pickName, settings: lang.pickSettings };
+    const labels = { entity: lang.pickEntity, name: lang.pickName, settings: lang.pickSettings, view: lang.pickView, icon: lang.pickIcon, icon_name: lang.pickIconName, secondary_text: lang.pickDim };
     this._form.hass = this._hass;
     this._form.data = this._config;
     this._form.computeLabel = (s) => labels[s.name] || s.name;
     this._form.schema = [
       { name: "entity", required: true, selector: { entity: { domain: "sensor", integration: "waterheater_planner" } } },
       { name: "name", selector: { text: {} } },
+      {
+        name: "view",
+        selector: { select: { mode: "dropdown", options: Object.entries(lang.viewOptions).map(([value, label]) => ({ value, label })) } },
+      },
+      {
+        name: "icon",
+        selector: { select: { mode: "dropdown", options: Object.entries(lang.iconOptions).map(([value, label]) => ({ value, label })) } },
+      },
+      { name: "icon_name", selector: { icon: {} } },
+      {
+        name: "secondary_text",
+        selector: { select: { mode: "dropdown", options: Object.entries(lang.dimOptions).map(([value, label]) => ({ value, label })) } },
+      },
       {
         name: "settings",
         selector: { select: { mode: "dropdown", options: Object.entries(lang.settingsOptions).map(([value, label]) => ({ value, label })) } },

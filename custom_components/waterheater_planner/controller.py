@@ -173,6 +173,9 @@ class WaterHeaterController:
                 self.engine.regrid_until = float(stored.get("regrid_until", 0.0))
                 s.base_by = time.fromisoformat(stored.get("base_by", "07:00"))
                 s.floor_max_price = float(stored.get("floor_max_price", s.floor_max_price))
+                s.wait_saving = float(stored.get("wait_saving", s.wait_saving))
+                s.early_start_pct = float(stored.get("early_start_pct", s.early_start_pct))
+                s.early_keep_pct = float(stored.get("early_keep_pct", s.early_keep_pct))
                 s.energy_auto = bool(stored.get("energy_auto", s.energy_auto))
                 s.energy_adjust_pct = float(stored.get("energy_adjust_pct", s.energy_adjust_pct))
                 s.enabled = bool(stored.get("enabled", True))
@@ -281,6 +284,9 @@ class WaterHeaterController:
             "regrid_until": self.engine.regrid_until,
             "base_by": s.base_by.isoformat(timespec="minutes"),
             "floor_max_price": s.floor_max_price,
+            "wait_saving": s.wait_saving,
+            "early_start_pct": s.early_start_pct,
+            "early_keep_pct": s.early_keep_pct,
             "energy_adjust_pct": s.energy_adjust_pct,
             "energy_auto": s.energy_auto,
             "learner": self.learner.as_dict(),

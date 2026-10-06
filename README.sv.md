@@ -129,7 +129,23 @@ type: custom:waterheater-planner-card
 entity: sensor.varmvatten_status     # integrationens Status-sensor
 name: Varmvatten                     # valfritt
 settings: collapsed                  # collapsed (standard) | open | hidden
+view: full                           # full (standard) | compact
+icon: large                          # large (standard) | small | none
+icon_name: mdi:water-boiler          # valfritt: valfri Home Assistant-ikon i stället för den inbyggda tanken
+secondary_text: theme                # gråa texter: theme (standard) | bright | primary
 ```
+
+**Gråa texter** (`secondary_text`) kan vara svåra att läsa i vissa mörka teman. `theme` använder temats färg för sekundär text,
+`bright` en ljusare blandning av huvudtextens färg och `primary` samma färg som huvudtexten (vit i mörkt tema).
+Valet finns också i kortets editor under *Gråa texter*.
+
+**Kompakt vy** (`view: compact`) visar bara temperaturen, statusen, förbrukningsknappen och lägesknapparna, plus en rad som säger när nästa värmning är planerad.
+En knapp **Visa mer** fäller ut resten (kostnad, diagram, planerad värmning och inställningar). `full` visar allt, som förut.
+
+<p align="center">
+  <img src="docs/images/sv/compact.png" width="300" alt="Kompakt vy">
+  <img src="docs/images/sv/compact-open.png" width="300" alt="Kompakt vy, utfälld">
+</p>
 
 Syns inte kortet i listan, gör en hård omladdning (Ctrl+Shift+R, eller rensa appens cache).
 
@@ -159,6 +175,7 @@ automationer och dashboards. Värdena sparas och finns kvar efter omstart.
 | **Läge** | `select` Läge | Hybrid om solprognos finns, annars Billigast | Billigast / Sol / Hybrid | Se [Lägen](#lägen). |
 | **Måltemperatur** | `number` Måltemperatur | 60 °C | 30–85 | Värmningen stoppar när den uppmätta vattentemperaturen når detta, vad planen än säger. |
 | **Komfortgräns** | `number` Komfortgräns | 40 °C | 0–70 (0 = av) | Under den värms vattnet direkt, oavsett pris. Slås av igen 1 °C högre. |
+| **Vänta bara om det sparar** | `number` Vänta på billigare timme bara om det sparar | 0 (av) | 0–200 öre/kWh | Hybrid: med sol över, börja direkt om inte en senare timme är minst så här mycket billigare per kWh. Se [nedan](#vänta-bara-om-det-sparar). |
 | **Värm på nätet först under** | `number` Värm på nätet först under | 0 (av) | 0–85 °C | Ett skydd mot att värma om från nätet efter att en värmning nått måltemperaturen. Se [nedan](#gräns-för-ny-nätvärme). |
 | **Komfortgräns, max pris** | `number` Max elpris för komfortgräns | 0 (ingen gräns) | 0–1000 öre/kWh | Komfortgränsen värmer inte när priset är över detta. Den vanliga planen (billiga timmar, sol) och *Värm nu* fungerar fortfarande. Visas när komfortgränsen är på. |
 | **Färdigt senast** | `time` Färdigt senast | 16:00 | valfri tid | Tiden då vattnet ska vara varmt. Planeraren väljer timmar före nästa förekomst av klockslaget. |
@@ -245,6 +262,22 @@ tappade varmvatten, som är för små, eller som inte nådde målet räknas inte
 - Peka ut en **effektsensor** för beredaren (valfritt) om du har en. Då mäts energin exakt.
 - Diagnostiksensorn *Energikorrigering* visar värdet som används, och kortet visar varifrån det kommer.
 
+### Vänta bara om det sparar
+
+Planeraren väljer normalt de allra billigaste timmarna, även om det betyder att vänta på ett pris som bara är några
+öre lägre än nu. **Vänta bara om det sparar** (öre/kWh, 0 = av) bestämmer hur mycket billigare väntan måste vara
+innan beredaren håller igen **när det finns sol över**.
+
+- Själva planen ändras inte: den visar fortfarande de billigaste timmarna.
+- Börjar planen senare, men värmning från nu utan uppehåll skulle kosta mindre än inställningen mer per kWh,
+  **startar beredaren direkt så fort det finns lite solöverskott**: **Tidig start vid överskott** (standard 25 % av
+  beredarens effekt) för att starta och **Fortsätt tills överskottet under** (standard 12 %) för att fortsätta. Statusen blir *Värmer (sol)*.
+- Utan överskott väntar den på den planerade timmen som vanligt. En senare timme som är tydligt billigare (mer än
+  inställningen) väntar den fortfarande på.
+
+Exempel: med 10 håller en senare timme som är 3 öre billigare inte tillbaka beredaren medan solen skiner, men en som
+är 40 öre billigare gör det. Bara Hybrid-läge.
+
 ### Gräns för ny nätvärme
 
 **Värm på nätet först under** hindrar planeraren från att tvinga in ny nätvärme efter en dusch, när vattnet
@@ -257,6 +290,9 @@ redan har värmts upp för dagen.
    får fortfarande värma. Faller vattnet **under** gränsen värms det till målet igen i de billigaste timmarna.
 3. När **Färdigt senast** har passerats nollställs gränsen och planeraren planerar nästa värmning (inför nästa
    *Färdigt senast*) som vanligt. Den gäller inte igen förrän en värmning har nått måltemperaturen.
+
+En värmning som började före ett *Färdigt senast* som hunnit passera (den drog över, t.ex. startade 17:30 och blev klar
+18:02 med *Färdigt senast* 18:00) hör till det *Färdigt senast* och skyddar inte kvällen och natten efter.
 
 Sätt 0 för att stänga av gränsen. Statussensorns attribut `regrid_armed` visar om den gäller just nu.
 
