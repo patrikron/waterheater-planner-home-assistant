@@ -435,6 +435,11 @@ GitHub Actions kör testerna, [hassfest](https://developers.home-assistant.io/bl
 HACS-valideringen vid varje push, och en release bygger en zip av integrationen (se
 [.github/workflows](.github/workflows)). Se [CHANGELOG.md](CHANGELOG.md) för vad som ändrats.
 
+## Om projektet
+
+Den här integrationen är skriven med hjälp av [Claude](https://claude.ai) (Anthropic), under min ledning och
+körs i mitt eget hem. Jag använder den dagligen. Felrapporter och pull requests är välkomna.
+
 ## Licens
 
 MIT. Delar är anpassade från SpotNav, se [NOTICE.md](NOTICE.md).
