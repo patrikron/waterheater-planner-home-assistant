@@ -1,9 +1,13 @@
 name: Release
 
-# Publish a release on GitHub (tag vX.Y.Z, matching "version" in manifest.json).
-# This attaches a zip of the integration, ready to be unpacked into config/custom_components/.
+# Push a tag vX.Y.Z (matching "version" in manifest.json) and this creates the GitHub release
+# and attaches a zip of the integration, ready to be unpacked into config/custom_components/.
+#   git tag v0.19.0 && git push origin v0.19.0
+# Publishing a release by hand in the GitHub UI works too.
 
 on:
+  push:
+    tags: ["v*"]
   release:
     types: [published]
 
@@ -34,7 +38,10 @@ jobs:
           cd custom_components
           zip -r ../waterheater_planner.zip waterheater_planner -x "*/__pycache__/*"
 
-      - name: Attach it to the release
+      - name: Create the release if the tag has none, then attach the zip
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" waterheater_planner.zip --clobber
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" waterheater_planner.zip --clobber
