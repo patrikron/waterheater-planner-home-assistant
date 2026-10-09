@@ -20,7 +20,7 @@
  * All grey text goes through one CSS variable, --wh-dim, set on ha-card.
  */
 
-const WH_CARD_VERSION = "0.3.0";
+const WH_CARD_VERSION = "0.4.0";
 
 const WH_TEXT = {
   sv: {
@@ -317,6 +317,7 @@ const WH_STYLE = `
   ha-card { display: block; position: relative;
     --wh-grid: var(--wh-grid-color, #35c7d9);
     --wh-sun: var(--wh-sun-color, #f2a93b);
+    --wh-plan: var(--wh-plan-color, #a78bfa);
     --wh-text: var(--primary-text-color, #e6e6e6);
     --wh-dim: var(--secondary-text-color, #9aa0a6);
     --wh-line: color-mix(in srgb, var(--wh-text) 14%, transparent);
@@ -788,7 +789,7 @@ class WaterHeaterPlannerCard extends HTMLElement {
     prices.forEach(([ms, v]) => {
       const bw = Math.max(0.6, x(ms + STEP) - x(ms) - 0.7);
       const yTop = Math.min(y(v), zero), h = Math.max(1, Math.abs(y(v) - zero));
-      bars += `<rect x="${x(ms).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="0.8" fill="${ranOn(ms) ? (ranOn(ms)[2] ? "var(--wh-sun)" : "var(--wh-grid)") : planned(ms) ? "var(--wh-grid)" : "var(--wh-bar)"}" opacity="${ranOn(ms) ? 1 : planned(ms) ? 0.55 : 1}"/>`;
+      bars += `<rect x="${x(ms).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="0.8" fill="${ranOn(ms) ? (ranOn(ms)[2] ? "var(--wh-sun)" : "var(--wh-grid)") : planned(ms) ? "var(--wh-plan)" : "var(--wh-bar)"}"/>`;
     });
 
     // time axis: a label every 3 or 6 hours, on local clock hours
@@ -814,7 +815,7 @@ class WaterHeaterPlannerCard extends HTMLElement {
       <svg class="chart" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${whEsc(t.periods)}">
         ${sun}${lo < 0 ? `<line x1="0" x2="${W}" y1="${zero.toFixed(1)}" y2="${zero.toFixed(1)}" stroke="var(--wh-line)"/>` : ""}${bars}${ran}${nowLine}${peak}${deadline}${ticks}
       </svg>
-      <div class="legend">${heated.length ? `<span><i style="background:var(--wh-grid)"></i>${whEsc(t.legendHeated)}</span>` : ""}<span><i style="background:var(--wh-grid);opacity:.55"></i>${whEsc(t.legendPlan)}</span>${(a.solar_hours || []).length ? `<span><i style="background:var(--wh-sun)"></i>${whEsc(t.legendSun)}</span>` : ""}<span><i style="background:var(--wh-bar)"></i>${whEsc(t.legendPrice)}</span></div>`;
+      <div class="legend">${heated.length ? `<span><i style="background:var(--wh-grid)"></i>${whEsc(t.legendHeated)}</span>` : ""}<span><i style="background:var(--wh-plan)"></i>${whEsc(t.legendPlan)}</span>${(a.solar_hours || []).length ? `<span><i style="background:var(--wh-sun)"></i>${whEsc(t.legendSun)}</span>` : ""}<span><i style="background:var(--wh-bar)"></i>${whEsc(t.legendPrice)}</span></div>`;
   }
 
   _periods(a) {

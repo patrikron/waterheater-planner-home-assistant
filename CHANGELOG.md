@@ -2,6 +2,11 @@
 
 Versions follow `version` in `custom_components/waterheater_planner/manifest.json`.
 
+## 0.21.0
+- **Last heating** now adds up every heating for the same *Ready by*, so the night's and the day's heatings show as one. A heating that starts after *Ready by* begins the next one. Learning is unchanged.
+- The chart draws planned heating in its own color (purple, CSS variable `--wh-plan-color`), so it no longer looks like heating that has run. Card version 0.4.0.
+- Releases are automatic: when a push to `main` (a merged PR) carries a manifest version that has no tag yet, the release workflow creates the tag `vX.Y.Z` and the release with the zip. Pushing a tag by hand still works.
+
 ## 0.20.0
 - **Simple or advanced set-up:** the first question when adding the integration (and under *Configure*) is *Simple* or *Advanced*. Simple asks only for the essentials, and the card shows only target temperature, comfort floor, ready by, energy correction, learn energy need, automatic and heat now. Advanced is everything, as before. Existing installations stay advanced; values set in advanced mode are kept when switching to simple. New status attribute `advanced`; card version 0.3.0.
 

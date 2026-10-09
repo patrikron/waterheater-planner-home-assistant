@@ -112,3 +112,23 @@ def test_daily_ledger_forgets_old_days():
     log.observe(10.0, True, 3000, 100.0, False, None, "2026-10-01")
     log.observe(70.0, True, 3000, 100.0, False, None, "2026-10-01")
     assert len(log.days) <= 70
+
+
+def test_heatings_for_the_same_ready_by_add_up():
+    log = HeatingLog(3000)
+    t = 0.0
+    for _ in range(2):  # night and day, both for the same "ready by"
+        while t % 7200 < 1800:
+            log.observe(t, True, None, 100.0, False, cycle=86400.0)
+            t += 30
+        while t % 7200 >= 1800:
+            log.observe(t, False, None, 100.0, False, cycle=86400.0)
+            t += 30
+    assert not log.running and abs(log.last.kwh - 3.0) < 0.1 and log.last.start_s == 0.0
+    assert log.finished == 2
+    for k in range(21):  # after "ready by": a new record
+        log.observe(t + 30 * k, True, None, 100.0, False, cycle=2 * 86400.0)
+    assert log.shown() is not log.last and abs(log.shown().kwh - 0.5) < 0.05
+    other = HeatingLog(3000)
+    other.load(log.last.as_dict())
+    assert other.last.cycle == 86400.0

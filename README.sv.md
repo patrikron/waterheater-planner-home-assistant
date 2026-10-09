@@ -177,7 +177,7 @@ Kortet visar, uppifrån:
 - **Lägesknappar.**
 - **Planerad kostnad**, energi och värmetid, samt hur mycket billigare planen är än att värma direkt.
 - **Senaste värmning:** energi och kostnad för den senaste värmningen (eller den som pågår).
-- **Diagram:** priset per kvart från 00:00 i dag, planerad värme, prognosticerade soltimmar och, som ett
+- **Diagram:** priset per kvart från 00:00 i dag, planerad värme (lila), prognosticerade soltimmar och, som ett
   streck under diagrammet, de tider beredaren verkligen var på (turkos = nät, gul = sol). Håll muspekaren
   över eller tryck på en stapel för priset. På en stapel där beredaren värmt visas också hur länge, hur mycket
   energi och varför (planerad billig el, solöverskott, vald soltimme, grundtemperatur, komfortgräns eller Värm nu).
@@ -320,8 +320,9 @@ Sätt 0 för att stänga av gränsen. Statussensorns attribut `regrid_armed` vis
 ### Senaste värmningen
 
 Sensorerna **Energi senaste värmning** (kWh) och **Kostnad senaste värmning** visar vad den senaste
-värmningen förbrukade och kostade. En värmning är allt som sker utan längre uppehåll än 10 minuter. Medan
-den pågår visas det som hittills förbrukats. Kostnaden är energin gånger det totala elpriset i varje kvart
+värmningen förbrukade och kostade. Allt som värms inför samma **Färdigt senast** räknas som en värmning,
+så nattens och dagens värmningar inför 16:00 visas tillsammans. En värmning som startar efter *Färdigt senast*
+hör till nästa. Medan den pågår visas det som hittills förbrukats. Kostnaden är energin gånger det totala elpriset i varje kvart
 (med dina tillägg), och energi som värmts med solöverskott räknas som gratis. Sensorerna har attribut för
 start, slut, solenergi och om alla kvartar hade ett pris. Historiken börjar när integrationen installeras.
 

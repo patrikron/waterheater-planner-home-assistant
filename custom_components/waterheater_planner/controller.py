@@ -353,15 +353,15 @@ class WaterHeaterController:
 
     def _track_heating(self, now: datetime, switch_on: bool | None) -> None:
         """Add this tick to the running heating; save when one has just finished."""
-        before = self.session.last
+        before = self.session.finished
         heater_w = self._read_power(self.config.get(CONF_HEATER_POWER), False)
         self.session.observe(
             now.timestamp(), switch_on, heater_w, self.engine.price_at(now), self.status == "heating_solar",
-            self.status, dt_util.as_local(now).date().isoformat(),
+            self.status, dt_util.as_local(now).date().isoformat(), self.engine.deadline(now).timestamp(),
         )
         changed = switch_on != self._prev_switch
         self._prev_switch = switch_on
-        if self.session.last is not before or changed:
+        if self.session.finished != before or changed:
             self._store.async_delay_save(self._settings_dict, 1)
 
     def _learn(self, now: datetime, temp: float | None, switch_on: bool | None) -> None:
