@@ -62,6 +62,9 @@ TEMPERATURE_GRACE_S = 600.0
 #: except for the safety stops and the comfort floor.
 MIN_ON_S = 300.0
 MIN_OFF_S = 300.0
+#: Prices must have been missing this long before the heater runs price-blind (a restart reads the
+#: price sensor before it has loaded; the comfort floor still guards against cold water meanwhile).
+NO_PRICES_GRACE_S = 900.0
 
 
 @dataclass(slots=True)
@@ -134,6 +137,7 @@ class Engine:
     _cmd_on_s: float = field(default=-math.inf, init=False, repr=False)  # when the planner last asked for "on"
     _early_sun: bool = field(default=False, init=False, repr=False)  # Hybrid: heating now on a little sun, ahead of a plan that saves little
     _manual_since: float = field(default=-math.inf, init=False, repr=False)
+    _no_prices_since: float | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._solar = SolarController(self.config.solar)
@@ -344,12 +348,21 @@ class Engine:
         else:
             self._solar.reset(now_s)
 
+        if plan is not None and plan.status == "no_prices":
+            if self._no_prices_since is None:
+                self._no_prices_since = now_s
+        else:
+            self._no_prices_since = None
+        price_blind = self._no_prices_since is not None and now_s - self._no_prices_since >= NO_PRICES_GRACE_S
+
         in_slot = plan is not None and plan.runs_at(now)
         need_open = plan is not None and plan.need_kwh > 0
 
         if s.mode == MODE_SOLAR and not self.config.has_surplus_sensor:
             return Decision(False, "no_surplus_sensor")
         if plan is not None and plan.status == "no_prices" and s.mode != MODE_SOLAR and need_open:
+            if not price_blind:
+                return Decision(False, "no_prices")  # just started, or a short gap: wait for the prices
             self.cycle_active = True
             return Decision(True, "no_prices")  # price-blind thermostat beats cold water
 
@@ -364,7 +377,7 @@ class Engine:
             if base_open and in_slot and not solar_wanted:
                 self.cycle_active = True
                 return Decision(True, "heating_base")
-            if base_open and plan is not None and plan.status == "no_prices":
+            if base_open and price_blind:
                 self.cycle_active = True
                 return Decision(True, "heating_base")  # price-blind: cold water beats waiting
         else:

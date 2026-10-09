@@ -2,6 +2,9 @@
 
 Versions follow `version` in `custom_components/waterheater_planner/manifest.json`.
 
+## 0.21.1
+- A restart no longer switches the heater on for a few minutes at whatever the price is. The price sensor is often not loaded on the first tick; the planner now waits 15 minutes without prices before it heats as a plain thermostat. The comfort floor still heats at once.
+
 ## 0.21.0
 - **Last heating** now adds up every heating for the same *Ready by*, so the night's and the day's heatings show as one. A heating that starts after *Ready by* begins the next one. Learning is unchanged.
 - The chart draws planned heating in its own color (purple, CSS variable `--wh-plan-color`), so it no longer looks like heating that has run. Card version 0.4.0.
