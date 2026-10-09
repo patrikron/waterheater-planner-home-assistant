@@ -1,12 +1,14 @@
 name: Release
 
-# Push a tag vX.Y.Z (matching "version" in manifest.json) and this creates the GitHub release
-# and attaches a zip of the integration, ready to be unpacked into config/custom_components/.
-#   git tag v0.19.0 && git push origin v0.19.0
-# Publishing a release by hand in the GitHub UI works too.
+# Runs on every push to main (a merged PR, too). The version comes from "version" in manifest.json:
+# if there is no tag vX.Y.Z for it yet, the tag is created and the GitHub release is made with a zip
+# of the integration, ready to be unpacked into config/custom_components/. A push that does not change
+# the version does nothing.
+# Pushing a tag vX.Y.Z by hand (matching the manifest) or publishing a release in the GitHub UI works too.
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
   release:
     types: [published]
@@ -19,29 +21,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-      - name: The tag must match the manifest version
+      - name: Work out the tag
+        id: tag
         run: |
-          tag="${GITHUB_REF_NAME#v}"
           version="$(python3 -c 'import json; print(json.load(open("custom_components/waterheater_planner/manifest.json"))["version"])')"
-          echo "tag=$tag manifest=$version"
-          test "$tag" = "$version" || { echo "::error::Tag $GITHUB_REF_NAME does not match manifest version $version"; exit 1; }
+          if [ "$GITHUB_REF_TYPE" = "branch" ]; then
+            tag="v$version"
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "Tag $tag already exists, nothing to release."
+              echo "release=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          else
+            tag="$GITHUB_REF_NAME"
+            echo "tag=${tag#v} manifest=$version"
+            test "${tag#v}" = "$version" || { echo "::error::Tag $tag does not match manifest version $version"; exit 1; }
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "release=true" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
+        if: steps.tag.outputs.release == 'true'
         with:
           python-version: "3.13"
-      - run: pip install pytest
-      - run: python -m pytest -q
+      - if: steps.tag.outputs.release == 'true'
+        run: pip install pytest
+      - if: steps.tag.outputs.release == 'true'
+        run: python -m pytest -q
+
+      - name: Create the tag (push to main only)
+        if: steps.tag.outputs.release == 'true' && github.ref_type == 'branch'
+        run: |
+          git tag "${{ steps.tag.outputs.tag }}" "$GITHUB_SHA"
+          git push origin "${{ steps.tag.outputs.tag }}"
 
       - name: Build the zip
+        if: steps.tag.outputs.release == 'true'
         run: |
           cd custom_components
           zip -r ../waterheater_planner.zip waterheater_planner -x "*/__pycache__/*"
 
       - name: Create the release if the tag has none, then attach the zip
+        if: steps.tag.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
-          gh release upload "$GITHUB_REF_NAME" waterheater_planner.zip --clobber
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
+          gh release upload "$TAG" waterheater_planner.zip --clobber
