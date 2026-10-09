@@ -378,7 +378,7 @@ Everything is grouped under one device. Names are translated (English and Swedis
 | Heating now | *Heat now* is on. |
 | Manual heating | The switch was turned on outside the planner (by hand or by another automation). The planner leaves it on until the target is reached or you turn it off (at most 6 hours). |
 | Waiting (price above the comfort cap) | Below the comfort floor, but the price is over its cap. |
-| No price data | The price sensor has no usable prices. The heater runs as a plain thermostat until they are back. |
+| No price data | The price sensor has no usable prices. After 15 minutes without prices the heater runs as a plain thermostat until they are back. |
 | Grid sensor missing | Solar mode needs a grid power sensor. |
 
 ## How it works
@@ -411,7 +411,8 @@ switch should be on.
 - **Solar surplus has the wrong sign.** It should be positive when the house exports. Check the grid sensor:
   it must be positive when importing. If not, tick *Grid power: positive = export* under Configure.
 - **Status says "No price data" for a while after a restart.** The sensor was not ready yet. The planner keeps
-  the last known prices if the sensor is only briefly unavailable.
+  the last known prices if the sensor is only briefly unavailable, and it waits 15 minutes before it heats without
+  prices, so a restart does not start the heater at an expensive hour.
 - **The estimate is far off.** Wait for the learning (three heatings) or set *Energy correction* by hand.
 - **Nothing changes after an update.** Python code needs a restart of Home Assistant. Only the card
   file needs a browser refresh.

@@ -15,5 +15,5 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/patrikron/waterheater-planner-home-assistant/issues",
   "requirements": [],
-  "version": "0.21.0"
+  "version": "0.21.1"
 }

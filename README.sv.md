@@ -379,7 +379,7 @@ Allt hör till en enhet. Namnen är översatta (svenska och engelska).
 | Värmer nu | *Värm nu* är på. |
 | Manuell värmning | Strömbrytaren slogs på utanför planeraren (för hand eller av en annan automation). Planeraren låter den vara på tills målet nåtts eller du stänger av den (högst 6 timmar). |
 | Väntar (priset över komforttaket) | Under komfortgränsen, men priset är över dess tak. |
-| Elpris saknas | Prissensorn har inga användbara priser. Beredaren går som vanlig termostat tills de är tillbaka. |
+| Elpris saknas | Prissensorn har inga användbara priser. Efter 15 minuter utan priser går beredaren som vanlig termostat tills de är tillbaka. |
 | Elnätssensor saknas | Sol-läget behöver en nätsensor. |
 
 ## Så fungerar det
@@ -411,7 +411,8 @@ något relevant ändrats (planen byggs om minst varje kvart) och avgör om strö
 - **Solöverskottet har fel tecken.** Det ska vara positivt när huset exporterar. Kontrollera nätsensorn:
   den ska vara positiv vid import. Om inte, bocka i *Elnätseffekt: positivt värde = export* under Konfigurera.
 - **Status säger "Elpris saknas" en stund efter omstart.** Sensorn var inte klar än. Planeraren behåller
-  senast kända priser om sensorn bara är otillgänglig en kort stund.
+  senast kända priser om sensorn bara är otillgänglig en kort stund, och den väntar 15 minuter innan den värmer
+  utan priser, så en omstart startar inte beredaren en dyr timme.
 - **Uppskattningen är långt ifrån.** Vänta på inlärningen (tre värmningar) eller sätt *Energikorrigering*
   för hand.
 - **Inget ändras efter en uppdatering.** Python-koden kräver omstart av Home Assistant. Bara kortfilen

@@ -681,3 +681,15 @@ def test_a_night_heating_still_guards_until_the_next_ready_by():
     engine.decide(done, 60.5, plan, None, True)
     assert engine.regrid_until == engine.deadline(done).timestamp() > done.timestamp()
     assert engine.need_kwh(35.0, done + timedelta(hours=2)) == 0.0
+
+
+def test_missing_prices_wait_a_while_before_heating_price_blind():
+    from custom_components.waterheater_planner.engine import NO_PRICES_GRACE_S
+    engine = make_engine(mode="cheapest", target_c=60.0, min_c=0.0)
+    engine.price_slots = ()  # a restart: the price sensor has not loaded yet
+    now = datetime(2026, 9, 22, 19, 0, tzinfo=UTC)
+    plan = build_plan(engine.plan_inputs(now, 40.0))
+    assert plan.status == "no_prices"
+    assert engine.decide(now, 40.0, plan, None, False).command is False
+    later = now + timedelta(seconds=NO_PRICES_GRACE_S)
+    assert engine.decide(later, 40.0, plan, None, False).command is True
