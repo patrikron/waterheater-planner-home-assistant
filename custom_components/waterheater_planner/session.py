@@ -1,4 +1,8 @@
-"""Energy and cost of the latest heating (pure, no Home Assistant imports)."""
+"""Energy and cost of the latest heating (pure, no Home Assistant imports).
+
+With a cycle key (the "ready by" a heating works towards) every heating for the same "ready by" is added
+into one record, so the night's and the day's heatings for 16:00 show as one.
+"""
 
 from __future__ import annotations
 
@@ -27,10 +31,11 @@ class HeatingRecord:
     cost_minor: float = 0.0
     solar_kwh: float = 0.0
     priced: bool = True  # False if some of the energy had no known price
+    cycle: float | None = None  # the "ready by" (epoch s) the heating was for; same cycle = one record
 
     def as_dict(self) -> dict[str, Any]:
         return {"start": self.start_s, "end": self.end_s, "kwh": self.kwh, "cost": self.cost_minor,
-                "solar_kwh": self.solar_kwh, "priced": self.priced}
+                "solar_kwh": self.solar_kwh, "priced": self.priced, "cycle": self.cycle}
 
 
 class HeatingLog:
@@ -48,10 +53,11 @@ class HeatingLog:
         self._off_since: float | None = None
         self.days: dict[str, list[float]] = {}  # local date (ISO) -> [kwh, cost_minor, solar_kwh, unpriced_kwh]
         self.runs: list[list[Any]] = []  # [start_s, end_s, 1.0 if sun else 0.0, status that heated it]
+        self.finished = 0  # counts finished heatings (a record may be continued, so `last` can stay the same object)
 
     def observe(self, now_s: float, switch_on: bool | None, measured_w: float | None,
                 price_minor: float | None, solar: bool, reason: str | None = None,
-                day: str | None = None) -> None:
+                day: str | None = None, cycle: float | None = None) -> None:
         prev, self._prev_s = self._prev_s, now_s
         if switch_on is None:
             return
@@ -59,7 +65,11 @@ class HeatingLog:
             self._off_since = None
             self._record_run(now_s, solar, reason)
             if self.current is None:
-                self.current = HeatingRecord(now_s, now_s)
+                last = self.last
+                if cycle is not None and last is not None and last.cycle == cycle:
+                    self.current = last  # another heating for the same "ready by": add to it
+                else:
+                    self.current = HeatingRecord(now_s, now_s, cycle=cycle)
             if prev is not None:
                 dt = min(max(now_s - prev, 0.0), MAX_STEP_S)
                 watts = measured_w if measured_w is not None and measured_w > 50 else self.power_w
@@ -108,6 +118,7 @@ class HeatingLog:
     def _finish(self) -> None:
         if self.current is not None and self.current.kwh >= 0.05:
             self.last = self.current
+            self.finished += 1
         self.current = None
         self._off_since = None
 
@@ -164,6 +175,7 @@ class HeatingLog:
             if data:
                 self.last = HeatingRecord(float(data["start"]), float(data["end"]), float(data["kwh"]),
                                           float(data["cost"]), float(data.get("solar_kwh", 0.0)),
-                                          bool(data.get("priced", True)))
+                                          bool(data.get("priced", True)),
+                                          None if data.get("cycle") is None else float(data["cycle"]))
         except (KeyError, TypeError, ValueError):
             self.last = None

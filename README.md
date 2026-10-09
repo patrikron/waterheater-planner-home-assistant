@@ -175,7 +175,7 @@ What the card shows, from the top:
 - **Mode buttons.**
 - **Planned cost**, energy and heating time, plus how much cheaper the plan is than heating right away.
 - **Last heating:** energy and cost of the latest heating (or the one running now).
-- **Chart:** the price per quarter from 00:00 today, planned heating, forecast sun hours and, as a strip
+- **Chart:** the price per quarter from 00:00 today, planned heating (purple), forecast sun hours and, as a strip
   under the chart, the times the heater really ran (turquoise = grid, yellow = sun). Hover or touch a bar for the price; on a bar where the heater ran it also shows how long, how much energy and why (planned cheap power, solar surplus, chosen sun hour, base temperature, comfort floor or Heat now).
 - **Planned heating:** the planned periods with energy and price.
 - **Settings**, which are listed below. Hover a setting for an explanation (a tooltip); on a touch screen, tap its label to show the text under the row.
@@ -319,7 +319,8 @@ Set it to 0 to turn the limit off. The status sensor's `regrid_armed` attribute 
 ### Last heating
 
 The sensors **Energy, last heating** (kWh) and **Cost, last heating** show what the latest heating used
-and cost. A heating is everything without a pause longer than 10 minutes. While it runs, the figures are
+and cost. Everything heated for the same **Ready by** counts as one heating, so the night's and the day's
+heatings for 16:00 show together. A heating that starts after *Ready by* belongs to the next one. While it runs, the figures are
 what has been used so far. Cost is the energy times the all-in price of each quarter (with your add-ons);
 energy heated by solar surplus counts as free. The sensors have attributes for start, end, solar energy
 and whether every quarter had a price. History starts when the integration is installed.
