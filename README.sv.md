@@ -150,7 +150,7 @@ type: custom:waterheater-planner-card
 entity: sensor.varmvatten_status     # integrationens Status-sensor
 name: Varmvatten                     # valfritt
 settings: collapsed                  # collapsed (standard) | open | hidden
-view: full                           # full (standard) | compact
+view: full                           # full (standard) | compact | mini
 icon: large                          # large (standard) | small | none
 icon_name: mdi:water-boiler          # valfritt: valfri Home Assistant-ikon i stället för den inbyggda tanken
 secondary_text: theme                # gråa texter: theme (standard) | bright | primary
@@ -166,6 +166,12 @@ En knapp **Visa mer** fäller ut resten (kostnad, diagram, planerad värmning oc
 <p align="center">
   <img src="docs/images/sv/compact.png" width="300" alt="Kompakt vy">
   <img src="docs/images/sv/compact-open.png" width="300" alt="Kompakt vy, utfälld">
+</p>
+
+**Minivy** (`view: mini`) är den minsta: temperaturen (i mindre storlek), statusen, förbrukningsknappen och temperaturstapeln, inget annat.
+
+<p align="center">
+  <img src="docs/images/sv/mini.png" width="300" alt="Minivy">
 </p>
 
 Syns inte kortet i listan, gör en hård omladdning (Ctrl+Shift+R, eller rensa appens cache).

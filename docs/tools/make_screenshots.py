@@ -185,6 +185,7 @@ body{{margin:0;padding:16px;background:var(--primary-background-color);color:var
         ("usage", "solar", "dark", "collapsed"),
         ("compact", "hybrid", "dark", "collapsed"),
         ("compact-open", "hybrid", "dark", "collapsed"),
+        ("mini", "hybrid", "dark", "collapsed"),
     ]
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -200,7 +201,7 @@ body{{margin:0;padding:16px;background:var(--primary-background-color);color:var
                   const el = document.getElementById('c');
                   const hass = { states: { 'sensor.vvb_status': { entity_id: 'sensor.vvb_status', state: sc.state, last_updated: 'x', attributes: sc.attrs } },
                     language: lang, locale: { language: lang }, config: { time_zone: 'Europe/Stockholm' }, callService: () => Promise.resolve() };
-                  el.setConfig({ entity: 'sensor.vvb_status', name: lang === 'sv' ? 'Varmvatten' : 'Hot water', settings, view: name.startsWith('compact') ? 'compact' : 'full', icon });
+                  el.setConfig({ entity: 'sensor.vvb_status', name: lang === 'sv' ? 'Varmvatten' : 'Hot water', settings, view: name.startsWith('compact') ? 'compact' : name.startsWith('mini') ? 'mini' : 'full', icon });
                   el.hass = hass;
                 }""", [sc, lang, settings, name, os.environ.get('WH_ICON', 'large')])
                 page.wait_for_timeout(500)
