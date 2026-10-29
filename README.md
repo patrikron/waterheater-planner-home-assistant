@@ -148,7 +148,7 @@ type: custom:waterheater-planner-card
 entity: sensor.hot_water_status      # the integration's Status sensor
 name: Hot water                      # optional
 settings: collapsed                  # collapsed (default) | open | hidden
-view: full                           # full (default) | compact
+view: full                           # full (default) | compact | mini
 icon: large                          # large (default) | small | none
 icon_name: mdi:water-boiler          # optional: any Home Assistant icon instead of the built-in tank
 secondary_text: theme                # grey texts: theme (default) | bright | primary
@@ -164,6 +164,12 @@ A **Show more** button folds out the rest (cost, chart, planned heating and sett
 <p align="center">
   <img src="docs/images/en/compact.png" width="300" alt="Compact view">
   <img src="docs/images/en/compact-open.png" width="300" alt="Compact view, expanded">
+</p>
+
+**Mini view** (`view: mini`) is the smallest: the temperature (in a smaller size), the status, the usage button and the temperature bar, nothing else.
+
+<p align="center">
+  <img src="docs/images/en/mini.png" width="300" alt="Mini view">
 </p>
 
 If the card does not show up in the picker, do a hard refresh (Ctrl+Shift+R, or clear the app cache).

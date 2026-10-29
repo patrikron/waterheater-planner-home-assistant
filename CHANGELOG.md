@@ -2,6 +2,9 @@
 
 Versions follow `version` in `custom_components/waterheater_planner/manifest.json`.
 
+## 0.22.0
+- New card option `view: mini` (also in the card editor, *Mini*): only the icon, name, temperature (smaller), usage button, status and the temperature bar. The usage table opens inside the card. Card version 0.5.0.
+
 ## 0.21.1
 - A restart no longer switches the heater on for a few minutes at whatever the price is. The price sensor is often not loaded on the first tick; the planner now waits 15 minutes without prices before it heats as a plain thermostat. The comfort floor still heats at once.
 

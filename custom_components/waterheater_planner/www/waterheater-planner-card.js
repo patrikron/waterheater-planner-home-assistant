@@ -10,6 +10,7 @@
  *   name: Varmvatten              # optional
  *   settings: collapsed           # collapsed (default) | open | hidden
  *   view: full                    # full (default) | compact (temperature, status and modes; the rest folds out)
+ *                                 #   | mini (only temperature, status, usage button and the temperature bar)
  *   icon: large                   # large (default) | small | none
  *   icon_name: mdi:water-boiler   # optional: any Home Assistant icon instead of the built-in tank
  *   secondary_text: theme         # grey texts (labels, units, chart axes, explanations):
@@ -20,7 +21,7 @@
  * All grey text goes through one CSS variable, --wh-dim, set on ha-card.
  */
 
-const WH_CARD_VERSION = "0.4.0";
+const WH_CARD_VERSION = "0.5.0";
 
 const WH_TEXT = {
   sv: {
@@ -147,7 +148,7 @@ const WH_TEXT = {
     dimOptions: { theme: "Temats färg", bright: "Ljusare", primary: "Samma som huvudtexten (vit i mörkt tema)" },
     pickIconName: "Ikon (välj egen, tom = standard)",
     iconOptions: { large: "Stor", small: "Liten", none: "Ingen" },
-    viewOptions: { full: "Full", compact: "Kompakt" },
+    viewOptions: { full: "Full", compact: "Kompakt", mini: "Mini" },
     showMore: "Visa mer",
     nextHeat: (when) => `Nästa värmning ${when}`,
     heatingUntil: (when) => `Värmer till ${when}`,
@@ -282,7 +283,7 @@ const WH_TEXT = {
     dimOptions: { theme: "Theme colour", bright: "Brighter", primary: "Same as the main text (white in a dark theme)" },
     pickIconName: "Icon (pick your own, empty = default)",
     iconOptions: { large: "Large", small: "Small", none: "None" },
-    viewOptions: { full: "Full", compact: "Compact" },
+    viewOptions: { full: "Full", compact: "Compact", mini: "Mini" },
     showMore: "Show more",
     nextHeat: (when) => `Next heating ${when}`,
     heatingUntil: (when) => `Heating until ${when}`,
@@ -379,6 +380,14 @@ const WH_STYLE = `
   .chip.warn::before { background: var(--error-color, #e5534b); }
   .chip.on { background: color-mix(in srgb, var(--wh-grid) 18%, transparent); }
   .chip.on.sun { background: color-mix(in srgb, var(--wh-sun) 20%, transparent); }
+
+  ha-card.mini { padding: 12px 14px 8px; }
+  .mini .temp { font-size: 30px; letter-spacing: -.5px; }
+  .mini .temp small { font-size: 14px; }
+  .mini .lead > svg.wh-icon { width: 28px; height: 28px; margin-top: 6px; }
+  .mini .lead > ha-icon.wh-icon { --mdc-icon-size: 28px; margin-top: 6px; }
+  .mini .gauge { margin-top: 10px; }
+  .mini .scrim { position: static; padding: 10px 0 6px; background: none; }
 
   .gauge { position: relative; height: 6px; margin: 14px 0 4px; border-radius: 3px; background: var(--wh-line); }
   .gauge .fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: linear-gradient(90deg, var(--wh-grid), var(--wh-sun)); }
@@ -507,7 +516,7 @@ class WaterHeaterPlannerCard extends HTMLElement {
     this._render();
   }
 
-  getCardSize() { return 7; }
+  getCardSize() { return this._mini ? 2 : 7; }
   getGridOptions() { return { columns: 12, min_columns: 6, rows: "auto" }; }
 
   // ------------------------------------------------------------------ helpers
@@ -566,7 +575,7 @@ class WaterHeaterPlannerCard extends HTMLElement {
       this.shadowRoot.innerHTML = `<style>${WH_STYLE}</style><ha-card class="${this._dimClass}"><div class="error">${whEsc(t.missing(this._config.entity))}</div></ha-card>`;
       return;
     }
-    this.shadowRoot.innerHTML = `<style>${WH_STYLE}</style><ha-card class="${this._dimClass}">${this._body(stateObj)}</ha-card>`;
+    this.shadowRoot.innerHTML = `<style>${WH_STYLE}</style><ha-card class="${this._dimClass}${this._mini ? " mini" : ""}">${this._body(stateObj)}</ha-card>`;
     this._decorateHelp();
   }
 
@@ -612,14 +621,14 @@ class WaterHeaterPlannerCard extends HTMLElement {
         <div class="right">${`<button type="button" class="usagebtn" data-action="usage" aria-label="${whEsc(t.usage)}" title="${whEsc(t.usage)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>`}<button type="button" class="chip ${chipKind} ${heating ? "on" : ""} ${heating && sunHeat ? "sun" : ""}" data-action="heater">${whEsc(t.status[status] || status)}</button></div>
       </div>
       ${this._gauge(a)}
-      ${this._modes(a)}
+      ${this._mini ? this._usageSheet(a) : `${this._modes(a)}
       ${this._compact ? this._nextLine(a) + this._moreToggle() : ""}
       ${this._compact && !this._more ? "" : `${this._summary(a)}
       ${this._lastHeating(a)}
       ${this._chart(a)}
       ${this._periods(a)}
       ${this._settings(a)}`}
-      ${this._usageSheet(a)}
+      ${this._usageSheet(a)}`}
     `);
     return parts.join("");
   }
@@ -638,6 +647,7 @@ class WaterHeaterPlannerCard extends HTMLElement {
   }
 
   get _compact() { return this._config.view === "compact"; }
+  get _mini() { return this._config.view === "mini"; }
 
   /** One line for the compact view: when the next heating is planned. */
   _nextLine(a) {
