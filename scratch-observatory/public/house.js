@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.4.2';
+  const VERSION = '0.4.3';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -28,7 +28,8 @@
     },
   };
   // Fönster som lyser på natten (procent)
-  const GLOWS = [[47.2, 47], [52.1, 46.3], [58.3, 45], [67.6, 45], [75.9, 46.3]];
+  // Tredje värdet 'down' = takbelysning: ljuset börjar vid takkanten och lyser bara nedåt
+  const GLOWS = [[47.2, 46.6, 'down'], [52.1, 45.9, 'down'], [58.3, 44.0, 'down'], [67.6, 45], [75.9, 46.3]];
   // Ljusslingan i uterummet: en liten lampa per glödlampa i fotot
   const BULBS = [[24.15, 51.97], [24.79, 52.31], [25.6, 52.31], [26.44, 51.71], [28.83, 51.41], [29.53, 50.64], [29.79, 50.3]];
 
@@ -291,7 +292,7 @@
     document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === lightMode)));
   }
   document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { lightMode = b.dataset.mode; store('obs-light', lightMode); applyLight(); }));
-  $('glows').innerHTML = GLOWS.map(([x, y]) => `<i style="left:${x}%;top:${y}%"></i>`).join('') +
+  $('glows').innerHTML = GLOWS.map(([x, y, k]) => `<i class="${k || ''}" style="left:${x}%;top:${y}%"></i>`).join('') +
     BULBS.map(([x, y], i) => `<b class="bulb" style="left:${x}%;top:${y}%;animation-delay:${(i * 0.37) % 2}s"></b>`).join('');
 
   // ---------- Detaljpanel ----------

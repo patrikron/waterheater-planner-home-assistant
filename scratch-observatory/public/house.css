@@ -199,3 +199,6 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
   box-shadow:0 0 6px 2px rgba(255,190,110,.45);animation:bulb 2.6s ease-in-out infinite}
 @keyframes bulb{50%{opacity:.78}}
 @media (prefers-reduced-motion:reduce){.glows .bulb{animation:none}}
+/* Takbelysning: bara den nedre halvan av ljuset syns, så att inget ljus hamnar på taket */
+.glows i.down{width:7%;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(255,200,125,.6) 0%,rgba(255,165,85,.2) 45%,rgba(255,140,60,0) 72%);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 49%,#000 53%);mask-image:linear-gradient(to bottom,transparent 49%,#000 53%)}
