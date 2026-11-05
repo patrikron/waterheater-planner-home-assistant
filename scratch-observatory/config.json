@@ -177,6 +177,43 @@
   "automation.notifiering_ftx_avstangd": [
    "friendly_name",
    "last_triggered"
+  ],
+  "select.goe_404702_frc": [
+   "options"
+  ],
+  "select.goe_404702_psm": [
+   "options"
+  ],
+  "select.goe_404702_lmo": [
+   "options"
+  ],
+  "select.ev_smart_charging_charge_completion_time": [
+   "options"
+  ],
+  "number.goe_404702_amp": [
+   "min",
+   "max",
+   "step"
+  ],
+  "number.ev6_ac_charging_limit": [
+   "min",
+   "max",
+   "step"
+  ],
+  "number.ev_smart_charging_minimum_ev_soc": [
+   "min",
+   "max",
+   "step"
+  ],
+  "sensor.ev_smart_charging_charging": [
+   "current_price",
+   "ev_soc",
+   "ev_target_soc",
+   "charging_is_planned",
+   "charging_start_time",
+   "charging_stop_time",
+   "charging_number_of_hours",
+   "opportunistic"
   ]
  },
  "house": {
@@ -489,6 +526,93 @@
    "automation.ftx_stang_av_bortalage_vid_lagre_temp",
    "automation.ftx_bortalage_vid_hog_temp",
    "automation.notifiering_ftx_avstangd"
+  ]
+ },
+ "charger": {
+  "title": "Laddbox / EV6.",
+  "subtitle": "go-e V5 och Kia EV6: laddning nu, styrning, smart laddning, historik och hårdvara – live från Home Assistant.",
+  "controls": true,
+  "price_extra": 0.856,
+  "power": "sensor.go_echarger_404702_power_total",
+  "car_state": "sensor.goe_404702_car_value",
+  "status": "sensor.goe_404702_modelstatus_value",
+  "connected": "binary_sensor.goe_404702_car_0",
+  "allowed": "binary_sensor.goe_404702_alw",
+  "session_kwh": "sensor.goe_404702_wh",
+  "session_min": "sensor.goe_404702_cdi_value",
+  "energy_total": "sensor.goe_404702_eto",
+  "power_avg30": "sensor.goe_404702_tpa",
+  "voltages": [
+   "sensor.goe_404702_nrg_0",
+   "sensor.goe_404702_nrg_1",
+   "sensor.goe_404702_nrg_2"
+  ],
+  "currents": [
+   "sensor.goe_404702_nrg_4",
+   "sensor.goe_404702_nrg_5",
+   "sensor.goe_404702_nrg_6"
+  ],
+  "phase_power": [
+   "sensor.goe_404702_nrg_7",
+   "sensor.goe_404702_nrg_8",
+   "sensor.goe_404702_nrg_9"
+  ],
+  "force": "select.goe_404702_frc",
+  "amp": "number.goe_404702_amp",
+  "phase_mode": "select.goe_404702_psm",
+  "logic": "select.goe_404702_lmo",
+  "pv_surplus": "switch.goe_404702_fup",
+  "phase_wish": "sensor.goe_404702_pwm_value",
+  "max_current": "sensor.goe_404702_acu",
+  "cable_max": "sensor.goe_404702_cbl",
+  "temp_limit": "sensor.goe_404702_amt",
+  "temp_plug": "sensor.goe_404702_tma_0",
+  "temp_board": "sensor.goe_404702_tma_1",
+  "error": "sensor.goe_404702_err_value",
+  "cable_lock": "sensor.goe_404702_cus_value",
+  "lock_feedback": "sensor.goe_404702_ffb_value",
+  "wifi": "sensor.goe_404702_rssi",
+  "reboots": "sensor.goe_404702_rbc",
+  "uptime": "sensor.goe_404702_rbt",
+  "smart_on": "switch.ev_smart_charging_smart_charging_activated",
+  "smart_status": "sensor.ev_smart_charging_status",
+  "smart_plan": "sensor.ev_smart_charging_charging",
+  "smart_end": "select.ev_smart_charging_charge_completion_time",
+  "smart_min_soc": "number.ev_smart_charging_minimum_ev_soc",
+  "smart_price_limit": "number.ev_smart_charging_electricity_price_limit",
+  "smart_apply_limit": "switch.ev_smart_charging_apply_price_limit",
+  "balancing": "input_boolean.element_laddning_balansering",
+  "water_heater": "binary_sensor.shelly_shem_3_485519d75132_2_active",
+  "price": "sensor.tibber_elpris",
+  "car_soc": "sensor.ev6_laddningsniva_soc",
+  "car_target": "sensor.ev6_malladdningsniva",
+  "car_soc_kia": "sensor.ev6_ev_battery_level",
+  "car_range": "sensor.ev6_ev_range",
+  "car_charge_time": "sensor.ev6_estimated_charge_duration",
+  "car_plug": "binary_sensor.ev6_ev_battery_plug",
+  "car_charging": "binary_sensor.ev6_ev_battery_charge",
+  "car_port": "binary_sensor.ev6_ev_charge_port",
+  "ac_limit": "number.ev6_ac_charging_limit",
+  "target_range_ac": "sensor.ev6_target_range_of_charge_ac",
+  "car_updated": "sensor.ev6_last_updated_at",
+  "odometer": "sensor.ev6_odometer",
+  "avg_consumption": "sensor.ev6_average_energy_consumption",
+  "car_12v": "sensor.ev6_car_battery_level",
+  "car_location": "device_tracker.ev6_location",
+  "toggles": [
+   "switch.goe_404702_fup",
+   "switch.ev_smart_charging_smart_charging_activated"
+  ],
+  "selects": [
+   "select.goe_404702_frc",
+   "select.goe_404702_psm",
+   "select.goe_404702_lmo",
+   "select.ev_smart_charging_charge_completion_time"
+  ],
+  "numbers": [
+   "number.goe_404702_amp",
+   "number.ev6_ac_charging_limit",
+   "number.ev_smart_charging_minimum_ev_soc"
   ]
  }
 }

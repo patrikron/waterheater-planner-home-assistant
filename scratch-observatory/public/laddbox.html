@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d100e">
+<title>Laddbox</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="water.css">
+<link rel="stylesheet" href="heatpump.css">
+<link rel="stylesheet" href="solar.css">
+<link rel="stylesheet" href="ftx.css">
+<link rel="stylesheet" href="charger.css">
+</head>
+<body data-page="laddbox">
+<nav class="side" aria-label="Meny">
+  <a class="brand" href="./"><span class="slash">//</span> OBSERVATORIET</a>
+  <a class="nav-item" href="./" data-page="oversikt" title="Översikt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/></svg><span>Översikt</span></a>
+  <a class="nav-item" href="solceller.html" data-page="solceller" title="Solceller"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg><span>Solceller</span></a>
+  <a class="nav-item" href="varmvatten.html" data-page="varmvatten" title="Varmvatten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/></svg><span>Varmvatten</span></a>
+  <a class="nav-item" href="varmepump.html" data-page="varmepump" title="Luftvärmepump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 9v6M9 12h6M17 8h1"/></svg><span>Luftvärmepump</span></a>
+  <a class="nav-item" href="ftx.html" data-page="ftx" title="FTX"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h7a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h6"/></svg><span>FTX</span></a>
+  <a class="nav-item" href="laddbox.html" data-page="laddbox" aria-current="page" title="Laddbox"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8v18H6zM9 7l-1.5 4h3L9 15M14 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-2-2"/></svg><span>Laddbox</span></a>
+  <a class="nav-item minor" href="kort.html" data-page="kort" title="Kortvy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M10 10v9"/></svg><span>Kortvy</span></a>
+</nav>
+<div class="content">
+<header class="top">
+  <div>
+    <div class="eyebrow"><span class="slash">//</span> OBSERVATORIET / LADDBOX</div>
+    <h1 id="title">Laddbox / EV6.</h1>
+    <p id="subtitle"></p>
+  </div>
+  <div class="top-right">
+    <span id="badge" class="badge stale"><i></i><span>Väntar på data</span></span>
+    <span id="clock" class="mono"></span>
+  </div>
+</header>
+<main id="cmain" class="wgrid">
+  <section class="wcard hero ch-hero" id="hero"></section>
+  <section class="wcard full" id="control"></section>
+  <section class="wcard span2"><div class="dchart flat" id="power-chart"></div></section>
+  <section class="wcard" id="session"></section>
+  <section class="wcard" id="smart"></section>
+  <section class="wcard" id="car"></section>
+  <section class="wcard" id="phases"></section>
+  <section class="wcard span2" id="days"></section>
+  <section class="wcard" id="totals"></section>
+  <section class="wcard full" id="hardware"></section>
+</main>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script src="charger.js"></script>
+</body>
+</html>

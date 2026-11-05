@@ -28,7 +28,7 @@ if (!HA_URL || !HA_TOKEN) {
 const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 // Alla strängvärden (även i nästlade objekt) som ser ut som entitets-id i card, house och water.
 const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { if (typeof v === 'string') { if (ID_RE.test(v)) out.push(v); } else if (v && typeof v === 'object') collectIds(v, out); } return out; };
-const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx)]);
+const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger)]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const STATS_IDS = new Set([CONFIG.card.solar, CONFIG.card.load, CONFIG.card.grid].filter(Boolean));
@@ -214,10 +214,13 @@ async function readBody(req, max = 64 * 1024) {
 const HP = CONFIG.heatpump || {};
 const ctlLog = [];
 async function control(body) {
-  const FTX = CONFIG.ftx || {};
+  // Sidor med egen styrning (FTX, laddbox): bara entiteter som står i respektive vitlista
+  const PAGES = [CONFIG.ftx, CONFIG.charger].filter(x => x && x.controls);
+  const allow = k => new Set(PAGES.flatMap(x => [...(x[k] || []), ...(k === 'numbers' && x.setpoint ? [x.setpoint] : [])]));
   const { action: act0, entity: ent0 } = body || {};
-  const ftxOk = FTX.controls && ((act0 === 'toggle' && (FTX.toggles || []).includes(ent0)) || (act0 === 'number' && ent0 === FTX.setpoint));
-  if (!ftxOk && (!HP.controls || !HP.climate)) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
+  const ftxOk = (act0 === 'toggle' && allow('toggles').has(ent0)) || (act0 === 'number' && allow('numbers').has(ent0)) || (act0 === 'select' && allow('selects').has(ent0));
+  const hpOk = !!(HP.controls && HP.climate);
+  if (!ftxOk && !hpOk) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
   const now = Date.now();
   while (ctlLog.length && now - ctlLog[0] > 60000) ctlLog.shift();
   if (ctlLog.length >= 20) throw Object.assign(new Error('För många kommandon, vänta en minut'), { code: 429 });
@@ -225,11 +228,12 @@ async function control(body) {
   const cl = states.get(HP.climate), a = (cl && cl.attributes) || {};
   const inList = (list, v) => Array.isArray(list) && typeof v === 'string' && list.includes(v);
   let call;
-  if (action === 'hvac_mode' && inList(a.hvac_modes, value)) call = ['climate', 'set_hvac_mode', HP.climate, { hvac_mode: value }];
-  else if (action === 'fan_mode' && inList(a.fan_modes, value)) call = ['climate', 'set_fan_mode', HP.climate, { fan_mode: value }];
-  else if (action === 'swing_mode' && inList(a.swing_modes, value)) call = ['climate', 'set_swing_mode', HP.climate, { swing_mode: value }];
-  else if (action === 'preset_mode' && inList(a.preset_modes, value)) call = ['climate', 'set_preset_mode', HP.climate, { preset_mode: value }];
-  else if (action === 'temperature' && typeof value === 'number' && Number.isFinite(value)) {
+  if (!hpOk && !ftxOk) call = null;
+  else if (hpOk && action === 'hvac_mode' && inList(a.hvac_modes, value)) call = ['climate', 'set_hvac_mode', HP.climate, { hvac_mode: value }];
+  else if (hpOk && action === 'fan_mode' && inList(a.fan_modes, value)) call = ['climate', 'set_fan_mode', HP.climate, { fan_mode: value }];
+  else if (hpOk && action === 'swing_mode' && inList(a.swing_modes, value)) call = ['climate', 'set_swing_mode', HP.climate, { swing_mode: value }];
+  else if (hpOk && action === 'preset_mode' && inList(a.preset_modes, value)) call = ['climate', 'set_preset_mode', HP.climate, { preset_mode: value }];
+  else if (hpOk && action === 'temperature' && typeof value === 'number' && Number.isFinite(value)) {
     const lo = a.min_temp ?? 10, hi = a.max_temp ?? 30, step = a.target_temp_step || 0.5;
     if (value < lo || value > hi || Math.abs(value / step - Math.round(value / step)) > 1e-6) throw Object.assign(new Error('Ogiltig temperatur'), { code: 400 });
     call = ['climate', 'set_temperature', HP.climate, { temperature: value }];
@@ -241,7 +245,7 @@ async function control(body) {
     if (!Number.isFinite(lo) || !Number.isFinite(hi) || value < lo || value > hi || Math.abs((value - lo) / step - Math.round((value - lo) / step)) > 1e-6)
       throw Object.assign(new Error('Ogiltigt värde'), { code: 400 });
     call = [entity.split('.')[0], 'set_value', entity, { value }];
-  } else if (action === 'select' && HP.controls && (HP.selects || []).includes(entity)) {
+  } else if (action === 'select' && (ftxOk || (HP.controls && (HP.selects || []).includes(entity)))) {
     const s = states.get(entity);
     if (!s || !inList(s.attributes.options, value)) throw Object.assign(new Error('Ogiltigt val'), { code: 400 });
     call = [entity.split('.')[0], 'select_option', entity, { option: value }];
@@ -357,6 +361,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/heatpump') return json(res, 200, CONFIG.heatpump || {});
     if (url.pathname === '/api/solar') return json(res, 200, CONFIG.solar || {});
     if (url.pathname === '/api/ftx') return json(res, 200, CONFIG.ftx || {});
+    if (url.pathname === '/api/charger') return json(res, 200, CONFIG.charger || {});
     if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours'))));
