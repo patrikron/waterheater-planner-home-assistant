@@ -194,3 +194,8 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
 .pbh{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--muted)}
 .pbh b{font-size:18px;color:var(--sage);font-weight:600}
 @media (max-width:520px){.sgrid4{grid-template-columns:1fr 1fr}.sgrid3{grid-template-columns:1fr 1fr}.sx.hero{grid-template-columns:1fr}.sx.hero .hr{border-left:0;padding-left:0}}
+.glows .bulb{position:absolute;width:.55%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(255,244,214,1) 0 22%,rgba(255,206,130,.75) 38%,rgba(255,170,80,.25) 62%,rgba(255,170,80,0) 75%);
+  box-shadow:0 0 6px 2px rgba(255,190,110,.45);animation:bulb 2.6s ease-in-out infinite}
+@keyframes bulb{50%{opacity:.78}}
+@media (prefers-reduced-motion:reduce){.glows .bulb{animation:none}}
