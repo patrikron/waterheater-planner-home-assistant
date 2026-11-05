@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.2.1';
+  const VERSION = '0.3.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -18,7 +18,7 @@
       vp:      { x: 65.5, y: 3,  anchor: [55.2, 34.4] }, // värmepumpen sitter på baksidan
       ladd:    { x: 84,   y: 64, anchor: [81.5, 51] },
       elpris:  { x: 1.5,  y: 70 },
-      kostnad: { x: 30,   y: 76 },
+      kostnad: { x: 31,   y: 57 },
     },
     hotspots: {
       solar:    { points: [[30.7, 33.2], [55, 33.6], [61.4, 40], [45.7, 44], [35.5, 40]] },
@@ -103,17 +103,76 @@
       return { custom: `<div class="k">Idag / elpris</div>
         <div class="v">${nf(p, 2)}<small>kr/kWh nu</small></div>${priceSpark(arr)}` };
     } },
-    kostnad: { title: 'Idag / kostnad', cls: 'wide', drawer: 'grid', render() {
-      const cost = num(cfg.cost_today), inn = num(cfg.grid_in_today), out = num(cfg.grid_out_today);
-      const pv = num(cfg.pv_today), use = num(cfg.load_today);
-      const self = pv != null && out != null ? Math.max(0, pv - out) : null;
-      return { custom: `<div class="k">Idag / energi</div>
-        <div class="cost"><div><div class="s">Elkostnad</div><div class="v money">${nf(cost, 2)}<small>kr</small></div></div>
-          <div><div class="s">Egen sol använd</div><div class="v saved">${nf(self)}<small>kWh</small></div></div></div>
-        <div class="row"><span>Förbrukat<b>${nf(use)} kWh</b></span><span>Sol<b>${nf(pv)} kWh</b></span>
-          <span>Köpt<b>${nf(inn)} kWh</b></span><span>Sålt<b>${nf(out)} kWh</b></span></div>` };
+    kostnad: { title: 'Idag / pengar', cls: 'wide money-box', drawer: 'grid', render() {
+      const page = kostnadPage === 1 ? energyPage() : moneyPage();
+      return { custom: page + `<div class="pager"><button data-page="-1" aria-label="Föregående">‹</button><span>${kostnadPage + 1} av 2</span><button data-page="1" aria-label="Nästa">›</button></div>` };
     } },
   };
+
+  // Sida 1: pengar idag (uppskattat) och vad solen sparat
+  let kostnadPage = load('obs-kostnad-page') === '1' ? 1 : 0;
+  let moneyData = null;
+  async function loadMoney() {
+    try { moneyData = await fetch('api/money', { cache: 'no-store' }).then(r => r.ok ? r.json() : null); } catch {}
+    refresh();
+  }
+  const kr = (v, d = 2) => v == null ? '–' : nf(v, d);
+  function moneyPage() {
+    const inn = num(cfg.grid_in_today), costIn = num(cfg.cost_in_today), sold = num(cfg.sold_today);
+    const fee = num(cfg.net_fee), feeTax = num(cfg.net_fee_tax);
+    const now = new Date(), days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const fixed = Number(cfg.fixed_fees_month) > 0 ? Number(cfg.fixed_fees_month) / days : null;
+    const transfer = inn != null && fee != null ? inn * fee : null;
+    const tax = inn != null && fee != null && feeTax != null ? inn * Math.max(0, feeTax - fee) : null;
+    const energy = costIn != null && transfer != null && tax != null ? Math.max(0, costIn - transfer - tax) : null;
+    const spent = costIn != null ? costIn - (sold || 0) + (fixed || 0) : num(cfg.cost_today);
+    // Sparat idag = egen solel värderad till totalpriset (löpande sensor minus värdet vid midnatt)
+    const base = moneyData && moneyData.base || {};
+    const save = num(cfg.solar_saving), sb = base[cfg.solar_saving];
+    const savedToday = save != null && sb != null ? Math.max(0, save - sb) : null;
+    const y = moneyData && moneyData.year;
+    const row = (k, v, cls = '') => `<div class="mrow ${cls}"><span>${k}</span><b>${v}</b></div>`;
+    return `<div class="k">Idag / uppskattat</div>
+      <div class="money-grid">
+        <div>
+          <div class="ml">Elkostnad</div>
+          <div class="v money">${kr(spent)}<small>kr</small></div>
+          <div class="mrows">
+            ${row('Köpt från nätet', `${nf(inn)} <small>kWh</small>`)}
+            ${row('Elpris', `${kr(energy)} <small>kr</small>`)}
+            ${row('Nätavgift', `${kr(transfer)} <small>kr</small>`)}
+            ${row('Skatt och avgifter', `${kr(tax)} <small>kr</small>`)}
+            ${fixed != null ? row('Fasta avgifter', `${kr(fixed)} <small>kr</small>`) : ''}
+            ${row('Såld el', `${sold ? '−' + kr(sold) : kr(sold)} <small>kr</small>`, 'neg')}
+          </div>
+        </div>
+        <div class="msave">
+          <div class="ml">Sparat med sol</div>
+          <div class="v saved">${kr(savedToday)}<small>kr</small></div>
+          <div class="mnote">Egen solel du slapp köpa idag</div>
+          <div class="ml year">Solen har gett i år</div>
+          <div class="v2 saved">${y ? nf(y.total_kr, 0) : '–'}<small>kr</small></div>
+          <div class="mnote">${y ? `${y.year} · använd ${nf(y.self_kr, 0)} + såld ${nf(y.sold_kr, 0)} kr` : 'Räknas från statistiken …'}</div>
+        </div>
+      </div>`;
+  }
+  // Sida 2: energi idag (den gamla rutan)
+  function energyPage() {
+    const cost = num(cfg.cost_today), inn = num(cfg.grid_in_today), out = num(cfg.grid_out_today);
+    const pv = num(cfg.pv_today), use = num(cfg.load_today);
+    const self = pv != null && out != null ? Math.max(0, pv - out) : null;
+    return `<div class="k">Idag / energi</div>
+      <div class="cost"><div><div class="s">Elkostnad</div><div class="v money">${nf(cost, 2)}<small>kr</small></div></div>
+        <div><div class="s">Egen sol använd</div><div class="v saved">${nf(self)}<small>kWh</small></div></div></div>
+      <div class="row"><span>Förbrukat<b>${nf(use)} kWh</b></span><span>Sol<b>${nf(pv)} kWh</b></span>
+        <span>Köpt<b>${nf(inn)} kWh</b></span><span>Sålt<b>${nf(out)} kWh</b></span></div>`;
+  }
+  boxesEl.addEventListener('click', e => {
+    const b = e.target.closest('.pager button'); if (!b) return;
+    e.stopPropagation(); e.preventDefault();
+    kostnadPage = (kostnadPage + 2 + Number(b.dataset.page)) % 2; store('obs-kostnad-page', String(kostnadPage));
+    renderBoxes(); drawWires();
+  }, true);
 
   function priceSpark(arr) {
     if (!arr.length) return '<div class="s">Inga priser</div>';
@@ -439,6 +498,7 @@
     for (const [id, b] of Object.entries(l.boxes || {})) if (layout.boxes[id]) Object.assign(layout.boxes[id], b);
     for (const [id, h] of Object.entries(l.hotspots || {})) if (layout.hotspots[id] && h.points) layout.hotspots[id].points = h.points;
     buildBoxes(); buildHot(); refresh();
+    loadMoney(); setInterval(loadMoney, 10 * 60 * 1000);
 
     const es = new EventSource('api/stream');
     es.addEventListener('snapshot', e => { const d = JSON.parse(e.data); states = d.states; connected = d.connected; refresh(); });

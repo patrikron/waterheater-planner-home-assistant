@@ -94,6 +94,24 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
 .cost{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 .cost .v.money{color:var(--orange)}
 .cost .v.saved{color:var(--sage)}
+.box.money-box{width:clamp(300px,30vw,440px)}
+.money-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:0 16px;margin-top:6px}
+.money-grid .ml{font-size:12px;color:var(--text);opacity:.85}
+.money-grid .ml.year{margin-top:12px;padding-top:10px;border-top:1px solid rgba(200,210,190,.18);font-size:11px;color:var(--muted);opacity:1}
+.money-grid .v.money{color:var(--orange)}
+.money-grid .v.saved,.money-grid .v2.saved{color:var(--sage)}
+.money-grid .v2{font-size:clamp(15px,1.3vw,20px);font-weight:600;line-height:1.25;white-space:nowrap}
+.money-grid .v2 small{font-size:.55em;color:var(--muted);margin-left:4px;font-weight:500}
+.msave{border-left:1px solid rgba(200,210,190,.18);padding-left:16px}
+.mrows{margin-top:8px;padding-top:6px;border-top:1px solid rgba(200,210,190,.18)}
+.mrow{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--muted);line-height:1.75}
+.mrow b{color:var(--text);font-weight:600;font-size:11px;white-space:nowrap}
+.mrow b small{color:var(--muted);font-weight:500;font-size:9px;margin-left:2px}
+.mrow.neg b{color:var(--sage)}
+.mnote{font-size:10px;color:var(--muted);line-height:1.4;margin-top:2px}
+.pager{display:flex;align-items:center;gap:10px;margin-top:8px;font:10px var(--mono);color:var(--muted)}
+.pager button{background:none;border:1px solid rgba(200,210,190,.25);color:var(--text);border-radius:4px;width:22px;height:20px;line-height:1;padding:0;cursor:pointer;font-size:13px}
+.pager button:hover{border-color:rgba(230,240,220,.6)}
 .edit .box{cursor:move;outline:1px dashed rgba(224,137,90,.7);outline-offset:2px}
 
 .handles{position:absolute;inset:0;z-index:5;pointer-events:none}
@@ -132,7 +150,7 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
   main{padding:0 10px 20px}
   .frame-head{position:static;padding:14px 14px 8px}
   .boxes{position:static;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}
-  .box,.box.wide,.box.weather{position:static!important;width:auto}
+  .box,.box.wide,.box.weather,.box.money-box{position:static!important;width:auto}
   .box.wide{grid-column:1/-1}
   .wires,.handles{display:none}
   .edit-bar{padding:10px 14px}

@@ -197,6 +197,59 @@ function json(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 
+// ---------- Pengar: besparing idag och solens intjäning i år ----------
+const TZ = (CONFIG.house && CONFIG.house.time_zone) || 'Europe/Stockholm';
+function tzOffset(t) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit',
+    day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(t).map(x => [x.type, x.value]));
+  return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - Math.floor(t / 1000) * 1000;
+}
+function localStart(kind) { // lokal midnatt idag eller 1 januari, som UTC-tid
+  const now = Date.now();
+  const d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).split('-').map(Number);
+  const guess = kind === 'year' ? Date.UTC(d[0], 0, 1) : Date.UTC(d[0], d[1] - 1, d[2]);
+  return { t: guess - tzOffset(guess), day: d.join('-'), year: d[0] };
+}
+let moneyCache = null;
+async function money() {
+  const H = CONFIG.house || {};
+  const today = localStart('day');
+  if (moneyCache && moneyCache.day === today.day && Date.now() - moneyCache.at < 10 * 60 * 1000) return moneyCache.data;
+  const data = { day: today.day, base: {}, year: null };
+  // Värdet vid midnatt för de löpande sol-sensorerna
+  const ids = [H.solar_saving, H.solar_sold].filter(Boolean);
+  if (ids.length) {
+    try {
+      const hs = await haCall({ type: 'history/history_during_period', start_time: new Date(today.t).toISOString(),
+        end_time: new Date(today.t + 1000).toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true,
+        include_start_time_state: true, significant_changes_only: false });
+      for (const id of ids) { const v = parseFloat(((hs[id] || [])[0] || {}).s); if (Number.isFinite(v)) data.base[id] = v; }
+    } catch (e) { console.warn('Kunde inte läsa midnattsvärden:', e.message); }
+  }
+  // Solens intjäning i år: egen användning värderad till månadens snittpris för köpt el + såld el
+  const Y = H.year_stats;
+  if (Y && Y.pv && Y.grid_in && Y.grid_out && Y.cost && Y.compensation) {
+    try {
+      const yr = localStart('year');
+      const r = await haCall({ type: 'recorder/statistics_during_period', start_time: new Date(yr.t).toISOString(),
+        statistic_ids: [Y.pv, Y.grid_in, Y.grid_out, Y.cost, Y.compensation], period: 'month', types: ['change'] });
+      const byStart = new Map();
+      for (const [key, id] of Object.entries(Y)) for (const row of r[id] || []) {
+        const m = byStart.get(row.start) || {}; m[key] = row.change || 0; byStart.set(row.start, m);
+      }
+      let selfKwh = 0, selfKr = 0, soldKr = 0;
+      for (const m of byStart.values()) {
+        const self = Math.max(0, (m.pv || 0) - (m.grid_out || 0));
+        const price = m.grid_in > 0 ? (m.cost || 0) / m.grid_in : 0;
+        selfKwh += self; selfKr += self * price; soldKr += m.compensation || 0;
+      }
+      data.year = { year: yr.year, self_kwh: selfKwh, self_kr: selfKr, sold_kr: soldKr, total_kr: selfKr + soldKr, months: byStart.size };
+    } catch (e) { console.warn('Kunde inte räkna årets intjäning:', e.message); }
+  }
+  moneyCache = { at: Date.now(), day: today.day, data };
+  return data;
+}
+
 const server = http.createServer(async (req, res) => {
   if (!authOk(req)) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Observatory"' }); return res.end('Inloggning krävs'); }
   const url = new URL(req.url, 'http://x');
@@ -220,6 +273,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours'))));
     if (url.pathname === '/api/config') return json(res, 200, CONFIG.card);
     if (url.pathname === '/api/states') return json(res, 200, snapshot());
+    if (url.pathname === '/api/money') return json(res, 200, await money());
     if (url.pathname === '/api/stats') return json(res, 200, await stats(Number(url.searchParams.get('hours'))));
     if (url.pathname === '/api/stream') {
       res.writeHead(200, { ...SEC, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });

@@ -61,6 +61,21 @@
     "grid_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_today",
     "grid_out_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_today",
     "sun": "sun.sun",
+    "cost_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_cost_daily",
+    "sold_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_compensation_daily",
+    "net_fee": "sensor.electricity_net",
+    "net_fee_tax": "sensor.electricity_net_skatt",
+    "solar_saving": "sensor.solceller_besparing_lopande",
+    "solar_sold": "sensor.solceller_forsaljning_lopande",
+    "fixed_fees_month": null,
+    "time_zone": "Europe/Stockholm",
+    "year_stats": {
+      "pv": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy",
+      "grid_in": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in",
+      "grid_out": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out",
+      "cost": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_cost",
+      "compensation": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_compensation"
+    },
     "title": "Huset / översikt.",
     "subtitle": "Sol, el, värme och laddning – live från Home Assistant."
   }
