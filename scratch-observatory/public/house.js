@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -11,11 +11,11 @@
   const DEFAULT = {
     boxes: {
       sol:     { x: 23,   y: 3,  anchor: [45, 37] },
-      hus:     { x: 37,   y: 3,  anchor: [49, 50] },
-      vv:      { x: 51,   y: 3,  anchor: [57, 49] },
+      hus:     { x: 51,   y: 3,  anchor: [49, 50] },
+      vv:      { x: 37,   y: 3,  anchor: [47, 50.3] },
       vader:   { x: 82.5, y: 3 },
       nat:     { x: 1.5,  y: 24, anchor: [36, 52] },
-      vp:      { x: 1.5,  y: 44, anchor: [12.7, 56] },
+      vp:      { x: 65.5, y: 3,  anchor: [55.2, 34.4] }, // värmepumpen sitter på baksidan
       ladd:    { x: 84,   y: 64, anchor: [81.5, 51] },
       elpris:  { x: 1.5,  y: 70 },
       kostnad: { x: 30,   y: 76 },
@@ -25,11 +25,10 @@
       house:    { points: [[29.8, 33.3], [56, 33.3], [64.8, 41.5], [64, 56.5], [47, 59], [44, 63.5], [36, 64], [35.5, 46.5], [25.3, 41]] },
       veranda:  { points: [[14.5, 43.3], [25, 41.4], [35, 46.7], [35.2, 63], [19.3, 69], [15, 61.7]] },
       garage:   { points: [[61.8, 39.4], [72.1, 35.8], [90, 39.4], [85.4, 42.9], [85, 58.7], [78.6, 58.4], [64.3, 54.3], [64.6, 41.5]] },
-      heatpump: { points: [[11.2, 53.2], [14.2, 53.2], [14.2, 59.2], [11.2, 59.2]] },
     },
   };
   // Fönster som lyser på natten (procent)
-  const GLOWS = [[39.5, 47], [42.5, 48.5], [47, 50], [52.5, 48.5], [57.5, 47], [62, 48], [24, 54], [30, 53], [80.5, 49]];
+  const GLOWS = [[39.5, 47], [42.5, 48.5], [47, 50], [52.5, 48.5], [57.5, 47], [24, 54], [67.6, 45], [75.9, 46.3]];
 
   let cfg = {}, states = {}, connected = false;
   let layout = clone(DEFAULT), saved = clone(DEFAULT);
