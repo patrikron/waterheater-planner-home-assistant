@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.8.0';
+  const VERSION = '0.9.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -19,6 +19,7 @@
       ladd:    { x: 84,   y: 64, anchor: [81.5, 51] },
       elpris:  { x: 1.5,  y: 70 },
       kostnad: { x: 52,   y: 65 },
+      ftx:     { x: 1.5,  y: 46, anchor: [42, 53] },
     },
     hotspots: {
       solar:    { points: [[30.7, 33.2], [55, 33.6], [61.4, 40], [45.7, 44], [35.5, 40]] },
@@ -33,7 +34,7 @@
   // Ljusslingan i uterummet: en liten lampa per glödlampa i fotot
   const BULBS = [[24.15, 51.97], [24.79, 52.31], [25.6, 52.31], [26.44, 51.71], [28.83, 51.41], [29.53, 50.64], [29.79, 50.3]];
 
-  let cfg = {}, states = {}, connected = false;
+  let cfg = {}, FX = {}, states = {}, connected = false;
   let layout = clone(DEFAULT), saved = clone(DEFAULT);
   let editing = false, lightMode = load('obs-light') || 'auto';
 
@@ -110,6 +111,14 @@
       const arr = s && Array.isArray(s.attributes.today) ? s.attributes.today.map(Number) : [];
       return { custom: `<div class="k">Idag / elpris</div>
         <div class="v">${nf(p, 2)}<small>kr/kWh nu</small></div>${priceSpark(arr)}` };
+    } },
+    ftx: { title: 'FTX', drawer: 'ftx', render() {
+      if (!FX.supply) return { custom: '<div class="k">FTX</div><div class="s">Ingen FTX i config</div>' };
+      const unitOn = st(FX.unit) ? st(FX.unit).state === 'on' : null, boost = st(FX.boost) && st(FX.boost).state === 'on', away = st(FX.away) && st(FX.away).state === 'on';
+      const lbl = unitOn === false ? 'avstängd' : boost ? 'forcering' : away ? 'bortaläge' : `nivå ${num(FX.fan_level) == null ? '–' : Math.round(num(FX.fan_level))}`;
+      return { custom: `<div class="k">FTX</div><div class="v">${nf(num(FX.supply))}<small>°C tilluft</small></div>
+        <div class="s">Återvinner ${nf(num(FX.efficiency), 0)} % · ${esc(lbl)}</div>`,
+        flow: unitOn ? { cls: 'air', dir: 'in', w: 1200 } : null };
     } },
     kostnad: { title: 'Idag / pengar', cls: 'wide money-box', drawer: 'grid', render() {
       const page = kostnadPage === 1 ? energyPage() : moneyPage();
@@ -434,6 +443,11 @@
       return [['Temperatur', nf(num(cfg.hot_water, 'temperature')), '°C'], ['Mål', nf(num(cfg.hot_water, 'target_temperature'), 0), '°C'],
         ['Status', s ? (HW[s.state] || s.state) : '–', '']];
     }, charts: () => [], extra: () => '<a class="btn primary-link" href="varmvatten.html">Öppna varmvattensidan →</a>' },
+    ftx: { eyebrow: 'Ventilation / FTX', title: 'FTX-aggregatet', stats: () => [
+      ['Tilluft', nf(num(FX.supply)), '°C'], ['Frånluft', nf(num(FX.extract)), '°C'], ['Ute', nf(num(FX.outdoor)), '°C'],
+      ['Verkningsgrad', nf(num(FX.efficiency), 0), '%'], ['Fläktnivå', num(FX.fan_level) == null ? '–' : Math.round(num(FX.fan_level)), ''], ['Effekt', num(FX.power) == null ? '–' : Math.round(num(FX.power)), 'W']],
+      charts: () => [{ title: 'Tilluft mot frånluft och ute', unit: '°C', div: 1, series: [[FX.supply, 'Tilluft', '#e0895a'], [FX.extract, 'Frånluft', '#d8bb72'], [FX.outdoor, 'Ute', '#8fb7ba']] }],
+      extra: () => '<a class="btn primary-link" href="ftx.html">Öppna FTX-sidan →</a>' },
     veranda: { eyebrow: 'Uterummet', title: 'Uterummet', stats: () => [['Ute', nf(outdoorTemp()), '°C']], charts: () => [],
       note: 'Här finns inga sensorer kopplade ännu. Säg till vilka entiteter som hör till uterummet.' },
     price: { eyebrow: 'Elpris / idag', title: 'Elpris', stats: () => {
@@ -643,7 +657,8 @@
     const [c, l] = await Promise.all([
       fetch('api/house', { cache: 'no-store' }).then(r => r.json()),
       fetch('api/layout', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
-    ]);
+      fetch('api/ftx', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+    ]).then(([a, b, f]) => { FX = f || {}; return [a, b]; });
     cfg = c;
     if (cfg.title) $('title').textContent = cfg.title;
     if (cfg.subtitle) $('subtitle').textContent = cfg.subtitle;

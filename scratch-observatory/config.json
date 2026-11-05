@@ -1,365 +1,494 @@
 {
-  "card": {
-    "title": "Hemmet, i överblick.",
-    "subtitle": "Ett ställe att förstå huset.",
-    "solar": "sensor.growatt_tl_x_xh_tl3_xh_pv_power",
-    "load": "sensor.growatt_tl_x_xh_tl3_xh_load_power",
-    "grid": "sensor.growatt_tl_x_xh_tl3_xh_grid_power",
-    "garage": "sensor.go_echarger_404702_power_total",
-    "garage_label": "Laddbox",
-    "ev_soc": "sensor.ev6_laddningsniva_soc",
-    "ev_label": "EV6",
-    "hot_water": "sensor.varmvattenberedare_status",
-    "outdoor": "weather.smhi_home",
-    "indoor": "sensor.daikinap97060_climatecontrol_rumstemperatur",
-    "heatpump": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
-    "price": "sensor.nordpool_kwh_se3_sek_3_10_025",
-    "pv_today": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy_today",
-    "load_today": "sensor.growatt_tl_x_xh_tl3_xh_load_energy_today",
-    "grid_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_today",
-    "grid_out_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_today",
-    "hours": 24,
-    "price_high": 1.75,
-    "price_low": 1.0
+ "card": {
+  "title": "Hemmet, i överblick.",
+  "subtitle": "Ett ställe att förstå huset.",
+  "solar": "sensor.growatt_tl_x_xh_tl3_xh_pv_power",
+  "load": "sensor.growatt_tl_x_xh_tl3_xh_load_power",
+  "grid": "sensor.growatt_tl_x_xh_tl3_xh_grid_power",
+  "garage": "sensor.go_echarger_404702_power_total",
+  "garage_label": "Laddbox",
+  "ev_soc": "sensor.ev6_laddningsniva_soc",
+  "ev_label": "EV6",
+  "hot_water": "sensor.varmvattenberedare_status",
+  "outdoor": "weather.smhi_home",
+  "indoor": "sensor.daikinap97060_climatecontrol_rumstemperatur",
+  "heatpump": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
+  "price": "sensor.nordpool_kwh_se3_sek_3_10_025",
+  "pv_today": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy_today",
+  "load_today": "sensor.growatt_tl_x_xh_tl3_xh_load_energy_today",
+  "grid_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_today",
+  "grid_out_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_today",
+  "hours": 24,
+  "price_high": 1.75,
+  "price_low": 1.0
+ },
+ "attributes": {
+  "sensor.varmvattenberedare_status": [
+   "temperature",
+   "target_temperature",
+   "min_temperature",
+   "mode",
+   "ready_by",
+   "base_by",
+   "base_temperature",
+   "last_heating_kwh",
+   "last_heating_cost",
+   "last_heating_solar_kwh",
+   "last_heating_start",
+   "last_heating_end",
+   "last_heating_running",
+   "energy_learned",
+   "energy_in_use",
+   "energy_samples",
+   "energy_auto",
+   "automatic",
+   "boost",
+   "heater_on",
+   "power_w",
+   "currency",
+   "minor_unit",
+   "price_now",
+   "price_error",
+   "surplus_w",
+   "prices",
+   "heated",
+   "usage",
+   "plan_status",
+   "hybrid_state",
+   "waiting_for_prices",
+   "deadline",
+   "need_kwh",
+   "grid_kwh",
+   "solar_kwh",
+   "runtime_min",
+   "sun_priced",
+   "cost",
+   "cost_now",
+   "saving",
+   "periods",
+   "solar_hours"
+  ],
+  "weather.smhi_home": [
+   "temperature",
+   "humidity",
+   "wind_speed",
+   "wind_gust_speed"
+  ],
+  "sensor.nordpool_kwh_se3_sek_3_10_025": [
+   "today"
+  ],
+  "sun.sun": [
+   "next_rising",
+   "next_setting",
+   "elevation"
+  ],
+  "sensor.solcast_pv_forecast_forecast_day_3": [
+   "dayname"
+  ],
+  "sensor.solcast_pv_forecast_forecast_day_4": [
+   "dayname"
+  ],
+  "sensor.solcast_pv_forecast_forecast_day_5": [
+   "dayname"
+  ],
+  "sensor.solcast_pv_forecast_forecast_day_6": [
+   "dayname"
+  ],
+  "sensor.solcast_pv_forecast_forecast_day_7": [
+   "dayname"
+  ],
+  "climate.daikinap97060_room_temperature": [
+   "hvac_modes",
+   "min_temp",
+   "max_temp",
+   "target_temp_step",
+   "fan_modes",
+   "preset_modes",
+   "swing_modes",
+   "current_temperature",
+   "temperature",
+   "fan_mode",
+   "preset_mode",
+   "swing_mode",
+   "hvac_action"
+  ],
+  "input_select.lvp_flakt_dag": [
+   "options"
+  ],
+  "input_select.lvp_flakt_maltid": [
+   "options"
+  ],
+  "input_select.lvp_flakt_natt": [
+   "options"
+  ],
+  "schedule.lvp_maltider": [
+   "next_event"
+  ],
+  "schedule.lvp_natt": [
+   "next_event"
+  ],
+  "timer.timer_lf_temp": [
+   "finishes_at",
+   "remaining",
+   "duration"
+  ],
+  "timer.timer_lf": [
+   "finishes_at",
+   "remaining",
+   "duration"
+  ],
+  "input_number.ftx_setpoint": [
+   "min",
+   "max",
+   "step"
+  ],
+  "automation.ftx_forcering_badrum_luftfuktighet": [
+   "friendly_name",
+   "last_triggered"
+  ],
+  "automation.ftx_forcering_badrum_luftfuktighet_tid": [
+   "friendly_name",
+   "last_triggered"
+  ],
+  "automation.ftx_forcering_hog_co2_sovrum": [
+   "friendly_name",
+   "last_triggered"
+  ],
+  "automation.ftx_bortalage_hemma": [
+   "friendly_name",
+   "last_triggered"
+  ],
+  "automation.ftx_bortalage_ingen_hemma": [
+   "friendly_name",
+   "last_triggered"
+  ],
+  "automation.ftx_stang_av_vid_hog_temp": [
+   "friendly_name",
+   "last_triggered"
+  ],
+  "automation.ftx_stang_av_bortalage_vid_lagre_temp": [
+   "friendly_name",
+   "last_triggered"
+  ],
+  "automation.ftx_bortalage_vid_hog_temp": [
+   "friendly_name",
+   "last_triggered"
+  ],
+  "automation.notifiering_ftx_avstangd": [
+   "friendly_name",
+   "last_triggered"
+  ]
+ },
+ "house": {
+  "solar": "sensor.growatt_tl_x_xh_tl3_xh_pv_power",
+  "solar_1": "sensor.growatt_tl_x_xh_tl3_xh_pv_power_1",
+  "solar_2": "sensor.growatt_tl_x_xh_tl3_xh_pv_power_2",
+  "load": "sensor.growatt_tl_x_xh_tl3_xh_load_power",
+  "grid": "sensor.growatt_tl_x_xh_tl3_xh_grid_power",
+  "charger": "sensor.go_echarger_404702_power_total",
+  "ev_soc": "sensor.ev6_laddningsniva_soc",
+  "hot_water": "sensor.varmvattenberedare_status",
+  "heatpump": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
+  "indoor": "sensor.daikinap97060_climatecontrol_rumstemperatur",
+  "outdoor": "weather.smhi_home",
+  "price": "sensor.nordpool_kwh_se3_sek_3_10_025",
+  "cost_today": "sensor.elkostnad_total_idag",
+  "pv_today": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy_today",
+  "load_today": "sensor.growatt_tl_x_xh_tl3_xh_load_energy_today",
+  "grid_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_today",
+  "grid_out_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_today",
+  "sun": "sun.sun",
+  "cost_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_cost_daily",
+  "sold_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_compensation_daily",
+  "net_fee": "sensor.electricity_net",
+  "net_fee_tax": "sensor.electricity_net_skatt",
+  "solar_saving": "sensor.solceller_besparing_lopande",
+  "solar_sold": "sensor.solceller_forsaljning_lopande",
+  "fixed_fees": "input_number.el_fastavgift_kr_manad",
+  "time_zone": "Europe/Stockholm",
+  "year_stats": {
+   "pv": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy",
+   "grid_in": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in",
+   "grid_out": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out",
+   "cost": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_cost",
+   "compensation": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_compensation"
   },
-  "attributes": {
-    "sensor.varmvattenberedare_status": [
-      "temperature",
-      "target_temperature",
-      "min_temperature",
-      "mode",
-      "ready_by",
-      "base_by",
-      "base_temperature",
-      "last_heating_kwh",
-      "last_heating_cost",
-      "last_heating_solar_kwh",
-      "last_heating_start",
-      "last_heating_end",
-      "last_heating_running",
-      "energy_learned",
-      "energy_in_use",
-      "energy_samples",
-      "energy_auto",
-      "automatic",
-      "boost",
-      "heater_on",
-      "power_w",
-      "currency",
-      "minor_unit",
-      "price_now",
-      "price_error",
-      "surplus_w",
-      "prices",
-      "heated",
-      "usage",
-      "plan_status",
-      "hybrid_state",
-      "waiting_for_prices",
-      "deadline",
-      "need_kwh",
-      "grid_kwh",
-      "solar_kwh",
-      "runtime_min",
-      "sun_priced",
-      "cost",
-      "cost_now",
-      "saving",
-      "periods",
-      "solar_hours"
-    ],
-    "weather.smhi_home": [
-      "temperature",
-      "humidity",
-      "wind_speed",
-      "wind_gust_speed"
-    ],
-    "sensor.nordpool_kwh_se3_sek_3_10_025": [
-      "today"
-    ],
-    "sun.sun": [
-      "next_rising",
-      "next_setting",
-      "elevation"
-    ],
-    "sensor.solcast_pv_forecast_forecast_day_3": [
-      "dayname"
-    ],
-    "sensor.solcast_pv_forecast_forecast_day_4": [
-      "dayname"
-    ],
-    "sensor.solcast_pv_forecast_forecast_day_5": [
-      "dayname"
-    ],
-    "sensor.solcast_pv_forecast_forecast_day_6": [
-      "dayname"
-    ],
-    "sensor.solcast_pv_forecast_forecast_day_7": [
-      "dayname"
-    ],
-    "climate.daikinap97060_room_temperature": [
-      "hvac_modes",
-      "min_temp",
-      "max_temp",
-      "target_temp_step",
-      "fan_modes",
-      "preset_modes",
-      "swing_modes",
-      "current_temperature",
-      "temperature",
-      "fan_mode",
-      "preset_mode",
-      "swing_mode",
-      "hvac_action"
-    ],
-    "input_select.lvp_flakt_dag": [
-      "options"
-    ],
-    "input_select.lvp_flakt_maltid": [
-      "options"
-    ],
-    "input_select.lvp_flakt_natt": [
-      "options"
-    ],
-    "schedule.lvp_maltider": [
-      "next_event"
-    ],
-    "schedule.lvp_natt": [
-      "next_event"
-    ],
-    "timer.timer_lf_temp": [
-      "finishes_at",
-      "remaining",
-      "duration"
-    ],
-    "timer.timer_lf": [
-      "finishes_at",
-      "remaining",
-      "duration"
-    ]
+  "pv_predicted": "sensor.growatt_tl_x_xh_tl3_xh_pv_power_predicted",
+  "pv_remaining_today": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy_remaining_today",
+  "pv_voltage_1": "sensor.growatt_tl_x_xh_tl3_xh_pv_voltage_1",
+  "pv_voltage_2": "sensor.growatt_tl_x_xh_tl3_xh_pv_voltage_2",
+  "pv_current_1": "sensor.growatt_tl_x_xh_tl3_xh_pv_current_1",
+  "pv_current_2": "sensor.growatt_tl_x_xh_tl3_xh_pv_current_2",
+  "ac_power": "sensor.growatt_tl_x_xh_tl3_xh_ac_output_power",
+  "inverter_temp": "sensor.growatt_tl_x_xh_tl3_xh_temperature",
+  "bus_voltage": "sensor.growatt_tl_x_xh_tl3_xh_bus_voltage",
+  "grid_voltage": "sensor.growatt_tl_x_xh_tl3_xh_grid_voltage",
+  "grid_frequency": "sensor.growatt_tl_x_xh_tl3_xh_grid_frequency",
+  "inverter_load": "sensor.growatt_tl_x_xh_tl3_xh_load_percentage",
+  "device_mode": "sensor.growatt_tl_x_xh_tl3_xh_device_mode",
+  "cloud_cover": "sensor.growatt_tl_x_xh_tl3_xh_cloud_cover",
+  "solar_earned_total": "sensor.solceller_intjanat_totalt",
+  "solar_paid_pct": "sensor.solceller_aterbetalt",
+  "solar_paid_date": "sensor.solceller_aterbetald_datum",
+  "solar_investment": "input_number.solceller_investering",
+  "fc_today": "sensor.energy_production_today_3",
+  "fc_remaining": "sensor.energy_production_today_remaining_3",
+  "fc_tomorrow": "sensor.energy_production_tomorrow_3",
+  "fc_peak_tomorrow": "sensor.power_highest_peak_time_tomorrow_3",
+  "solcast_today": "sensor.solcast_pv_forecast_forecast_today",
+  "solcast_remaining": "sensor.solcast_pv_forecast_forecast_remaining_today",
+  "solcast_tomorrow": "sensor.solcast_pv_forecast_forecast_tomorrow",
+  "solcast_day_3": "sensor.solcast_pv_forecast_forecast_day_3",
+  "solcast_day_4": "sensor.solcast_pv_forecast_forecast_day_4",
+  "solcast_day_5": "sensor.solcast_pv_forecast_forecast_day_5",
+  "solcast_day_6": "sensor.solcast_pv_forecast_forecast_day_6",
+  "solcast_day_7": "sensor.solcast_pv_forecast_forecast_day_7",
+  "title": "Huset / översikt.",
+  "subtitle": "Sol, el, värme och laddning – live från Home Assistant."
+ },
+ "water": {
+  "title": "Varmvatten / beredaren.",
+  "subtitle": "Temperatur, plan, kostnad och inställningar – live från Home Assistant.",
+  "status": "sensor.varmvattenberedare_status",
+  "temperature": "sensor.mqtt_waterheater_water_temperature",
+  "switch": "switch.shellyem3_485519d75132",
+  "power": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total",
+  "energy_total": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total_energy",
+  "next_start": "sensor.varmvattenberedare_nasta_start",
+  "need_kwh": "sensor.varmvattenberedare_energi_som_behovs",
+  "planned_cost": "sensor.varmvattenberedare_planerad_kostnad",
+  "planned_time": "sensor.varmvattenberedare_planerad_varmetid",
+  "surplus": "sensor.varmvattenberedare_soloverskott",
+  "price_now": "sensor.varmvattenberedare_elpris_just_nu",
+  "cost_today": "sensor.varmvattenberedare_kostnad_idag",
+  "cost_week": "sensor.varmvattenberedare_kostnad_denna_vecka",
+  "cost_month": "sensor.varmvattenberedare_kostnad_denna_manad",
+  "kwh_today": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total_energy_daily",
+  "kwh_week": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total_energy_weekly",
+  "kwh_month": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total_energy_monthly",
+  "cost_total": "sensor.kostnad_varmvattenberedare_total",
+  "energy_correction": "sensor.varmvattenberedare_energikorrigering",
+  "timer": "timer.varmvattenberedare_timer",
+  "mqtt_active": "binary_sensor.mqtt_waterheater_active",
+  "over_max": "binary_sensor.mqtt_waterheater_water_temperature_is_over_max_temp",
+  "leak": "binary_sensor.0x00158d00042f2146_water_leak",
+  "leak_battery": "sensor.0x00158d00042f2146_battery",
+  "leak_battery_low": "binary_sensor.0x00158d00042f2146_battery_low",
+  "leak_temperature": "sensor.0x00158d00042f2146_temperature",
+  "leak_link": "sensor.0x00158d00042f2146_linkquality",
+  "shelly_voltage": "sensor.shellyem3_485519d75132_channel_b_voltage",
+  "shelly_current": "sensor.shellyem3_485519d75132_channel_b_current",
+  "shelly_pf": "sensor.shellyem3_485519d75132_channel_b_power_factor",
+  "shelly_rssi": "sensor.shellyem3_485519d75132_rssi",
+  "shelly_overpower": "binary_sensor.shellyem3_485519d75132_overpowering",
+  "automations": {
+   "Sol och lågt elpris": "automation.varmvattenberedare_pa_om_solproduktion_och_lagt_elpris",
+   "Hushållsmaskiner peakar": "automation.vvb_av_hushallsmaskiner_peakar",
+   "Vattenläcka": "automation.notifiering_vattenlacka"
   },
-  "house": {
-    "solar": "sensor.growatt_tl_x_xh_tl3_xh_pv_power",
-    "solar_1": "sensor.growatt_tl_x_xh_tl3_xh_pv_power_1",
-    "solar_2": "sensor.growatt_tl_x_xh_tl3_xh_pv_power_2",
-    "load": "sensor.growatt_tl_x_xh_tl3_xh_load_power",
-    "grid": "sensor.growatt_tl_x_xh_tl3_xh_grid_power",
-    "charger": "sensor.go_echarger_404702_power_total",
-    "ev_soc": "sensor.ev6_laddningsniva_soc",
-    "hot_water": "sensor.varmvattenberedare_status",
-    "heatpump": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
-    "indoor": "sensor.daikinap97060_climatecontrol_rumstemperatur",
-    "outdoor": "weather.smhi_home",
-    "price": "sensor.nordpool_kwh_se3_sek_3_10_025",
-    "cost_today": "sensor.elkostnad_total_idag",
-    "pv_today": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy_today",
-    "load_today": "sensor.growatt_tl_x_xh_tl3_xh_load_energy_today",
-    "grid_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_today",
-    "grid_out_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_today",
-    "sun": "sun.sun",
-    "cost_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_cost_daily",
-    "sold_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_compensation_daily",
-    "net_fee": "sensor.electricity_net",
-    "net_fee_tax": "sensor.electricity_net_skatt",
-    "solar_saving": "sensor.solceller_besparing_lopande",
-    "solar_sold": "sensor.solceller_forsaljning_lopande",
-    "fixed_fees": "input_number.el_fastavgift_kr_manad",
-    "time_zone": "Europe/Stockholm",
-    "year_stats": {
-      "pv": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy",
-      "grid_in": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in",
-      "grid_out": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out",
-      "cost": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_cost",
-      "compensation": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_compensation"
-    },
-    "pv_predicted": "sensor.growatt_tl_x_xh_tl3_xh_pv_power_predicted",
-    "pv_remaining_today": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy_remaining_today",
-    "pv_voltage_1": "sensor.growatt_tl_x_xh_tl3_xh_pv_voltage_1",
-    "pv_voltage_2": "sensor.growatt_tl_x_xh_tl3_xh_pv_voltage_2",
-    "pv_current_1": "sensor.growatt_tl_x_xh_tl3_xh_pv_current_1",
-    "pv_current_2": "sensor.growatt_tl_x_xh_tl3_xh_pv_current_2",
-    "ac_power": "sensor.growatt_tl_x_xh_tl3_xh_ac_output_power",
-    "inverter_temp": "sensor.growatt_tl_x_xh_tl3_xh_temperature",
-    "bus_voltage": "sensor.growatt_tl_x_xh_tl3_xh_bus_voltage",
-    "grid_voltage": "sensor.growatt_tl_x_xh_tl3_xh_grid_voltage",
-    "grid_frequency": "sensor.growatt_tl_x_xh_tl3_xh_grid_frequency",
-    "inverter_load": "sensor.growatt_tl_x_xh_tl3_xh_load_percentage",
-    "device_mode": "sensor.growatt_tl_x_xh_tl3_xh_device_mode",
-    "cloud_cover": "sensor.growatt_tl_x_xh_tl3_xh_cloud_cover",
-    "solar_earned_total": "sensor.solceller_intjanat_totalt",
-    "solar_paid_pct": "sensor.solceller_aterbetalt",
-    "solar_paid_date": "sensor.solceller_aterbetald_datum",
-    "solar_investment": "input_number.solceller_investering",
-    "fc_today": "sensor.energy_production_today_3",
-    "fc_remaining": "sensor.energy_production_today_remaining_3",
-    "fc_tomorrow": "sensor.energy_production_tomorrow_3",
-    "fc_peak_tomorrow": "sensor.power_highest_peak_time_tomorrow_3",
-    "solcast_today": "sensor.solcast_pv_forecast_forecast_today",
-    "solcast_remaining": "sensor.solcast_pv_forecast_forecast_remaining_today",
-    "solcast_tomorrow": "sensor.solcast_pv_forecast_forecast_tomorrow",
-    "solcast_day_3": "sensor.solcast_pv_forecast_forecast_day_3",
-    "solcast_day_4": "sensor.solcast_pv_forecast_forecast_day_4",
-    "solcast_day_5": "sensor.solcast_pv_forecast_forecast_day_5",
-    "solcast_day_6": "sensor.solcast_pv_forecast_forecast_day_6",
-    "solcast_day_7": "sensor.solcast_pv_forecast_forecast_day_7",
-    "title": "Huset / översikt.",
-    "subtitle": "Sol, el, värme och laddning – live från Home Assistant."
-  },
-  "water": {
-    "title": "Varmvatten / beredaren.",
-    "subtitle": "Temperatur, plan, kostnad och inställningar – live från Home Assistant.",
-    "status": "sensor.varmvattenberedare_status",
-    "temperature": "sensor.mqtt_waterheater_water_temperature",
-    "switch": "switch.shellyem3_485519d75132",
-    "power": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total",
-    "energy_total": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total_energy",
-    "next_start": "sensor.varmvattenberedare_nasta_start",
-    "need_kwh": "sensor.varmvattenberedare_energi_som_behovs",
-    "planned_cost": "sensor.varmvattenberedare_planerad_kostnad",
-    "planned_time": "sensor.varmvattenberedare_planerad_varmetid",
-    "surplus": "sensor.varmvattenberedare_soloverskott",
-    "price_now": "sensor.varmvattenberedare_elpris_just_nu",
-    "cost_today": "sensor.varmvattenberedare_kostnad_idag",
-    "cost_week": "sensor.varmvattenberedare_kostnad_denna_vecka",
-    "cost_month": "sensor.varmvattenberedare_kostnad_denna_manad",
-    "kwh_today": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total_energy_daily",
-    "kwh_week": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total_energy_weekly",
-    "kwh_month": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total_energy_monthly",
-    "cost_total": "sensor.kostnad_varmvattenberedare_total",
-    "energy_correction": "sensor.varmvattenberedare_energikorrigering",
-    "timer": "timer.varmvattenberedare_timer",
-    "mqtt_active": "binary_sensor.mqtt_waterheater_active",
-    "over_max": "binary_sensor.mqtt_waterheater_water_temperature_is_over_max_temp",
-    "leak": "binary_sensor.0x00158d00042f2146_water_leak",
-    "leak_battery": "sensor.0x00158d00042f2146_battery",
-    "leak_battery_low": "binary_sensor.0x00158d00042f2146_battery_low",
-    "leak_temperature": "sensor.0x00158d00042f2146_temperature",
-    "leak_link": "sensor.0x00158d00042f2146_linkquality",
-    "shelly_voltage": "sensor.shellyem3_485519d75132_channel_b_voltage",
-    "shelly_current": "sensor.shellyem3_485519d75132_channel_b_current",
-    "shelly_pf": "sensor.shellyem3_485519d75132_channel_b_power_factor",
-    "shelly_rssi": "sensor.shellyem3_485519d75132_rssi",
-    "shelly_overpower": "binary_sensor.shellyem3_485519d75132_overpowering",
-    "automations": {
-      "Sol och lågt elpris": "automation.varmvattenberedare_pa_om_solproduktion_och_lagt_elpris",
-      "Hushållsmaskiner peakar": "automation.vvb_av_hushallsmaskiner_peakar",
-      "Vattenläcka": "automation.notifiering_vattenlacka"
-    },
-    "settings": {
-      "mode": "select.varmvattenberedare_lage",
-      "automatic": "switch.varmvattenberedare_automatik",
-      "boost": "switch.varmvattenberedare_varm_nu",
-      "learn": "switch.varmvattenberedare_lar_energibehovet",
-      "target": "number.varmvattenberedare_maltemperatur",
-      "comfort": "number.varmvattenberedare_komfortgrans",
-      "ready_by": "time.varmvattenberedare_fardigt_senast",
-      "max_periods": "number.varmvattenberedare_max_antal_varmeperioder",
-      "wait_saving": "number.varmvattenberedare_vanta_pa_billigare_timme_bara_om_det_sparar",
-      "floor_max_price": "number.varmvattenberedare_max_elpris_for_komfortgrans",
-      "energy_adjust": "number.varmvattenberedare_energikorrigering",
-      "base_temp": "number.varmvattenberedare_grundtemperatur_sol_lage",
-      "base_by": "time.varmvattenberedare_grundtemperatur_klar_senast",
-      "regrid_below": "number.varmvattenberedare_varm_pa_natet_forst_under",
-      "solar_price_cap": "number.varmvattenberedare_sol_lage_elprisgrans",
-      "solar_start": "number.varmvattenberedare_overskott_for_start",
-      "house_baseline": "number.varmvattenberedare_husets_grundlast",
-      "early_start": "number.varmvattenberedare_tidig_start_overskott_for_att_starta",
-      "early_keep": "number.varmvattenberedare_tidig_start_overskott_for_att_fortsatta",
-      "sun_surplus_only": "switch.varmvattenberedare_sol_lage_varm_i_soltimmar_bara_nar_overskottet_racker",
-      "sun_priced": "switch.varmvattenberedare_sol_lage_sol_prissatts_som_utebliven_forsaljning",
-      "sell_other_sun": "switch.varmvattenberedare_sol_lage_salj_overskott_utanfor_valda_soltimmar"
-    }
-  },
-  "heatpump": {
-    "title": "Luftvärmepump / Daikin.",
-    "subtitle": "Temperatur, effekt, energi, kostnad och styrning – live från Home Assistant.",
-    "controls": true,
-    "climate": "climate.daikinap97060_room_temperature",
-    "room": "sensor.daikinap97060_climatecontrol_rumstemperatur",
-    "outdoor": "sensor.daikinap97060_climatecontrol_utomhustemperatur",
-    "power": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
-    "current": "sensor.shellypmminig3_48f6eeb4a5d4_strom",
-    "energy_total": "sensor.shellypmminig3_48f6eeb4a5d4_energi",
-    "frequency": "sensor.shellypmminig3_48f6eeb4a5d4_frekvens",
-    "rssi": "sensor.shellypmminig3_48f6eeb4a5d4_signalstyrka",
-    "shelly_cloud": "binary_sensor.shellypmminig3_48f6eeb4a5d4_moln",
-    "heat_day": "sensor.daikinap97060_climatecontrol_daglig_energiforbrukning_for_varme",
-    "heat_week": "sensor.daikinap97060_climatecontrol_veckovis_energiforbrukning_for_varme",
-    "heat_month": "sensor.daikinap97060_climatecontrol_manadsvis_energiforbrukning_for_varme",
-    "heat_year": "sensor.daikinap97060_climatecontrol_arlig_energiforbrukning_for_varme",
-    "cool_day": "sensor.daikinap97060_climatecontrol_daglig_energiforbrukning_for_kyla",
-    "cool_week": "sensor.daikinap97060_climatecontrol_veckovis_energiforbrukning_for_kyla",
-    "cool_month": "sensor.daikinap97060_climatecontrol_manadsvis_energiforbrukning_for_kyla",
-    "cool_year": "sensor.daikinap97060_climatecontrol_arlig_energiforbrukning_for_kyla",
-    "cost_today": "sensor.kostnad_luftvarmepump_idag",
-    "cost_month": "sensor.kostnad_luftvarmepump_manad",
-    "cost_total": "sensor.kostnad_luftvarmepump_total",
-    "cost_rate": "sensor.kostnadstakt_luftvarmepump",
-    "price_peak": "binary_sensor.lvp_pristopp",
-    "api_calls": "sensor.daikinap97060_gateway_kvarstaende_anrop_idag",
-    "health": {
-      "Inneenhet fel": "binary_sensor.daikinap97060_climatecontrol_ar_i_fellage",
-      "Inneenhet varning": "binary_sensor.daikinap97060_climatecontrol_ar_i_varningslage",
-      "Inneenhet försiktighet": "binary_sensor.daikinap97060_climatecontrol_ar_i_forsiktighetslage",
-      "Uteenhet fel": "binary_sensor.daikinap97060_outdoorunit_ar_i_fellage",
-      "Uteenhet varning": "binary_sensor.daikinap97060_outdoorunit_ar_i_varningslage",
-      "Uteenhet försiktighet": "binary_sensor.daikinap97060_outdoorunit_ar_i_forsiktighetslage",
-      "Gateway fel": "binary_sensor.daikinap97060_gateway_ar_i_fellage"
-    },
-    "error_codes": {
-      "Inneenhet": "sensor.daikinap97060_climatecontrol_felkod",
-      "Uteenhet": "sensor.daikinap97060_outdoorunit_felkod"
-    },
-    "powerful": "binary_sensor.daikinap97060_climatecontrol_kraftfullt_lage_aktivt",
-    "holiday": "binary_sensor.daikinap97060_climatecontrol_semesterlage_aktivt",
-    "daikin_schedule": "select.daikinap97060_climatecontrol_schema",
-    "fan_schedule": {
-      "active": "input_boolean.lvp_flaktschema_aktiv",
-      "day": "input_select.lvp_flakt_dag",
-      "meal": "input_select.lvp_flakt_maltid",
-      "night": "input_select.lvp_flakt_natt",
-      "meal_schedule": "schedule.lvp_maltider",
-      "night_schedule": "schedule.lvp_natt"
-    },
-    "peak": {
-      "active": "input_boolean.lvp_prissankning_aktiv",
-      "lowered": "input_boolean.lvp_sankt_for_pristopp",
-      "threshold": "input_number.lvp_pristopp_troskel",
-      "drop": "input_number.lvp_pristopp_sankning",
-      "ordinary": "input_number.lvp_ordinarie_temp"
-    },
-    "timers": {
-      "Tillfälligt av": "timer.timer_lf_temp",
-      "Timer": "timer.timer_lf"
-    },
-    "toggles": [
-      "input_boolean.lvp_flaktschema_aktiv",
-      "input_boolean.lvp_prissankning_aktiv"
-    ],
-    "selects": [
-      "input_select.lvp_flakt_dag",
-      "input_select.lvp_flakt_maltid",
-      "input_select.lvp_flakt_natt"
-    ]
-  },
-  "solar": {
-    "title": "Solceller / produktion.",
-    "subtitle": "Produktion, prognos, strängar, växelriktare, historik och ekonomi – live från Home Assistant.",
-    "kwp": 14,
-    "inverter_kw": 12,
-    "installed": "2024-01",
-    "self_consumed_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_self_consumed_today",
-    "outside_temp": "sensor.growatt_tl_x_xh_tl3_xh_outside_temperature",
-    "export_limiter": "select.growatt_tl_x_xh_tl3_xh_export_limiter",
-    "export_rate": "number.growatt_tl_x_xh_tl3_xh_export_power_rate",
-    "serial": "sensor.growatt_tl_x_xh_tl3_xh_serial_number",
-    "growatt_price": "sensor.growatt_tl_x_xh_tl3_xh_price",
-    "day_ahead_high": "sensor.growatt_tl_x_xh_tl3_xh_day_ahead_price_highest",
-    "day_ahead_low": "sensor.growatt_tl_x_xh_tl3_xh_day_ahead_price_lowest",
-    "hour_rank": "sensor.growatt_tl_x_xh_tl3_xh_hour_rank",
-    "solar_earned_rate": "sensor.solceller_besparing_takt",
-    "solar_sold_rate": "sensor.solceller_forsaljning_takt",
-    "solar_saved_total": "sensor.solceller_besparing_totalt",
-    "solar_sold_total": "sensor.solceller_forsaljning_totalt"
+  "settings": {
+   "mode": "select.varmvattenberedare_lage",
+   "automatic": "switch.varmvattenberedare_automatik",
+   "boost": "switch.varmvattenberedare_varm_nu",
+   "learn": "switch.varmvattenberedare_lar_energibehovet",
+   "target": "number.varmvattenberedare_maltemperatur",
+   "comfort": "number.varmvattenberedare_komfortgrans",
+   "ready_by": "time.varmvattenberedare_fardigt_senast",
+   "max_periods": "number.varmvattenberedare_max_antal_varmeperioder",
+   "wait_saving": "number.varmvattenberedare_vanta_pa_billigare_timme_bara_om_det_sparar",
+   "floor_max_price": "number.varmvattenberedare_max_elpris_for_komfortgrans",
+   "energy_adjust": "number.varmvattenberedare_energikorrigering",
+   "base_temp": "number.varmvattenberedare_grundtemperatur_sol_lage",
+   "base_by": "time.varmvattenberedare_grundtemperatur_klar_senast",
+   "regrid_below": "number.varmvattenberedare_varm_pa_natet_forst_under",
+   "solar_price_cap": "number.varmvattenberedare_sol_lage_elprisgrans",
+   "solar_start": "number.varmvattenberedare_overskott_for_start",
+   "house_baseline": "number.varmvattenberedare_husets_grundlast",
+   "early_start": "number.varmvattenberedare_tidig_start_overskott_for_att_starta",
+   "early_keep": "number.varmvattenberedare_tidig_start_overskott_for_att_fortsatta",
+   "sun_surplus_only": "switch.varmvattenberedare_sol_lage_varm_i_soltimmar_bara_nar_overskottet_racker",
+   "sun_priced": "switch.varmvattenberedare_sol_lage_sol_prissatts_som_utebliven_forsaljning",
+   "sell_other_sun": "switch.varmvattenberedare_sol_lage_salj_overskott_utanfor_valda_soltimmar"
   }
+ },
+ "heatpump": {
+  "title": "Luftvärmepump / Daikin.",
+  "subtitle": "Temperatur, effekt, energi, kostnad och styrning – live från Home Assistant.",
+  "controls": true,
+  "climate": "climate.daikinap97060_room_temperature",
+  "room": "sensor.daikinap97060_climatecontrol_rumstemperatur",
+  "outdoor": "sensor.daikinap97060_climatecontrol_utomhustemperatur",
+  "power": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
+  "current": "sensor.shellypmminig3_48f6eeb4a5d4_strom",
+  "energy_total": "sensor.shellypmminig3_48f6eeb4a5d4_energi",
+  "frequency": "sensor.shellypmminig3_48f6eeb4a5d4_frekvens",
+  "rssi": "sensor.shellypmminig3_48f6eeb4a5d4_signalstyrka",
+  "shelly_cloud": "binary_sensor.shellypmminig3_48f6eeb4a5d4_moln",
+  "heat_day": "sensor.daikinap97060_climatecontrol_daglig_energiforbrukning_for_varme",
+  "heat_week": "sensor.daikinap97060_climatecontrol_veckovis_energiforbrukning_for_varme",
+  "heat_month": "sensor.daikinap97060_climatecontrol_manadsvis_energiforbrukning_for_varme",
+  "heat_year": "sensor.daikinap97060_climatecontrol_arlig_energiforbrukning_for_varme",
+  "cool_day": "sensor.daikinap97060_climatecontrol_daglig_energiforbrukning_for_kyla",
+  "cool_week": "sensor.daikinap97060_climatecontrol_veckovis_energiforbrukning_for_kyla",
+  "cool_month": "sensor.daikinap97060_climatecontrol_manadsvis_energiforbrukning_for_kyla",
+  "cool_year": "sensor.daikinap97060_climatecontrol_arlig_energiforbrukning_for_kyla",
+  "cost_today": "sensor.kostnad_luftvarmepump_idag",
+  "cost_month": "sensor.kostnad_luftvarmepump_manad",
+  "cost_total": "sensor.kostnad_luftvarmepump_total",
+  "cost_rate": "sensor.kostnadstakt_luftvarmepump",
+  "price_peak": "binary_sensor.lvp_pristopp",
+  "api_calls": "sensor.daikinap97060_gateway_kvarstaende_anrop_idag",
+  "health": {
+   "Inneenhet fel": "binary_sensor.daikinap97060_climatecontrol_ar_i_fellage",
+   "Inneenhet varning": "binary_sensor.daikinap97060_climatecontrol_ar_i_varningslage",
+   "Inneenhet försiktighet": "binary_sensor.daikinap97060_climatecontrol_ar_i_forsiktighetslage",
+   "Uteenhet fel": "binary_sensor.daikinap97060_outdoorunit_ar_i_fellage",
+   "Uteenhet varning": "binary_sensor.daikinap97060_outdoorunit_ar_i_varningslage",
+   "Uteenhet försiktighet": "binary_sensor.daikinap97060_outdoorunit_ar_i_forsiktighetslage",
+   "Gateway fel": "binary_sensor.daikinap97060_gateway_ar_i_fellage"
+  },
+  "error_codes": {
+   "Inneenhet": "sensor.daikinap97060_climatecontrol_felkod",
+   "Uteenhet": "sensor.daikinap97060_outdoorunit_felkod"
+  },
+  "powerful": "binary_sensor.daikinap97060_climatecontrol_kraftfullt_lage_aktivt",
+  "holiday": "binary_sensor.daikinap97060_climatecontrol_semesterlage_aktivt",
+  "daikin_schedule": "select.daikinap97060_climatecontrol_schema",
+  "fan_schedule": {
+   "active": "input_boolean.lvp_flaktschema_aktiv",
+   "day": "input_select.lvp_flakt_dag",
+   "meal": "input_select.lvp_flakt_maltid",
+   "night": "input_select.lvp_flakt_natt",
+   "meal_schedule": "schedule.lvp_maltider",
+   "night_schedule": "schedule.lvp_natt"
+  },
+  "peak": {
+   "active": "input_boolean.lvp_prissankning_aktiv",
+   "lowered": "input_boolean.lvp_sankt_for_pristopp",
+   "threshold": "input_number.lvp_pristopp_troskel",
+   "drop": "input_number.lvp_pristopp_sankning",
+   "ordinary": "input_number.lvp_ordinarie_temp"
+  },
+  "timers": {
+   "Tillfälligt av": "timer.timer_lf_temp",
+   "Timer": "timer.timer_lf"
+  },
+  "toggles": [
+   "input_boolean.lvp_flaktschema_aktiv",
+   "input_boolean.lvp_prissankning_aktiv"
+  ],
+  "selects": [
+   "input_select.lvp_flakt_dag",
+   "input_select.lvp_flakt_maltid",
+   "input_select.lvp_flakt_natt"
+  ]
+ },
+ "solar": {
+  "title": "Solceller / produktion.",
+  "subtitle": "Produktion, prognos, strängar, växelriktare, historik och ekonomi – live från Home Assistant.",
+  "kwp": 14,
+  "inverter_kw": 12,
+  "installed": "2024-01",
+  "self_consumed_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_self_consumed_today",
+  "outside_temp": "sensor.growatt_tl_x_xh_tl3_xh_outside_temperature",
+  "export_limiter": "select.growatt_tl_x_xh_tl3_xh_export_limiter",
+  "export_rate": "number.growatt_tl_x_xh_tl3_xh_export_power_rate",
+  "serial": "sensor.growatt_tl_x_xh_tl3_xh_serial_number",
+  "growatt_price": "sensor.growatt_tl_x_xh_tl3_xh_price",
+  "day_ahead_high": "sensor.growatt_tl_x_xh_tl3_xh_day_ahead_price_highest",
+  "day_ahead_low": "sensor.growatt_tl_x_xh_tl3_xh_day_ahead_price_lowest",
+  "hour_rank": "sensor.growatt_tl_x_xh_tl3_xh_hour_rank",
+  "solar_earned_rate": "sensor.solceller_besparing_takt",
+  "solar_sold_rate": "sensor.solceller_forsaljning_takt",
+  "solar_saved_total": "sensor.solceller_besparing_totalt",
+  "solar_sold_total": "sensor.solceller_forsaljning_totalt"
+ },
+ "ftx": {
+  "title": "FTX / ventilation.",
+  "subtitle": "Östberg HERU 100 via Modbus: temperaturer, återvinning, fläktar, drift och historik – live från Home Assistant.",
+  "model": "Östberg HERU 100",
+  "controls": true,
+  "unit": "switch.ftx_enhet",
+  "state": "sensor.ftx_enhet_state",
+  "running": "binary_sensor.ftx_enhet",
+  "toggles": [
+   "switch.ftx_enhet",
+   "switch.ftx_forcering",
+   "switch.ftx_bortalage",
+   "switch.ftx_tryckkompensering"
+  ],
+  "boost": "switch.ftx_forcering",
+  "away": "switch.ftx_bortalage",
+  "pressure": "switch.ftx_tryckkompensering",
+  "setpoint": "input_number.ftx_setpoint",
+  "setpoint_unit": "sensor.ftx_temperatur_installd",
+  "outdoor": "sensor.ftx_inluft_ute",
+  "supply": "sensor.ftx_tilluft",
+  "extract": "sensor.ftx_franluft",
+  "exhaust": "sensor.ftx_avluft",
+  "wheel": "sensor.ftx_varmeaterviningshjul_temperatur",
+  "efficiency": "sensor.ftx_temperaturverkningsgrad",
+  "recovery": "sensor.ftx_atervinning_precent",
+  "reheat": "sensor.ftx_eftervarme",
+  "fan_level": "sensor.ftx_flakthastighet",
+  "user_fan_level": "sensor.ftx_anvandare_flakthastighet",
+  "supply_fan_level": "sensor.ftx_tillflakthastighet",
+  "extract_fan_level": "sensor.ftx_franflakthastighet",
+  "supply_rpm": "sensor.ftx_tilluftsflakt",
+  "extract_rpm": "sensor.ftx_franluftsflakt",
+  "supply_pct": "sensor.ftx_tilluftsflakt_effekt",
+  "extract_pct": "sensor.ftx_franluftsflakt_effekt",
+  "filter_days": "sensor.ftx_filter",
+  "week_timer": "sensor.ftx_veckotimer",
+  "power": "sensor.0xa4c13824069606cb_power",
+  "energy_today": "sensor.0xa4c13824069606cb_energy_daily",
+  "energy_week": "sensor.0xa4c13824069606cb_energy_weekly",
+  "energy_month": "sensor.0xa4c13824069606cb_energy_monthly",
+  "energy_total": "sensor.0xa4c13824069606cb_energy",
+  "co2_bedroom": "sensor.netatmo_station_sovrum_co2",
+  "bath_humidity": "sensor.0xec1bbdfffe326203_humidity",
+  "boost_co2": 1500,
+  "boost_humidity": 73,
+  "rooms": [
+   {
+    "name": "Ventrör kök",
+    "temp": "sensor.ftx_kok_temperature",
+    "humidity": "sensor.ftx_kok_humidity"
+   },
+   {
+    "name": "Ventrör vardagsrum",
+    "temp": "sensor.ftx_vardagsrum_temperature",
+    "humidity": "sensor.ftx_vardagsrum_humidity"
+   },
+   {
+    "name": "Ventrör sovrum",
+    "temp": "sensor.ftx_sovrum_temperature",
+    "humidity": "sensor.ftx_sovrum_humidity"
+   },
+   {
+    "name": "Tilluftsdon kök",
+    "temp": "sensor.0x00158d0003d421a6_temperature",
+    "humidity": "sensor.0x00158d0003d421a6_humidity"
+   },
+   {
+    "name": "Tilluftsdon sovrum",
+    "temp": "sensor.0x00158d00022733f3_temperature"
+   },
+   {
+    "name": "Tilluftsdon Olivers rum",
+    "temp": "sensor.ftx_olivers_rum_temperature"
+   }
+  ],
+  "automations": [
+   "automation.ftx_forcering_badrum_luftfuktighet",
+   "automation.ftx_forcering_badrum_luftfuktighet_tid",
+   "automation.ftx_forcering_hog_co2_sovrum",
+   "automation.ftx_bortalage_hemma",
+   "automation.ftx_bortalage_ingen_hemma",
+   "automation.ftx_stang_av_vid_hog_temp",
+   "automation.ftx_stang_av_bortalage_vid_lagre_temp",
+   "automation.ftx_bortalage_vid_hog_temp",
+   "automation.notifiering_ftx_avstangd"
+  ]
+ }
 }

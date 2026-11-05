@@ -28,7 +28,7 @@ if (!HA_URL || !HA_TOKEN) {
 const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 // Alla strängvärden (även i nästlade objekt) som ser ut som entitets-id i card, house och water.
 const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { if (typeof v === 'string') { if (ID_RE.test(v)) out.push(v); } else if (v && typeof v === 'object') collectIds(v, out); } return out; };
-const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar)]);
+const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx)]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const STATS_IDS = new Set([CONFIG.card.solar, CONFIG.card.load, CONFIG.card.grid].filter(Boolean));
@@ -214,7 +214,10 @@ async function readBody(req, max = 64 * 1024) {
 const HP = CONFIG.heatpump || {};
 const ctlLog = [];
 async function control(body) {
-  if (!HP.controls || !HP.climate) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
+  const FTX = CONFIG.ftx || {};
+  const { action: act0, entity: ent0 } = body || {};
+  const ftxOk = FTX.controls && ((act0 === 'toggle' && (FTX.toggles || []).includes(ent0)) || (act0 === 'number' && ent0 === FTX.setpoint));
+  if (!ftxOk && (!HP.controls || !HP.climate)) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
   const now = Date.now();
   while (ctlLog.length && now - ctlLog[0] > 60000) ctlLog.shift();
   if (ctlLog.length >= 20) throw Object.assign(new Error('För många kommandon, vänta en minut'), { code: 429 });
@@ -230,9 +233,15 @@ async function control(body) {
     const lo = a.min_temp ?? 10, hi = a.max_temp ?? 30, step = a.target_temp_step || 0.5;
     if (value < lo || value > hi || Math.abs(value / step - Math.round(value / step)) > 1e-6) throw Object.assign(new Error('Ogiltig temperatur'), { code: 400 });
     call = ['climate', 'set_temperature', HP.climate, { temperature: value }];
-  } else if (action === 'toggle' && (HP.toggles || []).includes(entity) && typeof value === 'boolean') {
+  } else if (action === 'toggle' && (ftxOk || (HP.controls && (HP.toggles || []).includes(entity))) && typeof value === 'boolean') {
     call = [entity.split('.')[0], value ? 'turn_on' : 'turn_off', entity, {}];
-  } else if (action === 'select' && (HP.selects || []).includes(entity)) {
+  } else if (action === 'number' && ftxOk && typeof value === 'number' && Number.isFinite(value)) {
+    const s = states.get(entity), at = (s && s.attributes) || {};
+    const lo = Number(at.min), hi = Number(at.max), step = Number(at.step) || 1;
+    if (!Number.isFinite(lo) || !Number.isFinite(hi) || value < lo || value > hi || Math.abs((value - lo) / step - Math.round((value - lo) / step)) > 1e-6)
+      throw Object.assign(new Error('Ogiltigt värde'), { code: 400 });
+    call = [entity.split('.')[0], 'set_value', entity, { value }];
+  } else if (action === 'select' && HP.controls && (HP.selects || []).includes(entity)) {
     const s = states.get(entity);
     if (!s || !inList(s.attributes.options, value)) throw Object.assign(new Error('Ogiltigt val'), { code: 400 });
     call = [entity.split('.')[0], 'select_option', entity, { option: value }];
@@ -347,6 +356,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/water') return json(res, 200, CONFIG.water || {});
     if (url.pathname === '/api/heatpump') return json(res, 200, CONFIG.heatpump || {});
     if (url.pathname === '/api/solar') return json(res, 200, CONFIG.solar || {});
+    if (url.pathname === '/api/ftx') return json(res, 200, CONFIG.ftx || {});
     if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours'))));
