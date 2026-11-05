@@ -930,5 +930,174 @@
     "locks": [
       "lock.ev6_door_lock"
     ]
+  },
+  "temps": {
+    "title": "Temperaturer.",
+    "subtitle": "Alla rum, uterum och byggnader – temperatur, fukt, daggpunkt och batterier, live från Home Assistant.",
+    "outdoor": "sensor.0xa4c138b221ca7d12_temperature",
+    "indoor_ref": "sensor.vardagsrum_temperature",
+    "battery_low": 20,
+    "groups": [
+      {
+        "id": "inne",
+        "title": "Inne",
+        "avg": true,
+        "sensors": [
+          {
+            "name": "Vardagsrum",
+            "temp": "sensor.vardagsrum_temperature",
+            "hum": "sensor.vardagsrum_humidity"
+          },
+          {
+            "name": "Kök",
+            "temp": "sensor.netatmo_station_temperature",
+            "hum": "sensor.netatmo_station_humidity"
+          },
+          {
+            "name": "Badrum",
+            "temp": "sensor.0xec1bbdfffe326203_temperature",
+            "hum": "sensor.0xec1bbdfffe326203_humidity",
+            "hum_warn": 70,
+            "battery": "sensor.0xec1bbdfffe326203_battery"
+          },
+          {
+            "name": "Sovrum/Kontor",
+            "temp": "sensor.netatmo_station_sovrum_temperature",
+            "hum": "sensor.netatmo_station_sovrum_humidity"
+          },
+          {
+            "name": "Ludvig",
+            "temp": "sensor.0xa4c138fc9c1dac94_temperature",
+            "hum": "sensor.0xa4c138fc9c1dac94_humidity",
+            "battery": "sensor.0xa4c138fc9c1dac94_battery"
+          },
+          {
+            "name": "Oliver",
+            "temp": "sensor.0xa4c13888b4afcaa3_temperature",
+            "hum": "sensor.0xa4c13888b4afcaa3_humidity",
+            "battery": "sensor.0xa4c13888b4afcaa3_battery"
+          },
+          {
+            "name": "Tvättstuga",
+            "temp": "sensor.0xa4c138342a15f664_temperature",
+            "hum": "sensor.0xa4c138342a15f664_humidity",
+            "battery": "sensor.0xa4c138342a15f664_battery"
+          },
+          {
+            "name": "Lilla toa",
+            "temp": "sensor.0xa4c138bc6c5a4e64_temperature",
+            "hum": "sensor.0xa4c138bc6c5a4e64_humidity",
+            "battery": "sensor.0xa4c138bc6c5a4e64_battery"
+          },
+          {
+            "name": "Hall",
+            "temp": "sensor.0x00158d0007e66a05_temperature",
+            "hum": "sensor.0x00158d0007e66a05_humidity",
+            "battery": "sensor.0x00158d0007e66a05_battery"
+          }
+        ]
+      },
+      {
+        "id": "ute",
+        "title": "Ute",
+        "sensors": [
+          {
+            "name": "Utomhus",
+            "temp": "sensor.0xa4c138b221ca7d12_temperature",
+            "hum": "sensor.0xa4c138b221ca7d12_humidity",
+            "battery": "sensor.0xa4c138b221ca7d12_battery"
+          },
+          {
+            "name": "Utomhus N-sidan",
+            "temp": "sensor.netatmo_station_utomhus_temperature",
+            "hum": "sensor.netatmo_station_utomhus_humidity"
+          }
+        ]
+      },
+      {
+        "id": "uterum",
+        "title": "Uterum och garage",
+        "sensors": [
+          {
+            "name": "Uterum bak",
+            "temp": "sensor.0xa4c138b73110312b_temperature",
+            "hum": "sensor.0xa4c138b73110312b_humidity",
+            "hum_warn": 75,
+            "battery": "sensor.0xa4c138b73110312b_battery"
+          },
+          {
+            "name": "Uterum fram",
+            "temp": "sensor.0xa4c1384fb9bddf1d_temperature",
+            "hum": "sensor.0xa4c1384fb9bddf1d_humidity",
+            "hum_warn": 75,
+            "battery": "sensor.0xa4c1384fb9bddf1d_battery"
+          },
+          {
+            "name": "Garage",
+            "temp": "sensor.garage_temp_garage_temperature",
+            "hum": "sensor.garage_temp_garage_humidity",
+            "hum_warn": 75
+          }
+        ]
+      },
+      {
+        "id": "bygg",
+        "title": "Byggnader och utrymmen",
+        "sensors": [
+          {
+            "name": "Vind",
+            "temp": "sensor.0x00158d000227342f_temperature",
+            "hum": "sensor.0x00158d000227342f_humidity",
+            "hum_warn": 75,
+            "battery": "sensor.0x00158d000227342f_battery"
+          },
+          {
+            "name": "Verkstad",
+            "temp": "sensor.mqtt_pi_zero_3_temperature",
+            "hum": "sensor.mqtt_pi_zero_3_humidity",
+            "hum_warn": 75
+          },
+          {
+            "name": "Pumprum",
+            "temp": "sensor.mqtt_hydrofor_temperature",
+            "hum": "sensor.mqtt_hydrofor_humidity",
+            "hum_warn": 75
+          },
+          {
+            "name": "Gårdshus",
+            "temp": "sensor.0x00158d00046054dc_temperature",
+            "hum": "sensor.0x00158d00046054dc_humidity",
+            "hum_warn": 75,
+            "battery": "sensor.0x00158d00046054dc_battery"
+          },
+          {
+            "name": "Förråd",
+            "temp": "sensor.0x00158d0004510f2b_temperature",
+            "hum": "sensor.0x00158d0004510f2b_humidity",
+            "hum_warn": 75,
+            "battery": "sensor.0x00158d0004510f2b_battery"
+          },
+          {
+            "name": "Lilla stuga",
+            "temp": "sensor.0x00158d0002273daa_temperature",
+            "hum": "sensor.0x00158d0002273daa_humidity",
+            "hum_warn": 75,
+            "battery": "sensor.0x00158d0002273daa_battery"
+          },
+          {
+            "name": "Krypgrund",
+            "temp": "sensor.krypgrund_temperature",
+            "hum": "sensor.krypgrund_humidity",
+            "hum_warn": 75
+          },
+          {
+            "name": "Uterum fram 2",
+            "temp": "sensor.mqtt_pi_zero_4_temperature",
+            "hum": "sensor.mqtt_pi_zero_4_humidity",
+            "hum_warn": 75
+          }
+        ]
+      }
+    ]
   }
 }
