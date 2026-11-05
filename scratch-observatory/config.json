@@ -1,0 +1,29 @@
+{
+  "card": {
+    "title": "Hemmet, i överblick.",
+    "subtitle": "Ett ställe att förstå huset.",
+    "solar": "sensor.growatt_tl_x_xh_tl3_xh_pv_power",
+    "load": "sensor.growatt_tl_x_xh_tl3_xh_load_power",
+    "grid": "sensor.growatt_tl_x_xh_tl3_xh_grid_power",
+    "garage": "sensor.go_echarger_404702_power_total",
+    "garage_label": "Laddbox",
+    "ev_soc": "sensor.ev6_laddningsniva_soc",
+    "ev_label": "EV6",
+    "hot_water": "sensor.varmvattenberedare_status",
+    "outdoor": "weather.smhi_home",
+    "indoor": "sensor.daikinap97060_climatecontrol_rumstemperatur",
+    "heatpump": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
+    "price": "sensor.nordpool_kwh_se3_sek_3_10_025",
+    "pv_today": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy_today",
+    "load_today": "sensor.growatt_tl_x_xh_tl3_xh_load_energy_today",
+    "grid_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_today",
+    "grid_out_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_today",
+    "hours": 24,
+    "price_high": 1.75,
+    "price_low": 1.0
+  },
+  "attributes": {
+    "sensor.varmvattenberedare_status": ["temperature", "target_temperature"],
+    "weather.smhi_home": ["temperature"]
+  }
+}

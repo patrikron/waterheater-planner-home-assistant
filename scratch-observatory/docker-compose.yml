@@ -1,0 +1,10 @@
+services:
+  observatory:
+    build: .
+    container_name: observatory
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8780:8780"
+    volumes:
+      - ./config.json:/app/config.json:ro
