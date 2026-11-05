@@ -28,7 +28,7 @@ if (!HA_URL || !HA_TOKEN) {
 const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 // Alla strängvärden (även i nästlade objekt) som ser ut som entitets-id i card, house och water.
 const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { if (typeof v === 'string') { if (ID_RE.test(v)) out.push(v); } else if (v && typeof v === 'object') collectIds(v, out); } return out; };
-const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger)]);
+const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger), ...collectIds(CONFIG.car)]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const STATS_IDS = new Set([CONFIG.card.solar, CONFIG.card.load, CONFIG.card.grid].filter(Boolean));
@@ -43,7 +43,8 @@ function slim(s) {
   if (!s) return null;
   const keep = [...BASE_ATTRS, ...(ATTR_ALLOW[s.entity_id] || [])];
   const attributes = {};
-  for (const k of keep) if (s.attributes && k in s.attributes) attributes[k] = s.attributes[k];
+  if (keep.includes('*')) Object.assign(attributes, s.attributes || {});
+  else for (const k of keep) if (s.attributes && k in s.attributes) attributes[k] = s.attributes[k];
   return { entity_id: s.entity_id, state: s.state, attributes, last_updated: s.last_updated };
 }
 
@@ -214,11 +215,12 @@ async function readBody(req, max = 64 * 1024) {
 const HP = CONFIG.heatpump || {};
 const ctlLog = [];
 async function control(body) {
-  // Sidor med egen styrning (FTX, laddbox): bara entiteter som står i respektive vitlista
-  const PAGES = [CONFIG.ftx, CONFIG.charger].filter(x => x && x.controls);
+  // Sidor med egen styrning (FTX, laddbox, bilen): bara entiteter som står i respektive vitlista
+  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car].filter(x => x && x.controls);
   const allow = k => new Set(PAGES.flatMap(x => [...(x[k] || []), ...(k === 'numbers' && x.setpoint ? [x.setpoint] : [])]));
   const { action: act0, entity: ent0 } = body || {};
-  const ftxOk = (act0 === 'toggle' && allow('toggles').has(ent0)) || (act0 === 'number' && allow('numbers').has(ent0)) || (act0 === 'select' && allow('selects').has(ent0));
+  const ftxOk = (act0 === 'toggle' && allow('toggles').has(ent0)) || (act0 === 'number' && allow('numbers').has(ent0)) || (act0 === 'select' && allow('selects').has(ent0))
+    || (act0 === 'script' && allow('scripts').has(ent0)) || (act0 === 'lock' && allow('locks').has(ent0));
   const hpOk = !!(HP.controls && HP.climate);
   if (!ftxOk && !hpOk) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
   const now = Date.now();
@@ -249,6 +251,14 @@ async function control(body) {
     const s = states.get(entity);
     if (!s || !inList(s.attributes.options, value)) throw Object.assign(new Error('Ogiltigt val'), { code: 400 });
     call = [entity.split('.')[0], 'select_option', entity, { option: value }];
+  } else if (action === 'script' && ftxOk) {
+    // skript körs via script.turn_on; ev. variabler kommer från config, aldrig från webbläsaren
+    const page = PAGES.find(x => (x.scripts || []).includes(entity)), vars = (page && page.script_vars && page.script_vars[entity]) || null;
+    call = ['script', 'turn_on', entity, vars ? { variables: vars } : {}];
+  } else if (action === 'lock' && ftxOk && (value === 'lock' || value === 'unlock')) {
+    const page = PAGES.find(x => (x.locks || []).includes(entity));
+    if (value === 'unlock' && !(page && page.allow_unlock === true)) throw Object.assign(new Error('Upplåsning är avstängd i config'), { code: 403 });
+    call = ['lock', value, entity, {}];
   }
   if (!call) throw Object.assign(new Error('Åtgärden är inte tillåten'), { code: 400 });
   ctlLog.push(now);
@@ -362,6 +372,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/solar') return json(res, 200, CONFIG.solar || {});
     if (url.pathname === '/api/ftx') return json(res, 200, CONFIG.ftx || {});
     if (url.pathname === '/api/charger') return json(res, 200, CONFIG.charger || {});
+    if (url.pathname === '/api/car') return json(res, 200, CONFIG.car || {});
     if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours'))));

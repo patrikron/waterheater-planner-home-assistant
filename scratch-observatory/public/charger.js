@@ -96,7 +96,7 @@
     const b = e.target.closest('button[data-act]'); if (!b || b.disabled) return;
     const a = b.dataset.act, ent = b.dataset.ent;
     if (a === 'num') return bump(ent, +b.dataset.dir, b.dataset.step ? +b.dataset.step : null);
-    if (a === 'setnum') { if (ent === C.ac_limit && !confirm(`Ändra bilens AC-laddgräns till ${b.dataset.val} %? Kommandot skickas till Kia och väcker bilen.`)) return; return send('number', +b.dataset.val, ent); }
+    if (a === 'setnum') return send('number', +b.dataset.val, ent);
     if (a === 'toggle') return send('toggle', b.getAttribute('aria-pressed') !== 'true', ent);
     if (a === 'select') {
       if (ent === C.force && b.dataset.val === '1' && charging() && !confirm('Stoppa laddningen nu?')) return;
@@ -168,7 +168,6 @@
         <div class="crow"><span class="eyebrow">Klar senast</span><div class="crow-r">
           <select data-ent="${C.smart_end}" ${C.controls && st(C.smart_end) ? '' : 'disabled'} class="${pend('select', C.smart_end) ? 'pending' : ''}">${ends.map(o => `<option value="${esc(o)}" ${o === endV ? 'selected' : ''}>${o === 'None' ? 'Ingen' : esc(o)}</option>`).join('')}</select>
           <span class="hint">Lägsta nivå</span>${stepper(C.smart_min_soc, '%', 5)}</div></div>
-        <div class="crow"><span class="eyebrow">EV6 AC-gräns</span><div class="crow-r">${numSeg(C.ac_limit, [50, 60, 70, 80, 90, 100], ' %')}<span class="hint">Skickas till bilen</span></div></div>
       </div>
       <p class="so-note">"Auto" betyder att go-e och dina automationer bestämmer. "Av" stoppar laddningen tills du väljer Auto eller På igen.</p>`;
   }
@@ -207,21 +206,15 @@
 
   // ---------- Bilen ----------
   function renderCar() {
-    const soc = num(C.car_soc), kia = num(C.car_soc_kia), loc = st(C.car_location);
-    const cons = num(C.avg_consumption), consKwh = cons == null ? null : cons > 50 ? cons / 10 : cons;
+    const soc = num(C.car_soc), loc = st(C.car_location);
     const yes = id => on(id) == null ? '–' : on(id) ? 'Ja' : 'Nej';
     $('car').innerHTML = `<div class="eyebrow">Kia EV6</div><h3>${soc == null ? '–' : Math.round(soc)} % · ${nf(num(C.car_range), 0)} km</h3>
-      ${srow('Laddnivå (Tibber / Kia)', `${soc == null ? '–' : Math.round(soc)} / ${kia == null ? '–' : Math.round(kia)}`, '%')}
-      ${srow('Räckvidd vid AC-mål', nf(num(C.target_range_ac), 0), 'km')}
+      ${srow('Mål / AC-gräns', `${nf(num(C.car_target), 0)} / ${nf(num(C.ac_limit), 0)}`, '%')}
+      ${srow('Räckvidd vid AC-gräns', nf(num(C.target_range_ac), 0), 'km')}
       ${srow('Kabel i bilen', yes(C.car_plug))}
       ${srow('Bilen säger att den laddar', yes(C.car_charging))}
-      ${srow('Laddlucka öppen', yes(C.car_port))}
-      ${srow('12 V-batteri', nf(num(C.car_12v), 0), '%')}
-      ${srow('Förbrukning 30 dagar', nf(consKwh, 1), 'kWh/100 km')}
-      ${srow('Mätarställning', nf(num(C.odometer), 0), 'km')}
       ${srow('Plats', loc ? (loc.state === 'home' ? 'Hemma' : loc.state === 'not_home' ? 'Borta' : esc(loc.state)) : '–')}
-      ${srow('Senast uppdaterad', ago((st(C.car_updated) || {}).state))}
-      <p class="so-note">Tibber ger laddnivån direkt. Kias värde uppdateras bara när bilen väcks och släpar ofta under laddning.</p>`;
+      <a class="btn primary-link" href="ev6.html" style="margin-top:12px">Allt om bilen och styrning →</a>`;
   }
 
   // ---------- Faser ----------
