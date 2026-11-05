@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.5.0';
+  const VERSION = '0.6.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -54,7 +54,10 @@
   function outdoorTemp() { const id = cfg.outdoor; return id && id.startsWith('weather.') ? num(id, 'temperature') : num(id); }
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2600); }
 
-  const HW = { waiting_cheap: 'Väntar på billig el', heating: 'Värmer', heating_cheap: 'Värmer på billig el', idle: 'Klar', done: 'Klar', boost: 'Boost', off: 'Av' };
+  const HW = { disabled: 'Av (manuell)', no_temperature: 'Temperatur saknas', switch_unavailable: 'Brytaren svarar inte', at_target: 'Måltemperatur nådd',
+    idle: 'Vilar', waiting_cheap: 'Väntar på billig tid', waiting_sun: 'Väntar på sol', heating_grid: 'Värmer (billig el)', heating_solar: 'Värmer (sol)',
+    heating_sun_slot: 'Värmer (soltimme)', heating_base: 'Värmer (grundtemp)', comfort_floor: 'Värmer (komfortgräns)', boost: 'Värmer nu',
+    no_prices: 'Elpris saknas', no_surplus_sensor: 'Nätsensor saknas', floor_price_cap: 'Väntar (pristak)', manual: 'Manuell värmning' };
   const WX = { 'clear-night': 'Klart', sunny: 'Soligt', partlycloudy: 'Halvklart', cloudy: 'Molnigt', rainy: 'Regn', pouring: 'Skyfall', snowy: 'Snö',
     'snowy-rainy': 'Snöblandat regn', fog: 'Dimma', windy: 'Blåsigt', 'windy-variant': 'Blåsigt', lightning: 'Åska', 'lightning-rainy': 'Åskregn', hail: 'Hagel', exceptional: 'Ovanligt' };
 
@@ -74,7 +77,7 @@
     } },
     vv: { title: 'Varmvatten', drawer: 'hotwater', render() {
       const t = num(cfg.hot_water, 'temperature'), s = st(cfg.hot_water);
-      const heating = s && /heat|boost/.test(s.state);
+      const heating = s && /heat|boost|comfort_floor|manual/.test(s.state);
       return { v: nf(t), u: '°C', s: s ? (HW[s.state] || s.state) : 'okänt', flow: heating ? { cls: 'warm', dir: 'in', w: 2000 } : null };
     } },
     nat: { title: 'Elnät', drawer: 'grid', wire: 'grid', render() {
@@ -429,7 +432,7 @@
       const s = st(cfg.hot_water);
       return [['Temperatur', nf(num(cfg.hot_water, 'temperature')), '°C'], ['Mål', nf(num(cfg.hot_water, 'target_temperature'), 0), '°C'],
         ['Status', s ? (HW[s.state] || s.state) : '–', '']];
-    }, charts: () => [] },
+    }, charts: () => [], extra: () => '<a class="btn primary-link" href="varmvatten.html">Öppna varmvattensidan →</a>' },
     veranda: { eyebrow: 'Uterummet', title: 'Uterummet', stats: () => [['Ute', nf(outdoorTemp()), '°C']], charts: () => [],
       note: 'Här finns inga sensorer kopplade ännu. Säg till vilka entiteter som hör till uterummet.' },
     price: { eyebrow: 'Elpris / idag', title: 'Elpris', stats: () => {

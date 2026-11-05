@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d100e">
+<title>Varmvatten</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="water.css">
+</head>
+<body data-page="varmvatten">
+<nav class="side" aria-label="Meny">
+  <a class="brand" href="./"><span class="slash">//</span> OBSERVATORIET</a>
+  <a class="nav-item" href="./" data-page="oversikt" title="Översikt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/></svg><span>Översikt</span></a>
+  <a class="nav-item" href="varmvatten.html" data-page="varmvatten" aria-current="page" title="Varmvatten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/></svg><span>Varmvatten</span></a>
+  <a class="nav-item minor" href="kort.html" data-page="kort" title="Kortvy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M10 10v9"/></svg><span>Kortvy</span></a>
+</nav>
+<div class="content">
+<header class="top">
+  <div>
+    <div class="eyebrow"><span class="slash">//</span> OBSERVATORIET / VARMVATTEN</div>
+    <h1 id="title">Varmvatten / beredaren.</h1>
+    <p id="subtitle"></p>
+  </div>
+  <div class="top-right">
+    <span id="badge" class="badge stale"><i></i><span>Väntar på data</span></span>
+    <span id="clock" class="mono"></span>
+  </div>
+</header>
+<main id="wmain" class="wgrid">
+  <section class="wcard hero" id="hero"></section>
+  <section class="wcard span2" id="plan"></section>
+  <section class="wcard" id="last"></section>
+  <section class="wcard" id="usage"></section>
+  <section class="wcard" id="learn"></section>
+  <section class="wcard" id="temp-chart"></section>
+  <section class="wcard" id="power-chart"></section>
+  <section class="wcard" id="daily-chart"></section>
+  <section class="wcard span2" id="settings"></section>
+  <section class="wcard" id="hardware"></section>
+</main>
+</div>
+<script src="water.js"></script>
+</body>
+</html>

@@ -26,8 +26,9 @@ if (!HA_URL || !HA_TOKEN) {
 
 // Allowlist: alla entitets-id i card-konfigurationen.
 const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
-const ENTITY_KEYS = [...Object.entries(CONFIG.card), ...Object.entries(CONFIG.house || {})].filter(([, v]) => typeof v === 'string' && /^[a-z_]+\.[a-z0-9_]+$/.test(v));
-const ALLOWED = new Set(ENTITY_KEYS.map(([, v]) => v));
+// Alla strängvärden (även i nästlade objekt) som ser ut som entitets-id i card, house och water.
+const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { if (typeof v === 'string') { if (ID_RE.test(v)) out.push(v); } else if (v && typeof v === 'object') collectIds(v, out); } return out; };
+const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water)]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const STATS_IDS = new Set([CONFIG.card.solar, CONFIG.card.load, CONFIG.card.grid].filter(Boolean));
@@ -158,6 +159,20 @@ async function history(id, hours) {
   return data;
 }
 
+// ---------- Dygnsvis förändring (staplar per dag) ----------
+const dailyCache = new Map();
+async function daily(id, days) {
+  if (!ALLOWED.has(id)) throw Object.assign(new Error('Entiteten är inte tillåten'), { code: 403 });
+  const n = Math.max(1, Math.min(60, Math.round(days) || 14));
+  const key = id + '|' + n, hit = dailyCache.get(key);
+  if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.data;
+  const start = new Date(localStart('day').t - (n - 1) * 86400000).toISOString();
+  const st = await haCall({ type: 'recorder/statistics_during_period', start_time: start, statistic_ids: [id], period: 'day', types: ['change'] });
+  const data = { entity_id: id, days: n, points: (st[id] || []).map(r => [r.start, r.change]) };
+  dailyCache.set(key, { at: Date.now(), data });
+  return data;
+}
+
 // ---------- Layout (husvyn) ----------
 function validLayout(l) {
   if (!l || typeof l !== 'object' || Array.isArray(l)) return false;
@@ -270,6 +285,8 @@ const server = http.createServer(async (req, res) => {
       catch { return json(res, 200, {}); }
     }
     if (url.pathname === '/api/house') return json(res, 200, CONFIG.house || {});
+    if (url.pathname === '/api/water') return json(res, 200, CONFIG.water || {});
+    if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days'))));
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours'))));
     if (url.pathname === '/api/config') return json(res, 200, CONFIG.card);
     if (url.pathname === '/api/states') return json(res, 200, snapshot());
