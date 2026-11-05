@@ -155,3 +155,42 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
   .wires,.handles{display:none}
   .edit-bar{padding:10px 14px}
 }
+
+/* ---------- Solpanelernas detaljvy ---------- */
+.drawer.wide{width:min(600px,100vw)}
+.dchart .ln.dash{stroke-dasharray:4 4;stroke-width:1.4}
+.dchart .legend{display:flex;gap:14px;margin-top:6px;font-size:10.5px;color:var(--muted)}
+.dchart .legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.sx{border:1px solid var(--line);border-radius:4px;padding:12px 14px;margin-bottom:12px;background:rgba(174,191,145,.03)}
+.sx.hero{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:end}
+.sx.hero .hr{border-left:1px solid var(--line);padding-left:16px}
+.sk,.sh{font:9.5px var(--mono);letter-spacing:1.5px;color:var(--gold);text-transform:uppercase}
+.sh{margin-bottom:10px}
+.sbig{font-size:40px;font-weight:600;letter-spacing:-.8px;line-height:1.1;color:var(--gold)}
+.smid{font-size:24px;font-weight:600;line-height:1.2}
+.sbig small,.smid small{font-size:.4em;color:var(--muted);margin-left:5px;font-weight:500}
+.ss{font-size:11px;color:var(--muted);margin-top:4px}
+.sbar{height:6px;border-radius:3px;background:rgba(200,210,190,.12);overflow:hidden;margin-top:8px}
+.sbar span{display:block;height:100%;background:var(--sage);border-radius:3px}
+.sbar.gold span{background:var(--gold)}.sbar.orange span{background:var(--orange)}
+.sgrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sgrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sgrid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sc{border:1px solid var(--line);border-radius:4px;padding:8px 10px;min-width:0}
+.sc span{display:block;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc b{font-size:16px;font-weight:600;white-space:nowrap}
+.sc b small{font-size:10px;color:var(--muted);font-weight:500;margin-left:3px}
+.split{margin-top:12px}
+.splitbar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:rgba(200,210,190,.12)}
+.splitbar .a,.splitlbl i.a{background:var(--sage)}.splitbar .b,.splitlbl i.b{background:var(--blue)}
+.splitlbl{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);margin-top:6px}
+.splitlbl i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.str{border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+.strh{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--muted)}
+.strh b{font-size:20px;color:var(--text);font-weight:600}
+.strh b small{font-size:10px;color:var(--muted);margin-left:3px;font-weight:500}
+.strv{display:flex;justify-content:space-between;font:10.5px var(--mono);color:var(--muted);margin-top:8px}
+.payback{margin-top:12px}
+.pbh{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--muted)}
+.pbh b{font-size:18px;color:var(--sage);font-weight:600}
+@media (max-width:520px){.sgrid4{grid-template-columns:1fr 1fr}.sgrid3{grid-template-columns:1fr 1fr}.sx.hero{grid-template-columns:1fr}.sx.hero .hr{border-left:0;padding-left:0}}

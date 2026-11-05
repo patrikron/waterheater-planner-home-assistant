@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.3.1';
+  const VERSION = '0.4.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -292,12 +292,94 @@
   $('glows').innerHTML = GLOWS.map(([x, y]) => `<i style="left:${x}%;top:${y}%"></i>`).join('');
 
   // ---------- Detaljpanel ----------
+  // ---------- Solpanelernas detaljvy ----------
+  let solarPeak = null;
+  function bar(pct, cls = '') { const p = Math.max(0, Math.min(100, pct || 0)); return `<div class="sbar ${cls}"><span style="width:${p}%"></span></div>`; }
+  function solarRich() {
+    const w = num(cfg.solar), pred = num(cfg.pv_predicted), today = num(cfg.pv_today), rem = num(cfg.pv_remaining_today);
+    const out = num(cfg.grid_out_today), self = today != null && out != null ? Math.max(0, today - out) : null;
+    const selfPct = today > 0 && self != null ? self / today * 100 : null;
+    const ofPred = pred > 50 && w != null ? w / pred * 100 : null;
+    const cloud = num(cfg.cloud_cover);
+    const strings = [1, 2].map(i => ({ i, w: num(cfg['solar_' + i]), v: num(cfg['pv_voltage_' + i]), a: num(cfg['pv_current_' + i]) }));
+    const sum = strings.reduce((a, x) => a + (x.w || 0), 0);
+    const base = moneyData && moneyData.base || {};
+    const save = num(cfg.solar_saving), sb = base[cfg.solar_saving];
+    const sold = num(cfg.solar_sold), slb = base[cfg.solar_sold];
+    const savedToday = save != null && sb != null ? Math.max(0, save - sb) : null;
+    const soldToday = sold != null && slb != null ? Math.max(0, sold - slb) : null;
+    const y = moneyData && moneyData.year;
+    const paid = num(cfg.solar_paid_pct), paidDate = st(cfg.solar_paid_date), earned = num(cfg.solar_earned_total), inv = num(cfg.solar_investment);
+    const ac = num(cfg.ac_power), eff = w > 100 && ac != null ? ac / w * 100 : null;
+    const mode = st(cfg.device_mode);
+    const status = w == null ? 'Ingen data' : w < 20 ? 'Ingen produktion just nu' : ofPred == null ? 'Producerar' :
+      ofPred >= 90 ? 'Producerar som väntat' : ofPred >= 60 ? 'Lite under prognosen' : 'Klart under prognosen';
+    const cell = (k, v, u) => `<div class="sc"><span>${k}</span><b>${v}<small>${u}</small></b></div>`;
+    return `
+    <section class="sx hero">
+      <div><div class="sk">Nu</div><div class="sbig">${kw(w)}<small>kW</small></div><div class="ss">${status}</div></div>
+      <div class="hr">
+        <div class="sk">Prognos nu</div><div class="smid">${kw(pred)}<small>kW</small></div>
+        ${ofPred != null ? bar(ofPred, 'gold') + `<div class="ss">${Math.round(ofPred)} % av prognosen${cloud != null ? ` · molnighet ${Math.round(cloud)} %` : ''}</div>` : `<div class="ss">${cloud != null ? `Molnighet ${Math.round(cloud)} %` : ''}</div>`}
+      </div>
+    </section>
+    <section class="sx">
+      <div class="sh">Idag</div>
+      <div class="sgrid4">
+        ${cell('Producerat', nf(today), 'kWh')}
+        ${cell('Kvar enl. prognos', nf(rem), 'kWh')}
+        ${cell('Topp', solarPeak ? nf(solarPeak.v / 1000, 2) : '–', solarPeak ? 'kW ' + time(new Date(solarPeak.t).toISOString()) : 'kW')}
+        ${cell('Väntat totalt', today != null && rem != null ? nf(today + rem) : '–', 'kWh')}
+      </div>
+      <div class="split">
+        <div class="splitbar"><span class="a" style="width:${selfPct ?? 0}%"></span><span class="b" style="width:${selfPct == null ? 0 : 100 - selfPct}%"></span></div>
+        <div class="splitlbl"><span><i class="a"></i>Använt själv ${nf(self)} kWh${selfPct != null ? ` (${Math.round(selfPct)} %)` : ''}</span><span><i class="b"></i>Sålt ${nf(out)} kWh</span></div>
+      </div>
+    </section>
+    <section class="sx">
+      <div class="sh">Strängar</div>
+      <div class="sgrid2">
+        ${strings.map(x => `<div class="str">
+          <div class="strh"><span>Sträng ${x.i}</span><b>${kw(x.w)}<small>kW</small></b></div>
+          ${bar(sum > 0 ? (x.w || 0) / sum * 100 : 0, x.i === 1 ? 'orange' : '')}
+          <div class="strv"><span>${x.v == null ? '–' : nf(x.v, 0)} V</span><span>${x.a == null ? '–' : nf(x.a, 1)} A</span><span>${sum > 0 ? Math.round((x.w || 0) / sum * 100) : 0} %</span></div>
+        </div>`).join('')}
+      </div>
+    </section>
+    <section class="sx">
+      <div class="sh">Växelriktare</div>
+      <div class="sgrid3">
+        ${cell('AC ut', kw(ac), 'kW')}
+        ${cell('Verkningsgrad', eff == null ? '–' : nf(Math.min(eff, 100), 0), '%')}
+        ${cell('Belastning', nf(num(cfg.inverter_load), 0), '%')}
+        ${cell('Temperatur', nf(num(cfg.inverter_temp)), '°C')}
+        ${cell('DC-buss', nf(num(cfg.bus_voltage), 0), 'V')}
+        ${cell('Nät', nf(num(cfg.grid_voltage), 0) + ' V · ' + nf(num(cfg.grid_frequency), 2), 'Hz')}
+      </div>
+      <div class="ss">Läge: ${mode ? esc(mode.state) : '–'}</div>
+    </section>
+    <section class="sx">
+      <div class="sh">Ekonomi</div>
+      <div class="sgrid3">
+        ${cell('Sparat idag', nf(savedToday, 2), 'kr')}
+        ${cell('Sålt idag', nf(soldToday, 2), 'kr')}
+        ${cell('Solen i år', y ? nf(y.total_kr, 0) : '–', 'kr')}
+      </div>
+      <div class="payback">
+        <div class="pbh"><span>Återbetalt</span><b>${nf(paid, 1)} %</b></div>
+        ${bar(paid, 'sage')}
+        <div class="ss">${earned != null ? `${nf(earned, 0)} kr av ${inv != null ? nf(inv, 0) : '–'} kr` : ''}${paidDate && !['unknown', 'unavailable'].includes(paidDate.state) ? ` · betald ungefär ${new Date(paidDate.state).toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })}` : ''}</div>
+      </div>
+    </section>`;
+  }
+
   const DRAWERS = {
-    solar: { eyebrow: 'Sol / produktion', title: 'Solpaneler', stats: () => [
-      ['Nu', kw(num(cfg.solar)), 'kW'], ['Idag', nf(num(cfg.pv_today)), 'kWh'],
-      ['Sträng 1', kw(num(cfg.solar_1)), 'kW'], ['Sträng 2', kw(num(cfg.solar_2)), 'kW'],
-      ['Sålt idag', nf(num(cfg.grid_out_today)), 'kWh'], ['Nät nu', kw(num(cfg.grid)), num(cfg.grid) < 0 ? 'kW ut' : 'kW in']],
-      charts: () => [[cfg.solar, 'Solproduktion', '#d8bb72', 1000, 'kW']] },
+    solar: { eyebrow: 'Sol / produktion', title: 'Solpaneler', wide: true, rich: solarRich, stats: () => [],
+      charts: () => [
+        { title: 'Produktion mot prognos', unit: 'kW', div: 1000, series: [[cfg.solar, 'Produktion', '#d8bb72'], [cfg.pv_predicted, 'Prognos', '#9fb4c8', 'dash']], peak: true },
+        { title: 'Sträng 1 mot sträng 2', unit: 'kW', div: 1000, series: [[cfg.solar_1, 'Sträng 1', '#e0895a'], [cfg.solar_2, 'Sträng 2', '#aebf91']] },
+        [cfg.inverter_temp, 'Växelriktarens temperatur', '#c98f6a', 1, '°C'],
+      ] },
     house: { eyebrow: 'Huset / förbrukning', title: 'Huset', stats: () => [
       ['Förbrukning', kw(num(cfg.load)), 'kW'], ['Idag', nf(num(cfg.load_today)), 'kWh'],
       ['Inne', nf(num(cfg.indoor)), '°C'], ['Varmvatten', nf(num(cfg.hot_water, 'temperature')), '°C']],
@@ -336,26 +418,36 @@
     const d = DRAWERS[id]; if (!d) return;
     drawerOpen = id;
     $('drawer-eyebrow').textContent = d.eyebrow; $('drawer-title').textContent = d.title;
+    $('drawer').classList.toggle('wide', !!d.wide);
     renderDrawerStats();
     $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false'); $('scrim').hidden = false;
     const body = $('drawer-charts');
-    const charts = d.charts();
-    body.innerHTML = (d.extra ? d.extra() : '') + charts.map((c, i) => `<div class="dchart" id="dc${i}"><div class="eyebrow">${esc(c[1])} · senaste 24 h</div><div class="empty">Hämtar historik …</div></div>`).join('') +
+    const charts = d.charts().map(c => Array.isArray(c) ? { title: c[1], unit: c[4], div: c[3], series: [[c[0], c[1], c[2]]] } : c);
+    body.innerHTML = (d.extra ? d.extra() : '') + charts.map((c, i) => `<div class="dchart" id="dc${i}"><div class="eyebrow">${esc(c.title)} · senaste 24 h</div><div class="empty">Hämtar historik …</div></div>`).join('') +
       (d.note ? `<p class="dnote">${esc(d.note)}</p>` : '');
     charts.forEach(async (c, i) => {
       const box = $('dc' + i);
       try {
-        const r = await fetch(`api/history?entity=${encodeURIComponent(c[0])}&hours=24`, { cache: 'no-store' });
-        if (!r.ok) throw new Error((await r.json()).error || r.statusText);
-        const h = await r.json();
+        const res = await Promise.all(c.series.filter(x => x[0]).map(async ([eid, label, color, style]) => {
+          const r = await fetch(`api/history?entity=${encodeURIComponent(eid)}&hours=24`, { cache: 'no-store' });
+          if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+          return { label, color, style, points: (await r.json()).points };
+        }));
         if (drawerOpen !== id || !box.isConnected) return;
-        box.outerHTML = chartBlock(`${c[1]} · senaste 24 h`, h.points, c[2], c[3], c[4]);
+        if (c.peak && res[0] && res[0].points.length) {
+          const mid = new Date(); mid.setHours(0, 0, 0, 0);
+          const todayPts = res[0].points.map(([t, v]) => [typeof t === 'string' ? Date.parse(t) : t, v]).filter(p => p[0] >= mid.getTime());
+          if (todayPts.length) { const m = todayPts.reduce((a, p) => p[1] > a[1] ? p : a); solarPeak = { t: m[0], v: m[1] }; renderDrawerStats(); }
+        }
+        box.outerHTML = res.length > 1 ? chartMulti(`${c.title} · senaste 24 h`, res, c.div, c.unit)
+          : chartBlock(`${c.title} · senaste 24 h`, res[0] && res[0].points, res[0] && res[0].color, c.div, c.unit);
       } catch (e) { if (box.isConnected) box.querySelector('.empty').textContent = 'Kunde inte hämta historik (' + e.message + ').'; }
     });
   }
   function renderDrawerStats() {
     if (!drawerOpen) return;
     const d = DRAWERS[drawerOpen];
+    if (d.rich) { $('drawer-stats').innerHTML = d.rich(); return; }
     $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>`;
     if (d.extra && drawerOpen === 'price' && $('price-chart')) $('price-chart').outerHTML = d.extra();
   }
@@ -397,6 +489,33 @@
     return `<div class="dchart"><div class="eyebrow">${esc(title)} <span style="float:right">${esc(unit)}</span></div>
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${g}
       <path class="ar" fill="${color}" d="${d}L${x(t1)},${base}L${x(t0)},${base}Z"/><path class="ln" stroke="${color}" d="${d}"/></svg></div>`;
+  }
+
+  function chartMulti(title, series, div, unit) {
+    const all = series.flatMap(sr => (sr.points || []).map(([t, v]) => [typeof t === 'string' ? Date.parse(t) : t, v / div]));
+    if (!all.length) return `<div class="dchart"><div class="eyebrow">${esc(title)}</div><div class="empty">Ingen historik.</div></div>`;
+    const W = 440, H = 170, pl = 34, pr = 6, pt = 8, pb = 20;
+    const t0 = Math.min(...all.map(p => p[0])), t1 = Math.max(...all.map(p => p[0]));
+    let lo = Math.min(0, ...all.map(p => p[1])), hi = Math.max(...all.map(p => p[1]));
+    if (hi === lo) hi = lo + 1; hi += (hi - lo) * .08;
+    const x = t => pl + (t1 === t0 ? 0 : (t - t0) / (t1 - t0)) * (W - pl - pr);
+    const y = v => pt + (hi - v) / (hi - lo) * (H - pt - pb);
+    let g = '';
+    for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4;
+      g += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${pl - 5}" y="${y(v) + 3}" text-anchor="end">${nf(v, hi - lo < 5 ? 1 : 0)}</text>`; }
+    const first = new Date(t0); first.setMinutes(0, 0, 0);
+    for (let t = first.getTime() + 3600e3; t <= t1; t += 3600e3) { const hh = new Date(t).getHours(); if (hh % 4) continue;
+      g += `<text class="ax" x="${x(t)}" y="${H - 5}" text-anchor="middle">${String(hh).padStart(2, '0')}</text>`; }
+    const paths = series.map((sr, k) => {
+      const pts = (sr.points || []).map(([t, v]) => [typeof t === 'string' ? Date.parse(t) : t, v / div]);
+      if (!pts.length) return '';
+      const d = pts.map(([t, v], i) => `${i ? 'L' : 'M'}${x(t).toFixed(1)},${y(v).toFixed(1)}`).join('');
+      const area = k === 0 ? `<path class="ar" fill="${sr.color}" d="${d}L${x(pts[pts.length - 1][0])},${y(0)}L${x(pts[0][0])},${y(0)}Z"/>` : '';
+      return area + `<path class="ln${sr.style === 'dash' ? ' dash' : ''}" stroke="${sr.color}" d="${d}"/>`;
+    }).join('');
+    const legend = series.map(sr => `<span><i style="background:${sr.color}"></i>${esc(sr.label)}</span>`).join('');
+    return `<div class="dchart"><div class="eyebrow">${esc(title)} <span style="float:right">${esc(unit)}</span></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${g}${paths}</svg><div class="legend">${legend}</div></div>`;
   }
 
   // ---------- Redigeringsläge ----------
