@@ -202,3 +202,8 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
 /* Takbelysning: bara den nedre halvan av ljuset syns, så att inget ljus hamnar på taket */
 .glows i.down{width:7%;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(255,200,125,.6) 0%,rgba(255,165,85,.2) 45%,rgba(255,140,60,0) 72%);
   -webkit-mask-image:linear-gradient(to bottom,transparent 49%,#000 53%);mask-image:linear-gradient(to bottom,transparent 49%,#000 53%)}
+.fdays{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:14px;align-items:end}
+.fday{text-align:center;font-size:10px;color:var(--muted)}
+.fday b{display:block;color:var(--text);font-size:12px;font-weight:600;margin-top:4px}
+.fbar{height:56px;display:flex;align-items:flex-end;justify-content:center;background:rgba(200,210,190,.05);border-radius:3px}
+.fbar span{display:block;width:60%;background:var(--gold);border-radius:3px 3px 0 0;opacity:.85}

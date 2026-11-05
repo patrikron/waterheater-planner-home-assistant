@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.4.3';
+  const VERSION = '0.5.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -62,7 +62,9 @@
   const BOX = {
     sol: { title: 'Solpaneler', drawer: 'solar', wire: 'sol', render() {
       const w = num(cfg.solar), today = num(cfg.pv_today);
-      return { v: kw(w), u: 'kW', s: w != null && w < 20 ? 'Ingen produktion just nu' : `${nf(today)} kWh idag`,
+      const rem = num(cfg.fc_remaining), tom = num(cfg.fc_tomorrow);
+      const sub = rem != null && rem > 0.05 ? `${nf(today)} kWh idag · ${nf(rem)} kvar` : tom != null ? `${nf(today)} kWh idag · imorgon ~${nf(tom)}` : `${nf(today)} kWh idag`;
+      return { v: kw(w), u: 'kW', s: sub,
         flow: w > 20 ? { cls: 'sol', dir: 'out', w } : null };
     } },
     hus: { title: 'Huset', drawer: 'house', render() {
@@ -299,6 +301,30 @@
   // ---------- Solpanelernas detaljvy ----------
   let solarPeak = null;
   function bar(pct, cls = '') { const p = Math.max(0, Math.min(100, pct || 0)); return `<div class="sbar ${cls}"><span style="width:${p}%"></span></div>`; }
+  const DAYS = { Monday: 'Mån', Tuesday: 'Tis', Wednesday: 'Ons', Thursday: 'Tor', Friday: 'Fre', Saturday: 'Lör', Sunday: 'Sön' };
+  function forecastSection(today) {
+    const fc = num(cfg.fc_today), rem = num(cfg.fc_remaining), tom = num(cfg.fc_tomorrow), peak = st(cfg.fc_peak_tomorrow);
+    const sc = num(cfg.solcast_today), scRem = num(cfg.solcast_remaining), scTom = num(cfg.solcast_tomorrow);
+    if (fc == null && sc == null) return '';
+    const reached = fc > 0 && today != null ? today / fc * 100 : null;
+    const days = [{ k: 'Imorgon', v: scTom }];
+    for (let i = 3; i <= 7; i++) { const s = st(cfg['solcast_day_' + i]); days.push({ k: s ? (DAYS[s.attributes.dayname] || s.attributes.dayname || 'Dag ' + i) : 'Dag ' + i, v: num(cfg['solcast_day_' + i]) }); }
+    const max = Math.max(1, ...days.map(d => d.v || 0));
+    const peakTxt = peak && !['unknown', 'unavailable'].includes(peak.state) ? time(peak.state) : null;
+    const cell = (k, v, u) => `<div class="sc"><span>${k}</span><b>${v}<small>${u}</small></b></div>`;
+    return `<section class="sx">
+      <div class="sh">Prognos</div>
+      <div class="sgrid3">
+        ${cell('Väntat idag', nf(fc), 'kWh')}
+        ${cell('Kvar idag', nf(rem), 'kWh')}
+        ${cell('Imorgon', nf(tom), peakTxt ? 'kWh · topp ' + peakTxt : 'kWh')}
+      </div>
+      ${reached != null ? `<div class="pbh" style="margin-top:12px"><span>Producerat av dagens prognos</span><b>${Math.round(reached)} %</b></div>${bar(reached, 'gold')}` : ''}
+      <div class="ss" style="margin-top:8px">Forecast.Solar. Solcast säger ${nf(sc)} kWh idag, ${nf(scRem)} kvar och ${nf(scTom)} imorgon.</div>
+      <div class="fdays">${days.map(d => `<div class="fday"><div class="fbar"><span style="height:${Math.max(3, (d.v || 0) / max * 100)}%"></span></div><b>${nf(d.v, 0)}</b><span>${esc(d.k)}</span></div>`).join('')}</div>
+      <div class="ss">Kommande dagar enligt Solcast, kWh</div>
+    </section>`;
+  }
   function solarRich() {
     const w = num(cfg.solar), pred = num(cfg.pv_predicted), today = num(cfg.pv_today), rem = num(cfg.pv_remaining_today);
     const out = num(cfg.grid_out_today), self = today != null && out != null ? Math.max(0, today - out) : null;
@@ -329,17 +355,16 @@
     </section>
     <section class="sx">
       <div class="sh">Idag</div>
-      <div class="sgrid4">
+      <div class="sgrid2">
         ${cell('Producerat', nf(today), 'kWh')}
-        ${cell('Kvar enl. prognos', nf(rem), 'kWh')}
         ${cell('Topp', solarPeak ? nf(solarPeak.v / 1000, 2) : '–', solarPeak ? 'kW ' + time(new Date(solarPeak.t).toISOString()) : 'kW')}
-        ${cell('Väntat totalt', today != null && rem != null ? nf(today + rem) : '–', 'kWh')}
       </div>
       <div class="split">
         <div class="splitbar"><span class="a" style="width:${selfPct ?? 0}%"></span><span class="b" style="width:${selfPct == null ? 0 : 100 - selfPct}%"></span></div>
         <div class="splitlbl"><span><i class="a"></i>Använt själv ${nf(self)} kWh${selfPct != null ? ` (${Math.round(selfPct)} %)` : ''}</span><span><i class="b"></i>Sålt ${nf(out)} kWh</span></div>
       </div>
     </section>
+    ${forecastSection(today)}
     <section class="sx">
       <div class="sh">Strängar</div>
       <div class="sgrid2">

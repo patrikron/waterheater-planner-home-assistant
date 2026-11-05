@@ -40,6 +40,21 @@
       "next_rising",
       "next_setting",
       "elevation"
+    ],
+    "sensor.solcast_pv_forecast_forecast_day_3": [
+      "dayname"
+    ],
+    "sensor.solcast_pv_forecast_forecast_day_4": [
+      "dayname"
+    ],
+    "sensor.solcast_pv_forecast_forecast_day_5": [
+      "dayname"
+    ],
+    "sensor.solcast_pv_forecast_forecast_day_6": [
+      "dayname"
+    ],
+    "sensor.solcast_pv_forecast_forecast_day_7": [
+      "dayname"
     ]
   },
   "house": {
@@ -94,6 +109,18 @@
     "solar_paid_pct": "sensor.solceller_aterbetalt",
     "solar_paid_date": "sensor.solceller_aterbetald_datum",
     "solar_investment": "input_number.solceller_investering",
+    "fc_today": "sensor.energy_production_today_3",
+    "fc_remaining": "sensor.energy_production_today_remaining_3",
+    "fc_tomorrow": "sensor.energy_production_tomorrow_3",
+    "fc_peak_tomorrow": "sensor.power_highest_peak_time_tomorrow_3",
+    "solcast_today": "sensor.solcast_pv_forecast_forecast_today",
+    "solcast_remaining": "sensor.solcast_pv_forecast_forecast_remaining_today",
+    "solcast_tomorrow": "sensor.solcast_pv_forecast_forecast_tomorrow",
+    "solcast_day_3": "sensor.solcast_pv_forecast_forecast_day_3",
+    "solcast_day_4": "sensor.solcast_pv_forecast_forecast_day_4",
+    "solcast_day_5": "sensor.solcast_pv_forecast_forecast_day_5",
+    "solcast_day_6": "sensor.solcast_pv_forecast_forecast_day_6",
+    "solcast_day_7": "sensor.solcast_pv_forecast_forecast_day_7",
     "title": "Huset / översikt.",
     "subtitle": "Sol, el, värme och laddning – live från Home Assistant."
   }
