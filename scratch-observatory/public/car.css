@@ -1,5 +1,8 @@
 /* EV6-sidan */
-.carw{width:240px}
+.carw{width:300px;position:relative}
+.carimg{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 14px rgba(0,0,0,.45))}
+.carbadge{position:absolute;left:6px;bottom:4px;font:10px var(--mono);letter-spacing:1px;text-transform:uppercase;padding:4px 7px;border-radius:3px;border:1px solid var(--line2);background:#151a15;color:var(--muted)}
+.carbadge.chg{border-color:#4a603b;background:#1d2a1b;color:#cfe0b4}
 .carsvg{width:240px;height:110px;display:block}
 .carsvg .body{fill:#151b14;stroke:#5c6b55;stroke-width:1.5}
 .carsvg .glass{fill:#1d2a2b;stroke:#3c5556;stroke-width:1}
@@ -47,5 +50,5 @@
 .srow.dim span,.srow.dim b{color:var(--dim)}
 #soc-chart .so-big{height:220px}
 @media (max-width:1300px){.car-ctl{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:900px){.car-ctl{grid-template-columns:repeat(2,minmax(0,1fr))}.carw,.carsvg{width:180px}.carsvg{height:83px}}
+@media (max-width:900px){.car-ctl{grid-template-columns:repeat(2,minmax(0,1fr))}.carw{width:220px}}
 @media (max-width:700px){.car-ctl{grid-template-columns:1fr}.carw{grid-column:1/-1;justify-self:center}.mbars{grid-template-columns:repeat(7,minmax(0,1fr))}.mbars .so-day:nth-child(-n+6){display:none}}

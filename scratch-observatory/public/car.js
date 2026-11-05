@@ -2,7 +2,7 @@
 // Styrningen går via servern, som bara släpper igenom vitlistade entiteter och skript.
 (() => {
   'use strict';
-  const VERSION = '0.11.0';
+  const VERSION = '0.12.1';
   const $ = id => document.getElementById(id);
   let C = {}, states = {}, connected = false;
 
@@ -125,7 +125,7 @@
     const status = eng ? ['Motorn är på', 'heat'] : live ? ['Laddar', 'chg'] : plugged ? ['Inkopplad', 'chg'] : clim ? ['Klimatet är på', 'heat'] : loc === 'home' ? ['Står hemma', ''] : ['Borta', ''];
     const kwhLeft = soc != null ? soc / 100 * (+C.battery_kwh || 77.4) : null;
     $('hero').innerHTML = `
-      <div class="carw">${carSvg(plugged, live)}</div>
+      <div class="carw"><img class="carimg" src="ev6.webp" alt="Kia EV6"></div>
       <div class="hmain">
         <div class="eyebrow">Batteri</div>
         <div class="hbig">${soc == null ? '–' : Math.round(soc)}<small>%</small></div>
