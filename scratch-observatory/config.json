@@ -341,5 +341,25 @@
       "input_select.lvp_flakt_maltid",
       "input_select.lvp_flakt_natt"
     ]
+  },
+  "solar": {
+    "title": "Solceller / produktion.",
+    "subtitle": "Produktion, prognos, strängar, växelriktare, historik och ekonomi – live från Home Assistant.",
+    "kwp": 14,
+    "inverter_kw": 12,
+    "installed": "2024-01",
+    "self_consumed_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_self_consumed_today",
+    "outside_temp": "sensor.growatt_tl_x_xh_tl3_xh_outside_temperature",
+    "export_limiter": "select.growatt_tl_x_xh_tl3_xh_export_limiter",
+    "export_rate": "number.growatt_tl_x_xh_tl3_xh_export_power_rate",
+    "serial": "sensor.growatt_tl_x_xh_tl3_xh_serial_number",
+    "growatt_price": "sensor.growatt_tl_x_xh_tl3_xh_price",
+    "day_ahead_high": "sensor.growatt_tl_x_xh_tl3_xh_day_ahead_price_highest",
+    "day_ahead_low": "sensor.growatt_tl_x_xh_tl3_xh_day_ahead_price_lowest",
+    "hour_rank": "sensor.growatt_tl_x_xh_tl3_xh_hour_rank",
+    "solar_earned_rate": "sensor.solceller_besparing_takt",
+    "solar_sold_rate": "sensor.solceller_forsaljning_takt",
+    "solar_saved_total": "sensor.solceller_besparing_totalt",
+    "solar_sold_total": "sensor.solceller_forsaljning_totalt"
   }
 }

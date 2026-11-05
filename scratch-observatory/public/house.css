@@ -217,8 +217,8 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
 .nav-item svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
 .nav-item:hover{color:var(--text);background:#161c16}
 .nav-item:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
-body[data-page=oversikt] .nav-item[data-page=oversikt],body[data-page=varmvatten] .nav-item[data-page=varmvatten],body[data-page=varmepump] .nav-item[data-page=varmepump]{color:var(--text);background:#1b231a;border-color:var(--line2)}
-body[data-page=oversikt] .nav-item[data-page=oversikt] svg,body[data-page=varmvatten] .nav-item[data-page=varmvatten] svg,body[data-page=varmepump] .nav-item[data-page=varmepump] svg{stroke:var(--gold)}
+body[data-page=oversikt] .nav-item[data-page=oversikt],body[data-page=varmvatten] .nav-item[data-page=varmvatten],body[data-page=varmepump] .nav-item[data-page=varmepump],body[data-page=solceller] .nav-item[data-page=solceller]{color:var(--text);background:#1b231a;border-color:var(--line2)}
+body[data-page=oversikt] .nav-item[data-page=oversikt] svg,body[data-page=varmvatten] .nav-item[data-page=varmvatten] svg,body[data-page=varmepump] .nav-item[data-page=varmepump] svg,body[data-page=solceller] .nav-item[data-page=solceller] svg{stroke:var(--gold)}
 .nav-item.minor{margin-top:auto;font-size:12.5px}
 .content{margin-left:208px;min-width:0}
 .btn.primary-link{margin-top:6px;margin-bottom:14px;border-color:#6c8257}

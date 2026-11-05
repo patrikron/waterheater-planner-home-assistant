@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.7.0';
+  const VERSION = '0.8.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -411,7 +411,7 @@
         { title: 'Produktion mot prognos', unit: 'kW', div: 1000, series: [[cfg.solar, 'Produktion', '#d8bb72'], [cfg.pv_predicted, 'Prognos', '#9fb4c8', 'dash']], peak: true },
         { title: 'Sträng 1 mot sträng 2', unit: 'kW', div: 1000, series: [[cfg.solar_1, 'Sträng 1', '#e0895a'], [cfg.solar_2, 'Sträng 2', '#aebf91']] },
         [cfg.inverter_temp, 'Växelriktarens temperatur', '#c98f6a', 1, '°C'],
-      ] },
+      ], extra: () => '<a class="btn primary-link" href="solceller.html">Öppna solcellssidan →</a>' },
     house: { eyebrow: 'Huset / förbrukning', title: 'Huset', stats: () => [
       ['Förbrukning', kw(num(cfg.load)), 'kW'], ['Idag', nf(num(cfg.load_today)), 'kWh'],
       ['Inne', nf(num(cfg.indoor)), '°C'], ['Varmvatten', nf(num(cfg.hot_water, 'temperature')), '°C']],

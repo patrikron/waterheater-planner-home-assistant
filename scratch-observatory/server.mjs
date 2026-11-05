@@ -28,7 +28,7 @@ if (!HA_URL || !HA_TOKEN) {
 const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 // Alla strängvärden (även i nästlade objekt) som ser ut som entitets-id i card, house och water.
 const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { if (typeof v === 'string') { if (ID_RE.test(v)) out.push(v); } else if (v && typeof v === 'object') collectIds(v, out); } return out; };
-const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump)]);
+const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar)]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const STATS_IDS = new Set([CONFIG.card.solar, CONFIG.card.load, CONFIG.card.grid].filter(Boolean));
@@ -170,6 +170,22 @@ async function daily(id, days, stat = 'change') {
   const start = new Date(localStart('day').t - (n - 1) * 86400000).toISOString();
   const st = await haCall({ type: 'recorder/statistics_during_period', start_time: start, statistic_ids: [id], period: 'day', types: [stat] });
   const data = { entity_id: id, days: n, stat, points: (st[id] || []).filter(r => r[stat] != null).map(r => [r.start, r[stat]]) };
+  dailyCache.set(key, { at: Date.now(), data });
+  return data;
+}
+
+// Månadsvis förändring (för års- och månadsjämförelser), n månader bakåt inklusive innevarande
+async function monthly(id, months, stat = 'change') {
+  if (!['change', 'mean'].includes(stat)) stat = 'change';
+  if (!ALLOWED.has(id)) throw Object.assign(new Error('Entiteten är inte tillåten'), { code: 403 });
+  const n = Math.max(1, Math.min(48, Math.round(months) || 24));
+  const key = 'm|' + id + '|' + n + '|' + stat, hit = dailyCache.get(key);
+  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.data;
+  const d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit' }).format(Date.now()).split('-').map(Number);
+  const guess = Date.UTC(d[0], d[1] - 1 - (n - 1), 1);
+  const start = new Date(guess - tzOffset(guess)).toISOString();
+  const st = await haCall({ type: 'recorder/statistics_during_period', start_time: start, statistic_ids: [id], period: 'month', types: [stat] });
+  const data = { entity_id: id, months: n, stat, points: (st[id] || []).filter(r => r[stat] != null).map(r => [r.start, r[stat]]) };
   dailyCache.set(key, { at: Date.now(), data });
   return data;
 }
@@ -330,6 +346,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/house') return json(res, 200, CONFIG.house || {});
     if (url.pathname === '/api/water') return json(res, 200, CONFIG.water || {});
     if (url.pathname === '/api/heatpump') return json(res, 200, CONFIG.heatpump || {});
+    if (url.pathname === '/api/solar') return json(res, 200, CONFIG.solar || {});
+    if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours'))));
     if (url.pathname === '/api/config') return json(res, 200, CONFIG.card);
