@@ -19,7 +19,7 @@
       ladd:    { x: 84,   y: 64, anchor: [81.5, 51] },
       elpris:  { x: 1.5,  y: 70 },
       kostnad: { x: 52,   y: 65 },
-      ftx:     { x: 1.5,  y: 46, anchor: [42, 53] },
+      ftx:     { x: 1.5,  y: 46, anchor: [33, 31.5] }, // FTX-utblåset på taket
     },
     hotspots: {
       solar:    { points: [[30.7, 33.2], [55, 33.6], [61.4, 40], [45.7, 44], [35.5, 40]] },
