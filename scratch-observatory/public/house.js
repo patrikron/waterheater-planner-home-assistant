@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.4.0';
+  const VERSION = '0.4.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -18,7 +18,7 @@
       vp:      { x: 65.5, y: 3,  anchor: [55.2, 34.4] }, // värmepumpen sitter på baksidan
       ladd:    { x: 84,   y: 64, anchor: [81.5, 51] },
       elpris:  { x: 1.5,  y: 70 },
-      kostnad: { x: 31,   y: 57 },
+      kostnad: { x: 52,   y: 65 },
     },
     hotspots: {
       solar:    { points: [[30.7, 33.2], [55, 33.6], [61.4, 40], [45.7, 44], [35.5, 40]] },
