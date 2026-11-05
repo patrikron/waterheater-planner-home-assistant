@@ -28,7 +28,7 @@ if (!HA_URL || !HA_TOKEN) {
 const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 // Alla strängvärden (även i nästlade objekt) som ser ut som entitets-id i card, house och water.
 const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { if (typeof v === 'string') { if (ID_RE.test(v)) out.push(v); } else if (v && typeof v === 'object') collectIds(v, out); } return out; };
-const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water)]);
+const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump)]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const STATS_IDS = new Set([CONFIG.card.solar, CONFIG.card.load, CONFIG.card.grid].filter(Boolean));
@@ -161,14 +161,15 @@ async function history(id, hours) {
 
 // ---------- Dygnsvis förändring (staplar per dag) ----------
 const dailyCache = new Map();
-async function daily(id, days) {
+async function daily(id, days, stat = 'change') {
+  if (!['change', 'mean'].includes(stat)) stat = 'change';
   if (!ALLOWED.has(id)) throw Object.assign(new Error('Entiteten är inte tillåten'), { code: 403 });
   const n = Math.max(1, Math.min(60, Math.round(days) || 14));
-  const key = id + '|' + n, hit = dailyCache.get(key);
+  const key = id + '|' + n + '|' + stat, hit = dailyCache.get(key);
   if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.data;
   const start = new Date(localStart('day').t - (n - 1) * 86400000).toISOString();
-  const st = await haCall({ type: 'recorder/statistics_during_period', start_time: start, statistic_ids: [id], period: 'day', types: ['change'] });
-  const data = { entity_id: id, days: n, points: (st[id] || []).map(r => [r.start, r.change]) };
+  const st = await haCall({ type: 'recorder/statistics_during_period', start_time: start, statistic_ids: [id], period: 'day', types: [stat] });
+  const data = { entity_id: id, days: n, stat, points: (st[id] || []).filter(r => r[stat] != null).map(r => [r.start, r[stat]]) };
   dailyCache.set(key, { at: Date.now(), data });
   return data;
 }
@@ -191,6 +192,41 @@ async function readBody(req, max = 64 * 1024) {
   let size = 0; const chunks = [];
   for await (const c of req) { size += c.length; if (size > max) throw Object.assign(new Error('För stor'), { code: 413 }); chunks.push(c); }
   return Buffer.concat(chunks).toString('utf8');
+}
+
+// ---------- Styrning (bara luftvärmepumpen, bara vitlistade åtgärder) ----------
+const HP = CONFIG.heatpump || {};
+const ctlLog = [];
+async function control(body) {
+  if (!HP.controls || !HP.climate) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
+  const now = Date.now();
+  while (ctlLog.length && now - ctlLog[0] > 60000) ctlLog.shift();
+  if (ctlLog.length >= 20) throw Object.assign(new Error('För många kommandon, vänta en minut'), { code: 429 });
+  const { action, value, entity } = body || {};
+  const cl = states.get(HP.climate), a = (cl && cl.attributes) || {};
+  const inList = (list, v) => Array.isArray(list) && typeof v === 'string' && list.includes(v);
+  let call;
+  if (action === 'hvac_mode' && inList(a.hvac_modes, value)) call = ['climate', 'set_hvac_mode', HP.climate, { hvac_mode: value }];
+  else if (action === 'fan_mode' && inList(a.fan_modes, value)) call = ['climate', 'set_fan_mode', HP.climate, { fan_mode: value }];
+  else if (action === 'swing_mode' && inList(a.swing_modes, value)) call = ['climate', 'set_swing_mode', HP.climate, { swing_mode: value }];
+  else if (action === 'preset_mode' && inList(a.preset_modes, value)) call = ['climate', 'set_preset_mode', HP.climate, { preset_mode: value }];
+  else if (action === 'temperature' && typeof value === 'number' && Number.isFinite(value)) {
+    const lo = a.min_temp ?? 10, hi = a.max_temp ?? 30, step = a.target_temp_step || 0.5;
+    if (value < lo || value > hi || Math.abs(value / step - Math.round(value / step)) > 1e-6) throw Object.assign(new Error('Ogiltig temperatur'), { code: 400 });
+    call = ['climate', 'set_temperature', HP.climate, { temperature: value }];
+  } else if (action === 'toggle' && (HP.toggles || []).includes(entity) && typeof value === 'boolean') {
+    call = [entity.split('.')[0], value ? 'turn_on' : 'turn_off', entity, {}];
+  } else if (action === 'select' && (HP.selects || []).includes(entity)) {
+    const s = states.get(entity);
+    if (!s || !inList(s.attributes.options, value)) throw Object.assign(new Error('Ogiltigt val'), { code: 400 });
+    call = [entity.split('.')[0], 'select_option', entity, { option: value }];
+  }
+  if (!call) throw Object.assign(new Error('Åtgärden är inte tillåten'), { code: 400 });
+  ctlLog.push(now);
+  const [domain, service, entity_id, service_data] = call;
+  await haCall({ type: 'call_service', domain, service, service_data, target: { entity_id } });
+  console.log(`Styrning: ${domain}.${service} ${entity_id} ${JSON.stringify(service_data)}`);
+  return { ok: true };
 }
 
 // ---------- HTTP ----------
@@ -279,6 +315,13 @@ const server = http.createServer(async (req, res) => {
       await rename(tmp, LAYOUT_FILE);
       return json(res, 200, { ok: true });
     }
+    if (url.pathname === '/api/control' && req.method === 'POST') {
+      if (!(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'JSON krävs' });
+      const origin = req.headers.origin;
+      let sameOrigin = true; if (origin) { try { sameOrigin = new URL(origin).host === req.headers.host; } catch { sameOrigin = false; } }
+      if (!sameOrigin) return json(res, 403, { error: 'Fel ursprung' });
+      return json(res, 200, await control(JSON.parse(await readBody(req, 4096))));
+    }
     if (req.method !== 'GET') { res.writeHead(405); return res.end(); }
     if (url.pathname === '/api/layout') {
       try { return json(res, 200, JSON.parse(await readFile(LAYOUT_FILE, 'utf8'))); }
@@ -286,7 +329,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === '/api/house') return json(res, 200, CONFIG.house || {});
     if (url.pathname === '/api/water') return json(res, 200, CONFIG.water || {});
-    if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days'))));
+    if (url.pathname === '/api/heatpump') return json(res, 200, CONFIG.heatpump || {});
+    if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours'))));
     if (url.pathname === '/api/config') return json(res, 200, CONFIG.card);
     if (url.pathname === '/api/states') return json(res, 200, snapshot());
@@ -310,7 +354,7 @@ const server = http.createServer(async (req, res) => {
     res.end(body);
   } catch (e) {
     if (e.code === 'ENOENT') { res.writeHead(404); return res.end('Hittades inte'); }
-    if (e.code === 403 || e.code === 413) return json(res, e.code, { error: e.message });
+    if ([400, 403, 413, 429].includes(e.code)) return json(res, e.code, { error: e.message });
     if (e instanceof SyntaxError) return json(res, 400, { error: 'Ogiltig JSON' });
     json(res, 502, { error: e.message });
   }

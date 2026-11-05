@@ -96,6 +96,46 @@
     ],
     "sensor.solcast_pv_forecast_forecast_day_7": [
       "dayname"
+    ],
+    "climate.daikinap97060_room_temperature": [
+      "hvac_modes",
+      "min_temp",
+      "max_temp",
+      "target_temp_step",
+      "fan_modes",
+      "preset_modes",
+      "swing_modes",
+      "current_temperature",
+      "temperature",
+      "fan_mode",
+      "preset_mode",
+      "swing_mode",
+      "hvac_action"
+    ],
+    "input_select.lvp_flakt_dag": [
+      "options"
+    ],
+    "input_select.lvp_flakt_maltid": [
+      "options"
+    ],
+    "input_select.lvp_flakt_natt": [
+      "options"
+    ],
+    "schedule.lvp_maltider": [
+      "next_event"
+    ],
+    "schedule.lvp_natt": [
+      "next_event"
+    ],
+    "timer.timer_lf_temp": [
+      "finishes_at",
+      "remaining",
+      "duration"
+    ],
+    "timer.timer_lf": [
+      "finishes_at",
+      "remaining",
+      "duration"
     ]
   },
   "house": {
@@ -229,5 +269,77 @@
       "sun_priced": "switch.varmvattenberedare_sol_lage_sol_prissatts_som_utebliven_forsaljning",
       "sell_other_sun": "switch.varmvattenberedare_sol_lage_salj_overskott_utanfor_valda_soltimmar"
     }
+  },
+  "heatpump": {
+    "title": "Luftvärmepump / Daikin.",
+    "subtitle": "Temperatur, effekt, energi, kostnad och styrning – live från Home Assistant.",
+    "controls": true,
+    "climate": "climate.daikinap97060_room_temperature",
+    "room": "sensor.daikinap97060_climatecontrol_rumstemperatur",
+    "outdoor": "sensor.daikinap97060_climatecontrol_utomhustemperatur",
+    "power": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
+    "current": "sensor.shellypmminig3_48f6eeb4a5d4_strom",
+    "energy_total": "sensor.shellypmminig3_48f6eeb4a5d4_energi",
+    "frequency": "sensor.shellypmminig3_48f6eeb4a5d4_frekvens",
+    "rssi": "sensor.shellypmminig3_48f6eeb4a5d4_signalstyrka",
+    "shelly_cloud": "binary_sensor.shellypmminig3_48f6eeb4a5d4_moln",
+    "heat_day": "sensor.daikinap97060_climatecontrol_daglig_energiforbrukning_for_varme",
+    "heat_week": "sensor.daikinap97060_climatecontrol_veckovis_energiforbrukning_for_varme",
+    "heat_month": "sensor.daikinap97060_climatecontrol_manadsvis_energiforbrukning_for_varme",
+    "heat_year": "sensor.daikinap97060_climatecontrol_arlig_energiforbrukning_for_varme",
+    "cool_day": "sensor.daikinap97060_climatecontrol_daglig_energiforbrukning_for_kyla",
+    "cool_week": "sensor.daikinap97060_climatecontrol_veckovis_energiforbrukning_for_kyla",
+    "cool_month": "sensor.daikinap97060_climatecontrol_manadsvis_energiforbrukning_for_kyla",
+    "cool_year": "sensor.daikinap97060_climatecontrol_arlig_energiforbrukning_for_kyla",
+    "cost_today": "sensor.kostnad_luftvarmepump_idag",
+    "cost_month": "sensor.kostnad_luftvarmepump_manad",
+    "cost_total": "sensor.kostnad_luftvarmepump_total",
+    "cost_rate": "sensor.kostnadstakt_luftvarmepump",
+    "price_peak": "binary_sensor.lvp_pristopp",
+    "api_calls": "sensor.daikinap97060_gateway_kvarstaende_anrop_idag",
+    "health": {
+      "Inneenhet fel": "binary_sensor.daikinap97060_climatecontrol_ar_i_fellage",
+      "Inneenhet varning": "binary_sensor.daikinap97060_climatecontrol_ar_i_varningslage",
+      "Inneenhet försiktighet": "binary_sensor.daikinap97060_climatecontrol_ar_i_forsiktighetslage",
+      "Uteenhet fel": "binary_sensor.daikinap97060_outdoorunit_ar_i_fellage",
+      "Uteenhet varning": "binary_sensor.daikinap97060_outdoorunit_ar_i_varningslage",
+      "Uteenhet försiktighet": "binary_sensor.daikinap97060_outdoorunit_ar_i_forsiktighetslage",
+      "Gateway fel": "binary_sensor.daikinap97060_gateway_ar_i_fellage"
+    },
+    "error_codes": {
+      "Inneenhet": "sensor.daikinap97060_climatecontrol_felkod",
+      "Uteenhet": "sensor.daikinap97060_outdoorunit_felkod"
+    },
+    "powerful": "binary_sensor.daikinap97060_climatecontrol_kraftfullt_lage_aktivt",
+    "holiday": "binary_sensor.daikinap97060_climatecontrol_semesterlage_aktivt",
+    "daikin_schedule": "select.daikinap97060_climatecontrol_schema",
+    "fan_schedule": {
+      "active": "input_boolean.lvp_flaktschema_aktiv",
+      "day": "input_select.lvp_flakt_dag",
+      "meal": "input_select.lvp_flakt_maltid",
+      "night": "input_select.lvp_flakt_natt",
+      "meal_schedule": "schedule.lvp_maltider",
+      "night_schedule": "schedule.lvp_natt"
+    },
+    "peak": {
+      "active": "input_boolean.lvp_prissankning_aktiv",
+      "lowered": "input_boolean.lvp_sankt_for_pristopp",
+      "threshold": "input_number.lvp_pristopp_troskel",
+      "drop": "input_number.lvp_pristopp_sankning",
+      "ordinary": "input_number.lvp_ordinarie_temp"
+    },
+    "timers": {
+      "Tillfälligt av": "timer.timer_lf_temp",
+      "Timer": "timer.timer_lf"
+    },
+    "toggles": [
+      "input_boolean.lvp_flaktschema_aktiv",
+      "input_boolean.lvp_prissankning_aktiv"
+    ],
+    "selects": [
+      "input_select.lvp_flakt_dag",
+      "input_select.lvp_flakt_maltid",
+      "input_select.lvp_flakt_natt"
+    ]
   }
 }

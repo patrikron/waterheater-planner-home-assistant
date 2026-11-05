@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.6.0';
+  const VERSION = '0.7.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -424,7 +424,8 @@
     heatpump: { eyebrow: 'Klimat / värmepump', title: 'Värmepump', stats: () => [
       ['Effekt', num(cfg.heatpump) == null ? '–' : Math.round(num(cfg.heatpump)).toLocaleString('sv-SE'), 'W'],
       ['Inne', nf(num(cfg.indoor)), '°C'], ['Ute', nf(outdoorTemp()), '°C']],
-      charts: () => [[cfg.heatpump, 'Effekt', '#e0895a', 1, 'W'], [cfg.indoor, 'Inomhustemperatur', '#aebf91', 1, '°C']] },
+      charts: () => [[cfg.heatpump, 'Effekt', '#e0895a', 1, 'W'], [cfg.indoor, 'Inomhustemperatur', '#aebf91', 1, '°C']],
+      extra: () => '<a class="btn primary-link" href="varmepump.html">Öppna luftvärmepumpssidan →</a>' },
     garage: { eyebrow: 'Garage / laddning', title: 'Laddbox & EV6', stats: () => [
       ['Laddeffekt', kw(num(cfg.charger)), 'kW'], ['EV6', num(cfg.ev_soc) == null ? '–' : Math.round(num(cfg.ev_soc)), '%']],
       charts: () => [[cfg.charger, 'Laddeffekt', '#aebf91', 1000, 'kW'], [cfg.ev_soc, 'EV6 laddnivå', '#8fb7ba', 1, '%']] },

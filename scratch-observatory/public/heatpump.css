@@ -1,0 +1,70 @@
+/* Luftvärmepumpssidan (bygger på water.css) */
+.wcard.full{grid-column:1/-1}
+.hp-hero .hp-unit{width:150px}
+.hpsvg{width:150px;height:110px;display:block}
+.hpsvg .cab{fill:#1a2019;stroke:#4c5a46;stroke-width:1.5}
+.hpsvg .grill line{stroke:#2a3328;stroke-width:2}
+.hpsvg .ring{fill:#0d110d;stroke:#4c5a46;stroke-width:2}
+.hpsvg .fan{fill:#3f4b3b;transform-origin:54px 55px}
+.hpsvg .side{fill:#151b14;stroke:#3a4636}
+.hpsvg .led{fill:#3a4636}
+.hp-unit.run .fan{fill:#8a9a7a;animation:spin 1.6s linear infinite}
+.hp-unit.run.m-heat .led{fill:var(--orange)}.hp-unit.run.m-cool .led{fill:var(--blue)}.hp-unit.run .led{fill:var(--sage)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.hp-unit.run .fan{animation:none}}
+.hstatus.m-cool.heat{border-color:#3c5556;background:#142022;color:#cfe6e8}.hstatus.m-cool.heat i{background:var(--blue)}
+.hstatus.m-off i{background:var(--dim)}
+.kv b.warnc{color:#e8cf8e}
+
+.ctl-grid{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:26px;align-items:center}
+.pwr{width:92px;height:92px;border-radius:50%;flex-direction:column;justify-content:center;gap:4px;font-size:12px;border:2px solid var(--line2);background:#141914}
+.pwr svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.pwr.on{border-color:#8a5a3c;background:#2b1c14;color:#f6cdb2;box-shadow:0 0 22px rgba(224,137,90,.18)}
+.tempbox{display:flex;align-items:center;gap:12px;margin-top:4px}
+.tempbox button{width:44px;height:44px;border-radius:50%;justify-content:center;font-size:22px;padding:0}
+.tval{font-size:44px;font-weight:700;letter-spacing:-1px;min-width:118px;text-align:center;line-height:1}
+.tval small{font-size:16px;color:var(--muted);margin-left:3px;font-weight:500}
+.ctl-temp .hint{font-size:10.5px;color:var(--dim);margin-top:6px;text-align:center}
+.ctl-temp.dim{opacity:.55}
+.ctl-rows{display:flex;flex-direction:column;gap:10px;min-width:0}
+.crow{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:10px}
+.ctl-seg{display:flex;flex-wrap:wrap;gap:5px}
+.ctl-seg button{padding:7px 11px;font-size:12px;background:#141914;color:var(--muted)}
+.ctl-seg button[aria-pressed=true]{background:#263124;border-color:#6c8257;color:var(--text)}
+.ctl-seg.modes button[aria-pressed=true]{background:#2b1c14;border-color:#8a5a3c;color:#f6cdb2}
+.ctl-seg .mi{margin-right:6px;opacity:.8}
+.ctl-seg.mini button{padding:4px 8px;font-size:11px}
+button.pending,.tval.pending{animation:blink 1s ease-in-out infinite}
+@keyframes blink{50%{opacity:.45}}
+button:disabled{opacity:.5;cursor:not-allowed}
+
+.erow{display:grid;grid-template-columns:70px 1fr 1fr;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px dashed #222b21}
+.erow .ul{font:10px var(--mono);letter-spacing:1.2px;color:var(--muted);text-transform:uppercase}
+.erow b{font-size:15px;font-weight:600}.erow b small{font-size:.62em;color:var(--muted);margin-left:3px;font-weight:500}
+.erow b.cool{color:var(--blue)}
+.erow.head span{font:9.5px var(--mono);letter-spacing:1.3px;color:var(--dim);text-transform:uppercase}
+.erow+.kvs.two{margin-top:12px}
+
+.sline{display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px;font-size:13px}
+.sline:first-of-type{margin-top:0}
+.tgl{gap:7px;padding:5px 10px;font-size:11px}
+.tgl i{width:24px;height:13px;border-radius:7px;background:#2a3328;position:relative}
+.tgl i::after{content:"";position:absolute;left:2px;top:2px;width:9px;height:9px;border-radius:50%;background:#7b8873;transition:left .15s}
+.tgl.on{border-color:#4a603b;color:#cfe0b4}.tgl.on i{background:#3e5a33}.tgl.on i::after{left:13px;background:var(--sage)}
+.srow.sel{gap:8px}
+.srow.sel em{font-style:normal;font:9px var(--mono);letter-spacing:1px;color:var(--gold);border:1px solid #6b5f35;padding:1px 4px;border-radius:3px;margin-left:4px}
+.srow.now span{color:var(--text)}
+.dchart .t2{fill:#6f9294}
+
+@media (max-width:1100px){
+  .ctl-grid{grid-template-columns:auto 1fr}
+  .ctl-rows{grid-column:1/-1}
+}
+@media (max-width:600px){
+  .hp-hero .hp-unit,.hpsvg{width:96px;height:72px}
+  .crow{grid-template-columns:1fr}
+  .pwr{width:76px;height:76px}
+  .tval{font-size:36px;min-width:92px}
+}
+
+#control .wh{margin-bottom:10px}

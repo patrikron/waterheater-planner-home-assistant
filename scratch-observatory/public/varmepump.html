@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d100e">
+<title>Luftvärmepump</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="water.css">
+<link rel="stylesheet" href="heatpump.css">
+</head>
+<body data-page="varmepump">
+<nav class="side" aria-label="Meny">
+  <a class="brand" href="./"><span class="slash">//</span> OBSERVATORIET</a>
+  <a class="nav-item" href="./" data-page="oversikt" title="Översikt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/></svg><span>Översikt</span></a>
+  <a class="nav-item" href="varmvatten.html" data-page="varmvatten" title="Varmvatten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/></svg><span>Varmvatten</span></a>
+  <a class="nav-item" href="varmepump.html" data-page="varmepump" aria-current="page" title="Luftvärmepump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 9v6M9 12h6M17 8h1"/></svg><span>Luftvärmepump</span></a>
+  <a class="nav-item minor" href="kort.html" data-page="kort" title="Kortvy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M10 10v9"/></svg><span>Kortvy</span></a>
+</nav>
+<div class="content">
+<header class="top">
+  <div>
+    <div class="eyebrow"><span class="slash">//</span> OBSERVATORIET / LUFTVÄRMEPUMP</div>
+    <h1 id="title">Luftvärmepump / Daikin.</h1>
+    <p id="subtitle"></p>
+  </div>
+  <div class="top-right">
+    <span id="badge" class="badge stale"><i></i><span>Väntar på data</span></span>
+    <span id="clock" class="mono"></span>
+  </div>
+</header>
+<main id="hmain" class="wgrid">
+  <section class="wcard hero hp-hero" id="hero"></section>
+  <section class="wcard full" id="control"></section>
+  <section class="wcard" id="energy"></section>
+  <section class="wcard" id="cost"></section>
+  <section class="wcard" id="smart"></section>
+  <section class="wcard" id="temp-chart"></section>
+  <section class="wcard" id="power-chart"></section>
+  <section class="wcard" id="daily-chart"></section>
+  <section class="wcard span2" id="health"></section>
+  <section class="wcard" id="timers"></section>
+</main>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script src="heatpump.js"></script>
+</body>
+</html>

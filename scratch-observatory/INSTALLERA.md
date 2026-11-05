@@ -91,3 +91,10 @@ HA-kortet. Under `attributes` anger du vilka attribut som får följa med för e
 | `.env.example` | Mall för HA_URL / HA_TOKEN |
 
 Utseendet är inspirerat av prmgr-observatory-starter (MIT).
+
+## Styrning av luftvärmepumpen (0.7.0)
+
+Sidan Luftvärmepump kan styra Daikin-pumpen: läge, temperatur, fläkt, luftriktning, specialläge, fläktschemat och prissänkningen.
+Servern släpper bara igenom de åtgärderna, bara för entiteterna i `heatpump` i config.json, och högst 20 kommandon i minuten.
+Stäng av styrningen helt med `"controls": false` under `heatpump` i config.json (sidan visar då bara data).
+Alla på nätverket som når port 8780 kan styra pumpen. Sätt `BASIC_AUTH=användare:lösenord` i .env om det inte är okej.
