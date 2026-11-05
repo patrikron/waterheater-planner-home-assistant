@@ -95,7 +95,18 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
 .cost{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 .cost .v.money{color:var(--orange)}
 .cost .v.saved{color:var(--sage)}
-.box.money-box{width:clamp(290px,30cqw,440px)}
+.box.money-box{width:clamp(230px,21cqw,320px)}
+.money-sum{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin-top:6px}
+.money-sum .ml{font-size:11.5px;color:var(--text);opacity:.85;white-space:nowrap}
+.money-sum .v.money{color:var(--orange)}
+.money-sum .v.saved{color:var(--sage)}
+.mrows.two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin-top:6px;padding-top:0;border-top:0}
+.mrows.two .mrow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.myear{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding-top:6px;border-top:1px solid rgba(200,210,190,.18);font-size:10.5px;color:var(--muted)}
+.myear b{color:var(--sage);font-size:15px;font-weight:600}
+.myear b small{color:var(--muted);font-size:9px;font-weight:500}
+.box.money-box .mnote{font-size:9.5px;color:var(--muted);margin-top:1px}
+.frame-head{top:clamp(80px,14%,110px)}
 .money-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:0 16px;margin-top:6px}
 .money-grid .ml{font-size:12px;color:var(--text);opacity:.85}
 .money-grid .ml.year{margin-top:12px;padding-top:10px;border-top:1px solid rgba(200,210,190,.18);font-size:11px;color:var(--muted);opacity:1}
@@ -149,7 +160,7 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
   .top{flex-direction:column;padding:18px 14px 10px}.top-right{align-items:flex-start}.btns{justify-content:flex-start}
   h1{font-size:28px}
   main{padding:0 10px 20px}
-  .frame-head{position:static;padding:14px 14px 8px}
+  .frame-head{position:static;top:auto;padding:14px 14px 8px}
   .boxes{position:static;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}
   .box,.box.wide,.box.weather,.box.money-box{position:static!important;width:auto}
   .box.wide{grid-column:1/-1}

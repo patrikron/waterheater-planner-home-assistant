@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.12.0';
+  const VERSION = '0.12.2';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -10,16 +10,17 @@
   // ---------- Standardlayout (procent av fotot) ----------
   const DEFAULT = {
     boxes: {
-      sol:     { x: 23,   y: 3,  anchor: [45, 37] },
-      hus:     { x: 51,   y: 3,  anchor: [49, 50] },
-      vv:      { x: 37,   y: 3,  anchor: [47, 50.3] },
-      vader:   { x: 82.5, y: 3 },
-      nat:     { x: 1.5,  y: 24, anchor: [36, 52] },
-      vp:      { x: 65.5, y: 3,  anchor: [55.2, 34.4] }, // värmepumpen sitter på baksidan
+      // Översta raden: Import, Solpaneler, Huset, FTX, Varmvatten, Luftvärmepump
+      nat:     { x: 1.5,  y: 3,  anchor: [36, 52] },
+      sol:     { x: 18,   y: 3,  anchor: [45, 37] },
+      hus:     { x: 34.5, y: 3,  anchor: [49, 50] },
+      ftx:     { x: 51,   y: 3,  anchor: [33, 31.5] }, // FTX-utblåset på taket
+      vv:      { x: 67.5, y: 3,  anchor: [47, 50.3] },
+      vp:      { x: 84,   y: 3,  anchor: [55.2, 34.4] }, // värmepumpen sitter på baksidan
+      vader:   { x: 1.5,  y: 27 },
       ladd:    { x: 84,   y: 64, anchor: [81.5, 51] },
-      elpris:  { x: 1.5,  y: 70 },
-      kostnad: { x: 52,   y: 65 },
-      ftx:     { x: 1.5,  y: 46, anchor: [33, 31.5] }, // FTX-utblåset på taket
+      elpris:  { x: 1.5,  y: 72 },
+      kostnad: { x: 54,   y: 72 },
     },
     hotspots: {
       solar:    { points: [[30.7, 33.2], [55, 33.6], [61.4, 40], [45.7, 44], [35.5, 40]] },
@@ -121,20 +122,21 @@
         flow: unitOn ? { cls: 'air', dir: 'in', w: 1200 } : null };
     } },
     kostnad: { title: 'Idag / pengar', cls: 'wide money-box', drawer: 'grid', render() {
-      const page = kostnadPage === 1 ? energyPage() : moneyPage();
-      return { custom: page + `<div class="pager"><button data-page="-1" aria-label="Föregående">‹</button><span>${kostnadPage + 1} av 2</span><button data-page="1" aria-label="Nästa">›</button></div>` };
+      const page = [moneyPage, detailPage, energyPage][kostnadPage]();
+      return { custom: page + `<div class="pager"><button data-page="-1" aria-label="Föregående">‹</button><span>${kostnadPage + 1} av ${PAGES}</span><button data-page="1" aria-label="Nästa">›</button></div>` };
     } },
   };
 
-  // Sida 1: pengar idag (uppskattat) och vad solen sparat
-  let kostnadPage = load('obs-kostnad-page') === '1' ? 1 : 0;
+  // Sida 1: elkostnad och sparat med solel idag. Sida 2: kostnaden i detalj + solen i år. Sida 3: energi idag.
+  const PAGES = 3;
+  let kostnadPage = Math.min(PAGES - 1, Math.max(0, parseInt(load('obs-kostnad-page'), 10) || 0));
   let moneyData = null;
   async function loadMoney() {
     try { moneyData = await fetch('api/money', { cache: 'no-store' }).then(r => r.ok ? r.json() : null); } catch {}
     refresh();
   }
   const kr = (v, d = 2) => v == null ? '–' : nf(v, d);
-  function moneyPage() {
+  function moneyCalc() {
     const inn = num(cfg.grid_in_today), costIn = num(cfg.cost_in_today), sold = num(cfg.sold_today);
     const fee = num(cfg.net_fee), feeTax = num(cfg.net_fee_tax);
     const now = new Date(), days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -148,33 +150,32 @@
     const base = moneyData && moneyData.base || {};
     const save = num(cfg.solar_saving), sb = base[cfg.solar_saving];
     const savedToday = save != null && sb != null ? Math.max(0, save - sb) : null;
-    const y = moneyData && moneyData.year;
-    const row = (k, v, cls = '') => `<div class="mrow ${cls}"><span>${k}</span><b>${v}</b></div>`;
+    return { inn, sold, fixed, transfer, tax, energy, spent, savedToday, y: moneyData && moneyData.year };
+  }
+  function moneyPage() {
+    const m = moneyCalc();
     return `<div class="k">Idag / uppskattat</div>
-      <div class="money-grid">
-        <div>
-          <div class="ml">Elkostnad</div>
-          <div class="v money">${kr(spent)}<small>kr</small></div>
-          <div class="mrows">
-            ${row('Köpt från nätet', `${nf(inn)} <small>kWh</small>`)}
-            ${row('Elpris', `${kr(energy)} <small>kr</small>`)}
-            ${row('Nätavgift', `${kr(transfer)} <small>kr</small>`)}
-            ${row('Skatt och avgifter', `${kr(tax)} <small>kr</small>`)}
-            ${fixed != null ? row('Fasta avgifter', `${kr(fixed)} <small>kr</small>`) : ''}
-            ${row('Såld el', `${sold ? '−' + kr(sold) : kr(sold)} <small>kr</small>`, 'neg')}
-          </div>
-        </div>
-        <div class="msave">
-          <div class="ml">Sparat med sol</div>
-          <div class="v saved">${kr(savedToday)}<small>kr</small></div>
-          <div class="mnote">Egen solel du slapp köpa idag</div>
-          <div class="ml year">Solen har gett i år</div>
-          <div class="v2 saved">${y ? nf(y.total_kr, 0) : '–'}<small>kr</small></div>
-          <div class="mnote">${y ? `${y.year} · använd ${nf(y.self_kr, 0)} + såld ${nf(y.sold_kr, 0)} kr` : 'Räknas från statistiken …'}</div>
-        </div>
+      <div class="money-sum">
+        <div><div class="ml">Elkostnad</div><div class="v money">${kr(m.spent)}<small>kr</small></div></div>
+        <div><div class="ml">Sparat med solel</div><div class="v saved">${kr(m.savedToday)}<small>kr</small></div></div>
       </div>`;
   }
-  // Sida 2: energi idag (den gamla rutan)
+  function detailPage() {
+    const m = moneyCalc(), y = m.y;
+    const row = (k, v, cls = '') => `<div class="mrow ${cls}"><span>${k}</span><b>${v}</b></div>`;
+    return `<div class="k">Idag / kostnad i detalj</div>
+      <div class="mrows two">
+        ${row('Köpt från nätet', `${nf(m.inn)} <small>kWh</small>`)}
+        ${row('Elpris', `${kr(m.energy)} <small>kr</small>`)}
+        ${row('Nätavgift', `${kr(m.transfer)} <small>kr</small>`)}
+        ${row('Skatt och avgifter', `${kr(m.tax)} <small>kr</small>`)}
+        ${m.fixed != null ? row('Fasta avgifter', `${kr(m.fixed)} <small>kr</small>`) : ''}
+        ${row('Såld el', `${m.sold ? '−' + kr(m.sold) : kr(m.sold)} <small>kr</small>`, 'neg')}
+      </div>
+      <div class="myear"><span>Solen har gett i år</span><b>${y ? nf(y.total_kr, 0) : '–'} <small>kr</small></b></div>
+      <div class="mnote">${y ? `${y.year} · använd ${nf(y.self_kr, 0)} + såld ${nf(y.sold_kr, 0)} kr` : 'Räknas från statistiken …'}</div>`;
+  }
+  // Sida 3: energi idag
   function energyPage() {
     const cost = num(cfg.cost_today), inn = num(cfg.grid_in_today), out = num(cfg.grid_out_today);
     const pv = num(cfg.pv_today), use = num(cfg.load_today);
@@ -188,7 +189,7 @@
   boxesEl.addEventListener('click', e => {
     const b = e.target.closest('.pager button'); if (!b) return;
     e.stopPropagation(); e.preventDefault();
-    kostnadPage = (kostnadPage + 2 + Number(b.dataset.page)) % 2; store('obs-kostnad-page', String(kostnadPage));
+    kostnadPage = (kostnadPage + PAGES + Number(b.dataset.page)) % PAGES; store('obs-kostnad-page', String(kostnadPage));
     renderBoxes(); drawWires();
   }, true);
 
@@ -208,7 +209,7 @@
   // ---------- Rendera rutor ----------
   function buildBoxes() {
     boxesEl.innerHTML = '';
-    for (const id of Object.keys(BOX)) {
+    for (const id of ['nat', 'sol', 'hus', 'ftx', 'vv', 'vp', 'vader', 'ladd', 'elpris', 'kostnad']) {
       const el = document.createElement('div');
       el.className = 'box ' + (BOX[id].cls || '');
       el.dataset.id = id;
