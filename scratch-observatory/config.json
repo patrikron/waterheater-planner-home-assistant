@@ -67,7 +67,7 @@
     "net_fee_tax": "sensor.electricity_net_skatt",
     "solar_saving": "sensor.solceller_besparing_lopande",
     "solar_sold": "sensor.solceller_forsaljning_lopande",
-    "fixed_fees_month": null,
+    "fixed_fees": "input_number.el_fastavgift_kr_manad",
     "time_zone": "Europe/Stockholm",
     "year_stats": {
       "pv": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy",

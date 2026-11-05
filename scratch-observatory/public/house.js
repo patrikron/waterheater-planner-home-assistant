@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.3.0';
+  const VERSION = '0.3.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -121,7 +121,8 @@
     const inn = num(cfg.grid_in_today), costIn = num(cfg.cost_in_today), sold = num(cfg.sold_today);
     const fee = num(cfg.net_fee), feeTax = num(cfg.net_fee_tax);
     const now = new Date(), days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const fixed = Number(cfg.fixed_fees_month) > 0 ? Number(cfg.fixed_fees_month) / days : null;
+    const fixedMonth = num(cfg.fixed_fees) ?? (Number(cfg.fixed_fees_month) || null);
+    const fixed = fixedMonth > 0 ? fixedMonth / days : null;
     const transfer = inn != null && fee != null ? inn * fee : null;
     const tax = inn != null && fee != null && feeTax != null ? inn * Math.max(0, feeTax - fee) : null;
     const energy = costIn != null && transfer != null && tax != null ? Math.max(0, costIn - transfer - tax) : null;
