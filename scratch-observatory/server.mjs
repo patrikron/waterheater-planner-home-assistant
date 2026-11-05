@@ -2,7 +2,7 @@
 // Håller HA-token på serversidan, prenumererar på HA:s WebSocket-API och
 // skickar bara de entiteter som står i config.json vidare till webbläsaren.
 import http from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,8 +25,11 @@ if (!HA_URL || !HA_TOKEN) {
 }
 
 // Allowlist: alla entitets-id i card-konfigurationen.
-const ENTITY_KEYS = Object.entries(CONFIG.card).filter(([, v]) => typeof v === 'string' && /^[a-z_]+\.[a-z0-9_]+$/.test(v));
+const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
+const ENTITY_KEYS = [...Object.entries(CONFIG.card), ...Object.entries(CONFIG.house || {})].filter(([, v]) => typeof v === 'string' && /^[a-z_]+\.[a-z0-9_]+$/.test(v));
 const ALLOWED = new Set(ENTITY_KEYS.map(([, v]) => v));
+const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
+const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const STATS_IDS = new Set([CONFIG.card.solar, CONFIG.card.load, CONFIG.card.grid].filter(Boolean));
 const ATTR_ALLOW = CONFIG.attributes || {};
 const BASE_ATTRS = ['unit_of_measurement', 'friendly_name', 'device_class'];
@@ -123,11 +126,63 @@ async function stats(hours) {
   return data;
 }
 
+// ---------- Historik för en entitet (detaljpanelen) ----------
+const histCache = new Map();
+async function history(id, hours) {
+  if (!ALLOWED.has(id)) throw Object.assign(new Error('Entiteten är inte tillåten'), { code: 403 });
+  const h = Math.max(1, Math.min(168, Math.round(hours) || 24));
+  const key = id + '|' + h;
+  const hit = histCache.get(key);
+  if (hit && Date.now() - hit.at < 60 * 1000) return hit.data;
+  const start = new Date(Date.now() - h * 3600 * 1000).toISOString();
+  let points = [];
+  try {
+    const st = await haCall({ type: 'recorder/statistics_during_period', start_time: start,
+      statistic_ids: [id], period: h > 48 ? 'hour' : '5minute', types: ['mean'] });
+    points = (st[id] || []).filter(r => r.mean != null).map(r => [r.start, r.mean]);
+  } catch {}
+  if (!points.length) {
+    const hs = await haCall({ type: 'history/history_during_period', start_time: start, entity_ids: [id],
+      minimal_response: true, no_attributes: true, significant_changes_only: false });
+    const rows = hs[id] || [];
+    let lastT = 0;
+    for (const r of rows) {
+      const v = parseFloat(r.s); const t = (r.lu || r.lc || 0) * 1000;
+      if (!Number.isFinite(v)) continue;
+      if (rows.length > 600 && t - lastT < 120000) continue; // gles ut täta sensorer
+      points.push([t, v]); lastT = t;
+    }
+  }
+  const data = { entity_id: id, hours: h, points };
+  histCache.set(key, { at: Date.now(), data });
+  return data;
+}
+
+// ---------- Layout (husvyn) ----------
+function validLayout(l) {
+  if (!l || typeof l !== 'object' || Array.isArray(l)) return false;
+  const num = v => typeof v === 'number' && Number.isFinite(v) && v >= -50 && v <= 150;
+  const pt = p => Array.isArray(p) && p.length === 2 && p.every(num);
+  for (const b of Object.values(l.boxes || {})) {
+    if (!b || !num(b.x) || !num(b.y)) return false;
+    if (b.anchor != null && !pt(b.anchor)) return false;
+  }
+  for (const h of Object.values(l.hotspots || {})) {
+    if (!h || !Array.isArray(h.points) || h.points.length > 60 || !h.points.every(pt)) return false;
+  }
+  return true;
+}
+async function readBody(req, max = 64 * 1024) {
+  let size = 0; const chunks = [];
+  for await (const c of req) { size += c.length; if (size > max) throw Object.assign(new Error('För stor'), { code: 413 }); chunks.push(c); }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 // ---------- HTTP ----------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.ico': 'image/x-icon' };
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.ico': 'image/x-icon', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg' };
 const SEC = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'SAMEORIGIN',
-  'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'" };
+  'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'" };
 
 function authOk(req) {
   if (!BASIC_AUTH) return true;
@@ -144,9 +199,25 @@ function json(res, code, obj) {
 
 const server = http.createServer(async (req, res) => {
   if (!authOk(req)) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Observatory"' }); return res.end('Inloggning krävs'); }
-  if (req.method !== 'GET') { res.writeHead(405); return res.end(); }
   const url = new URL(req.url, 'http://x');
   try {
+    if (url.pathname === '/api/layout' && req.method === 'PUT') {
+      if (!(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'JSON krävs' });
+      const layout = JSON.parse(await readBody(req));
+      if (!validLayout(layout)) return json(res, 400, { error: 'Ogiltig layout' });
+      await mkdir(DATA_DIR, { recursive: true });
+      const tmp = LAYOUT_FILE + '.tmp';
+      await writeFile(tmp, JSON.stringify({ boxes: layout.boxes || {}, hotspots: layout.hotspots || {}, saved: new Date().toISOString() }, null, 1));
+      await rename(tmp, LAYOUT_FILE);
+      return json(res, 200, { ok: true });
+    }
+    if (req.method !== 'GET') { res.writeHead(405); return res.end(); }
+    if (url.pathname === '/api/layout') {
+      try { return json(res, 200, JSON.parse(await readFile(LAYOUT_FILE, 'utf8'))); }
+      catch { return json(res, 200, {}); }
+    }
+    if (url.pathname === '/api/house') return json(res, 200, CONFIG.house || {});
+    if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours'))));
     if (url.pathname === '/api/config') return json(res, 200, CONFIG.card);
     if (url.pathname === '/api/states') return json(res, 200, snapshot());
     if (url.pathname === '/api/stats') return json(res, 200, await stats(Number(url.searchParams.get('hours'))));
@@ -168,6 +239,8 @@ const server = http.createServer(async (req, res) => {
     res.end(body);
   } catch (e) {
     if (e.code === 'ENOENT') { res.writeHead(404); return res.end('Hittades inte'); }
+    if (e.code === 403 || e.code === 413) return json(res, e.code, { error: e.message });
+    if (e instanceof SyntaxError) return json(res, 400, { error: 'Ogiltig JSON' });
     json(res, 502, { error: e.message });
   }
 });

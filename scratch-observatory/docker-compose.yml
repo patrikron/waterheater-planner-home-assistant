@@ -4,7 +4,10 @@ services:
     container_name: observatory
     restart: unless-stopped
     env_file: .env
+    environment:
+      - DATA_DIR=/app/data
     ports:
       - "8780:8780"
     volumes:
       - ./config.json:/app/config.json:ro
+      - ./data:/app/data

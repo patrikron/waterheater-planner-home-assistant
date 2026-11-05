@@ -51,6 +51,21 @@ set -a; . ./.env; set +a; node server.mjs
 
 Öppna sedan `http://<serverns-ip>:8780` från en dator, platta eller TV i hemnätet.
 
+## Uppdatera till 0.2.0 (husvyn med foto)
+
+Startsidan är nu husvyn med ditt foto. Den gamla kortvyn finns kvar under `/kort.html`.
+
+1. Kopiera in de nya filerna (allt utom `.env`).
+2. Skapa datamappen där layouten sparas. Containern kör som användaren `node` (uid 1000):
+   ```sh
+   mkdir -p data && sudo chown 1000:1000 data
+   ```
+3. Bygg om och starta: `docker compose up -d --build`
+
+**Redigera layout:** klicka på *Redigera layout*. Där kan du dra rutorna och de orange punkterna som linjerna går till, och dra hörnen på klickytorna. Om du drar en liten mittpunkt läggs ett nytt hörn till, och om du dubbelklickar på ett hörn tas det bort. Tryck *Spara* när du är klar, så sparas layouten i `data/layout.json` på servern. Knappen *Återställ standard* tar tillbaka utgångsläget.
+
+**Byta foto:** ersätt `public/foto/hus.jpg`. Fotot bör ha formatet 2400×1169 (ungefär 2:1), annars hamnar rutorna snett och du behöver justera layouten.
+
 ## Ändra entiteter
 
 Redigera `config.json` och kör `docker compose restart`. Under `card` finns samma nycklar som i
@@ -69,7 +84,9 @@ HA-kortet. Under `attributes` anger du vilka attribut som får följa med för e
 | --- | --- |
 | `server.mjs` | Servern: HA-WebSocket, filtrering, `/api/states`, `/api/stream` (SSE), `/api/stats` |
 | `config.json` | Vilka entiteter som visas |
-| `public/` | Sidan. `observatory-card.js` är samma kort som förhandsbilden |
+| `public/index.html`, `house.js`, `house.css` | Husvyn med foto, rutor, linjer och klickytor |
+| `public/kort.html` | Den första kortvyn |
+| `data/layout.json` | Din sparade layout (skapas när du sparar) |
 | `Dockerfile`, `docker-compose.yml` | Container på din server |
 | `.env.example` | Mall för HA_URL / HA_TOKEN |
 

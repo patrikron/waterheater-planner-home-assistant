@@ -23,7 +23,45 @@
     "price_low": 1.0
   },
   "attributes": {
-    "sensor.varmvattenberedare_status": ["temperature", "target_temperature"],
-    "weather.smhi_home": ["temperature"]
+    "sensor.varmvattenberedare_status": [
+      "temperature",
+      "target_temperature"
+    ],
+    "weather.smhi_home": [
+      "temperature",
+      "humidity",
+      "wind_speed",
+      "wind_gust_speed"
+    ],
+    "sensor.nordpool_kwh_se3_sek_3_10_025": [
+      "today"
+    ],
+    "sun.sun": [
+      "next_rising",
+      "next_setting",
+      "elevation"
+    ]
+  },
+  "house": {
+    "solar": "sensor.growatt_tl_x_xh_tl3_xh_pv_power",
+    "solar_1": "sensor.growatt_tl_x_xh_tl3_xh_pv_power_1",
+    "solar_2": "sensor.growatt_tl_x_xh_tl3_xh_pv_power_2",
+    "load": "sensor.growatt_tl_x_xh_tl3_xh_load_power",
+    "grid": "sensor.growatt_tl_x_xh_tl3_xh_grid_power",
+    "charger": "sensor.go_echarger_404702_power_total",
+    "ev_soc": "sensor.ev6_laddningsniva_soc",
+    "hot_water": "sensor.varmvattenberedare_status",
+    "heatpump": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
+    "indoor": "sensor.daikinap97060_climatecontrol_rumstemperatur",
+    "outdoor": "weather.smhi_home",
+    "price": "sensor.nordpool_kwh_se3_sek_3_10_025",
+    "cost_today": "sensor.elkostnad_total_idag",
+    "pv_today": "sensor.growatt_tl_x_xh_tl3_xh_pv_energy_today",
+    "load_today": "sensor.growatt_tl_x_xh_tl3_xh_load_energy_today",
+    "grid_in_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_in_today",
+    "grid_out_today": "sensor.growatt_tl_x_xh_tl3_xh_grid_energy_out_today",
+    "sun": "sun.sun",
+    "title": "Huset / översikt.",
+    "subtitle": "Sol, el, värme och laddning – live från Home Assistant."
   }
 }
