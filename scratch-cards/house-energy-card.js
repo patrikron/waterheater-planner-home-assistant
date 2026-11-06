@@ -31,6 +31,12 @@
  *   outdoor_temp: sensor.daikinap97060_climatecontrol_utomhustemperatur
  *   waterheater: sensor.varmvattenberedare_status        # waterheater-planner status sensor, a water_heater entity or a plain temp sensor
  *   show_waterheater: true  # false hides the hot water pill
+ *   ftx_unit: switch.ftx_enhet   ftx_supply: sensor.ftx_tilluft   ftx_fan: sensor.ftx_flakthastighet
+ *   ftx_boost: switch.ftx_forcering   ftx_away: switch.ftx_bortalage   ftx_recovery: sensor.ftx_temperaturverkningsgrad
+ *   show_ftx: true          # false hides the FTX pill
+ *   lock: lock.aqara_smart_lock_u200                      # small badge on the front door
+ *   garage_door_1 / garage_door_2: cover.…garage_1 / …garage_2   # badges on the garage doors, open doors are drawn open
+ *   show_doors: true        # false hides the lock and garage door badges
  *   weather: weather.smhi_home
  *   sun: sun.sun
  *   pv_peak: 10000          # W where the panels glow at full strength
@@ -42,7 +48,7 @@
  *   secondary_text: theme | bright | primary
  */
 
-const HE_VERSION = "0.5.0";
+const HE_VERSION = "0.6.0";
 
 const HE_DEFAULTS = {
   pv_power: "sensor.growatt_tl_x_xh_tl3_xh_pv_power",
@@ -68,6 +74,15 @@ const HE_DEFAULTS = {
   room_temp: "sensor.daikinap97060_climatecontrol_rumstemperatur",
   outdoor_temp: "sensor.daikinap97060_climatecontrol_utomhustemperatur",
   waterheater: "sensor.varmvattenberedare_status",
+  ftx_unit: "switch.ftx_enhet",
+  ftx_supply: "sensor.ftx_tilluft",
+  ftx_fan: "sensor.ftx_flakthastighet",
+  ftx_boost: "switch.ftx_forcering",
+  ftx_away: "switch.ftx_bortalage",
+  ftx_recovery: "sensor.ftx_temperaturverkningsgrad",
+  lock: "lock.aqara_smart_lock_u200",
+  garage_door_1: "cover.smart_garage_door_2303137232948861070248e1e9bdbf4e_garage_1",
+  garage_door_2: "cover.smart_garage_door_2303137232948861070248e1e9bdbf4e_garage_2",
   weather: "weather.smhi_home",
   sun: "sun.sun",
 };
@@ -103,7 +118,8 @@ const GOE = { x0: 16.55, x1: 17.05, z0: 1.0, z1: 1.75 };
 const GROUND = { x0: -7, y0: -1.5, x1: 23, y1: 22.3 };
 const VB = { x: -262, y: -116, w: 478, h: 322 };
 // pill positions (bottom centre, scene units)
-const PILLS = { solar: [52, -62], grid: [-178, -58], house: [-150, 150], hp: [150, 22], car: [80, 192], water: [-166, 96] };
+const PILLS = { solar: [108, -62], grid: [-178, -58], house: [-150, 150], hp: [150, 22], car: [80, 192], water: [-166, 96], ftx: [-40, -70] };
+const GDOORS = [[13.55, 16.45], [17.15, 20.05]];
 const roofPt = (u, t) => [u, H.y1 + H.ov - t * (H.y1 + H.ov - H.ridgeY), H.wall + t * (H.ridge - H.wall)];
 
 function heFmtW(w) {
@@ -125,6 +141,8 @@ class HouseEnergyCard extends HTMLElement {
         { type: "expandable", name: "", title: "Bil och laddbox", schema: ["charger_power", "charger_status", "charger_session", "car_soc", "car_range", "car_target"].map((k) => e(k, "sensor")) },
         { type: "expandable", name: "", title: "Värmepump", schema: [e("heatpump", "climate"), ...["heatpump_power", "heatpump_today", "room_temp", "outdoor_temp"].map((k) => e(k, "sensor"))] },
         { type: "expandable", name: "", title: "Varmvatten", schema: [e("waterheater"), { name: "show_waterheater", selector: { boolean: {} } }] },
+        { type: "expandable", name: "", title: "FTX", schema: [e("ftx_unit"), e("ftx_supply", "sensor"), e("ftx_fan", "sensor"), e("ftx_boost"), e("ftx_away"), e("ftx_recovery", "sensor"), { name: "show_ftx", selector: { boolean: {} } }] },
+        { type: "expandable", name: "", title: "Lås och portar", schema: [e("lock", "lock"), e("garage_door_1", "cover"), e("garage_door_2", "cover"), { name: "show_doors", selector: { boolean: {} } }] },
         { type: "expandable", name: "", title: "Himmel och utseende", schema: [e("weather", "weather"), e("sun", "sun"),
           { name: "pv_peak", selector: { number: { min: 1000, max: 30000, step: 500, unit_of_measurement: "W" } } },
           { name: "car_color", selector: { text: {} } },
@@ -135,7 +153,7 @@ class HouseEnergyCard extends HTMLElement {
   static getStubConfig() { return { name: "Huset" }; }
 
   setConfig(config) {
-    this._cfg = { name: "Huset", pv_peak: 10000, heatpump_on_w: 20, car_color: "#c8102e", secondary_text: "theme", show_header: true, show_stats: true, show_waterheater: true, ...HE_DEFAULTS, ...config };
+    this._cfg = { name: "Huset", pv_peak: 10000, heatpump_on_w: 20, car_color: "#c8102e", secondary_text: "theme", show_header: true, show_stats: true, show_waterheater: true, show_ftx: true, show_doors: true, ...HE_DEFAULTS, ...config };
     this._sceneKey = null;
     if (this._hass) this._render();
   }
@@ -176,9 +194,17 @@ class HouseEnergyCard extends HTMLElement {
       hwOn = a.heater_on !== undefined ? a.heater_on === true : /^(heating|boost)/.test(wh.state);
       hwPower = hwOn ? num(a.power_w) : null;
     }
+    // FTX (ventilation unit)
+    const ftxSt = c.show_ftx === false ? undefined : (this._st("ftx_unit") || this._st("ftx_supply"));
+    const on = (k) => this._st(k)?.state === "on";
+    const ftxUnit = this._st("ftx_unit");
+    const ftxMode = !ftxSt ? null : ftxUnit && ftxUnit.state === "off" ? "off" : on("ftx_boost") ? "boost" : on("ftx_away") ? "away" : "on";
+    // lock and garage doors
+    const doorState = (k) => { const st = c.show_doors === false ? undefined : this._st(k); return st ? st.state : null; };
+    const lock = doorState("lock"), gd = [doorState("garage_door_1"), doorState("garage_door_2")];
     const speed = (w) => (w > 5000 ? 3 : w > 1500 ? 2 : 1);
     return {
-      pv, grid, load, night, sky, wx, flow, hasWater: !!wh, hwTemp, hwTarget, hwOn, hwPower, charging, plugged, chStatus, chPower, hpOn, hpMode, hpPower,
+      pv, grid, load, night, sky, wx, flow, ftxMode, ftxSupply: this._n("ftx_supply"), ftxFan: this._n("ftx_fan"), ftxRec: this._n("ftx_recovery"), lock, gd, hasWater: !!wh, hwTemp, hwTarget, hwOn, hwPower, charging, plugged, chStatus, chPower, hpOn, hpMode, hpPower,
       pvLevel: Math.min(1, pv / c.pv_peak),
       gridSpeed: speed(Math.abs(grid)), carSpeed: speed(chPower),
       soc: this._n("car_soc"), range: this._n("car_range"), target: this._n("car_target"), session: this._n("charger_session"),
@@ -203,7 +229,7 @@ class HouseEnergyCard extends HTMLElement {
     const d = this._data();
     const card = this.shadowRoot.querySelector("ha-card");
     card.className = `txt-${this._cfg.secondary_text}${this._cfg.show_header === false ? " no-head" : ""}${this._cfg.show_stats === false ? " no-stats" : ""}`;
-    const key = JSON.stringify([d.night, d.sky, d.flow, d.gridSpeed, d.charging, d.carSpeed, d.plugged, d.hpOn, d.hasWater, d.hwOn, d.pv > 20, Math.round(d.pvLevel * 10), this._cfg.car_color]);
+    const key = JSON.stringify([d.night, d.sky, d.flow, d.gridSpeed, d.charging, d.carSpeed, d.plugged, d.hpOn, d.hasWater, d.hwOn, d.ftxMode, d.lock, d.gd, d.pv > 20, Math.round(d.pvLevel * 10), this._cfg.car_color]);
     const wrap = this.shadowRoot.querySelector(".wrap");
     if (key !== this._sceneKey) {
       // keep the height while swapping content (iOS scroll lesson from the EV6 card)
@@ -218,7 +244,7 @@ class HouseEnergyCard extends HTMLElement {
   _tap(key) {
     const nav = this._cfg[`tap_${key}`];
     if (nav) { history.pushState(null, "", nav); window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } })); return; }
-    const map = { solar: "pv_power", grid: "grid_power", house: "load_power", car: "car_soc", charger: "charger_power", heatpump: "heatpump", water: "waterheater", in: "grid_in_today", out: "grid_out_today", pvday: "pv_today", load: "load_today" };
+    const map = { solar: "pv_power", grid: "grid_power", house: "load_power", car: "car_soc", charger: "charger_power", heatpump: "heatpump", water: "waterheater", ftx: "ftx_unit", lock: "lock", gd0: "garage_door_1", gd1: "garage_door_2", in: "grid_in_today", out: "grid_out_today", pvday: "pv_today", load: "load_today" };
     const id = this._cfg[map[key] || key];
     if (id) this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId: id } }));
   }
@@ -248,6 +274,9 @@ class HouseEnergyCard extends HTMLElement {
 
     this._set(".p-water b", d.hwTemp != null ? `${heNum(d.hwTemp, 1)} °C` : "–");
     this._set(".p-water span", d.hwOn ? `Värmer${d.hwPower ? " · " + heFmtW(d.hwPower) : ""}` : d.hwTarget != null ? `Varmvatten · mål ${Math.round(d.hwTarget)}°` : "Varmvatten");
+    this._set(".p-ftx b", d.ftxSupply != null ? `${heNum(d.ftxSupply, 1)} °C` : d.ftxMode === "off" ? "Av" : "På");
+    this._set(".p-ftx span", d.ftxMode === "off" ? "FTX · av" : d.ftxMode === "boost" ? "FTX · forcering" : d.ftxMode === "away" ? "FTX · borta" :
+      `FTX${d.ftxFan != null ? " · nivå " + Math.round(d.ftxFan) : ""}${d.ftxRec != null ? " · " + Math.round(d.ftxRec) + " %" : ""}`);
     this._set(".s-pv b", d.pvToday != null ? `${heNum(d.pvToday)} kWh` : "–");
     this._set(".s-pv .x", d.forecast != null ? `prognos ${heNum(d.forecast)} kWh` : "");
     this._set(".s-in b", d.inToday != null ? `${heNum(d.inToday)} kWh` : "–");
@@ -291,8 +320,27 @@ class HouseEnergyCard extends HTMLElement {
         ${pill("p-house", "house", "mdi:home-lightning-bolt", PILLS.house, "house")}
         ${pill("p-hp", "heatpump", d.hpMode === "cool" ? "mdi:snowflake" : d.hpMode === "heat" ? "mdi:heat-pump-outline" : "mdi:fan", PILLS.hp, d.hpOn ? "hp" : "dim")}
         ${d.hasWater ? pill("p-water", "water", d.hwOn ? "mdi:water-boiler-alert" : "mdi:water-boiler", PILLS.water, d.hwOn ? "hw" : "dim") : ""}
+        ${d.ftxMode ? pill("p-ftx", "ftx", d.ftxMode === "boost" ? "mdi:fan-plus" : d.ftxMode === "off" ? "mdi:fan-off" : "mdi:hvac", PILLS.ftx, d.ftxMode === "off" ? "dim" : d.ftxMode === "boost" ? "ftx boost" : "ftx") : ""}
+        ${this._badges(d, pct)}
         ${pill("p-car", "car", d.charging ? "mdi:ev-station" : "mdi:car-electric", PILLS.car, d.charging ? "car" : d.plugged ? "car idle" : "dim")}
       </div>${stats}`;
+  }
+
+  /* small round status badges: lock on the front door, one on each garage door */
+  _badges(d, pct) {
+    const b = (tap, pos, icon, cls, title) => { const [x, y] = P(...pos); return `<button class="badge ${cls}" data-tap="${tap}" title="${title}" style="${pct(x, y)}"><ha-icon icon="${icon}"></ha-icon></button>`; };
+    const o = [];
+    if (d.lock) {
+      const m = { locked: ["mdi:lock", "ok", "Låst"], unlocked: ["mdi:lock-open-variant", "warn", "Olåst"], open: ["mdi:door-open", "warn", "Öppen"], locking: ["mdi:lock-clock", "busy", "Låser"], unlocking: ["mdi:lock-clock", "busy", "Låser upp"], opening: ["mdi:lock-clock", "busy", "Öppnar"], jammed: ["mdi:lock-alert", "bad", "Fastnat"] }[d.lock] || ["mdi:lock-question", "off", d.lock];
+      o.push(b("lock", [3.8, H.y1 + 0.05, 1.15], m[0], m[1], `Ytterdörr: ${m[2]}`));
+    }
+    d.gd.forEach((st, i) => {
+      if (!st) return;
+      const [a, bb] = GDOORS[i];
+      const m = { closed: ["mdi:garage", "ok", "Stängd"], open: ["mdi:garage-open", "warn", "Öppen"], opening: ["mdi:arrow-up-bold", "busy", "Öppnas"], closing: ["mdi:arrow-down-bold", "busy", "Stängs"] }[st] || ["mdi:garage-alert", "off", st];
+      o.push(b(`gd${i}`, [(a + bb) / 2, G.y1 + 0.05, 1.9], m[0], m[1], `Garageport ${i + 1}: ${m[2]}`));
+    });
+    return o.join("");
   }
 
   _svg(d) {
@@ -319,8 +367,8 @@ class HouseEnergyCard extends HTMLElement {
       for (let i = 0; i < 38; i++) out.push(`<circle class="star" cx="${(VB.x + rnd() * VB.w).toFixed(1)}" cy="${(VB.y + rnd() * 120).toFixed(1)}" r="${(0.4 + rnd() * 0.8).toFixed(2)}" style="animation-delay:${(-rnd() * 4).toFixed(2)}s"/>`);
     }
     if (d.sky !== "rain" && d.sky !== "fog" && d.sky !== "cloudy" && d.sky !== "snow")
-      out.push(d.night ? `<circle cx="${VB.x + VB.w - 48}" cy="${VB.y + 34}" r="11" fill="url(#he-moon)"/><circle cx="${VB.x + VB.w - 48}" cy="${VB.y + 34}" r="22" fill="#fffbe9" opacity=".08"/>`
-        : `<circle cx="${VB.x + VB.w - 48}" cy="${VB.y + 34}" r="26" fill="#ffd36e" opacity=".18" filter="url(#he-blur)"/><circle cx="${VB.x + VB.w - 48}" cy="${VB.y + 34}" r="12" fill="#ffd36e"/>`);
+      out.push(d.night ? `<circle cx="${VB.x + VB.w - 26}" cy="${VB.y + 34}" r="11" fill="url(#he-moon)"/><circle cx="${VB.x + VB.w - 26}" cy="${VB.y + 34}" r="22" fill="#fffbe9" opacity=".08"/>`
+        : `<circle cx="${VB.x + VB.w - 26}" cy="${VB.y + 34}" r="26" fill="#ffd36e" opacity=".18" filter="url(#he-blur)"/><circle cx="${VB.x + VB.w - 26}" cy="${VB.y + 34}" r="12" fill="#ffd36e"/>`);
     if (d.sky !== "clear") {
       const n = d.sky === "partly" ? 3 : 5;
       const xs = [-170, -50, 60, 150, -110], ys = [-100, -112, -90, -110, -80];
@@ -369,7 +417,8 @@ class HouseEnergyCard extends HTMLElement {
     out.push(lead(up(PILLS.grid), pt, d.flow));
     out.push(lead([PILLS.house[0], PILLS.house[1] - 26], P(9.8, H.y1 + PORCH.depth - 0.3, 0.4), "house"));
     out.push(lead([PILLS.hp[0] - 30, PILLS.hp[1] - 4], P(HP.x1, HP.y0 + 0.5, HP.z1), d.hpOn ? "hp" : ""));
-    if (d.hasWater) out.push(lead([PILLS.water[0] + 40, PILLS.water[1] - 14], P(3.8, H.y1 + 0.02, 1.05), d.hwOn ? "hw" : ""));
+    if (d.hasWater) out.push(lead([PILLS.water[0] + 40, PILLS.water[1] - 14], P(3.55, H.y1 + 0.02, 1.9), d.hwOn ? "hw" : ""));
+    if (d.ftxMode) out.push(lead(up(PILLS.ftx, 6), P(2.95, 4.85, 5.75), d.ftxMode === "off" ? "" : "ftx"));
     out.push(lead(up(PILLS.car, -10), P(CAR.x + CAR.w - 0.2, CAR.y + 1.8, 1.45), d.charging ? "car" : ""));
     out.push(`</svg>`);
     return out.join("");
@@ -497,11 +546,14 @@ class HouseEnergyCard extends HTMLElement {
     }
     for (let y = y0 + 0.45; y < y1; y += 0.45) { const a = P(x1, y, 0.25), b = P(x1, y, wall); o.push(`<line class="board r" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`); }
     // double doors
-    for (const [a, b] of [[13.55, 16.45], [17.15, 20.05]]) {
+    GDOORS.forEach(([a, b], i) => {
       o.push(winY(y1 + 0.01, a - 0.12, b + 0.12, 0, 2.37, "trim"));
-      o.push(winY(y1 + 0.02, a, b, 0, 2.25, "gdoor"));
-      for (let z = 0.45; z < 2.25; z += 0.45) { const p = P(a, y1 + 0.02, z), q = P(b, y1 + 0.02, z); o.push(`<line class="gline" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`); }
-    }
+      // open = only a strip of the door shows at the top, the dark garage behind; moving = half way
+      const st = d.gd[i], zb = st === "open" ? 1.85 : st === "opening" || st === "closing" ? 1.1 : 0;
+      if (zb > 0) o.push(winY(y1 + 0.015, a, b, 0, zb, "gopen" + (d.night ? " lit" : "")));
+      o.push(winY(y1 + 0.02, a, b, zb, 2.25, "gdoor"));
+      for (let z = zb + 0.45; z < 2.25; z += 0.45) { const p = P(a, y1 + 0.02, z), q = P(b, y1 + 0.02, z); o.push(`<line class="gline" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`); }
+    });
     o.push(winY(y1 + 0.01, ridgeX - 0.45, ridgeX + 0.45, 2.75, 3.45, d.night ? "win lit dimlit" : "win"));
     // roof, ridge along y
     o.push(poly([[x0 - ov, y0 - ov, wall], [x0 - ov, y1 + ov, wall], [ridgeX, y1 + ov, ridge], [ridgeX, y0 - ov, ridge]], "roof b"));
@@ -607,7 +659,7 @@ class HouseEnergyCard extends HTMLElement {
 const HE_CSS = `
   :host { display: block; }
   ha-card { display: block; overflow: hidden; padding: 14px 14px 12px;
-    --he-accent: #35c7d9; --he-ok: #4cc38a; --he-sun: #f5b942; --he-import: #4aa3ff; --he-heat: #ff8a3d; --he-hot: #ff5d5d; --he-cool: #6cc3ff;
+    --he-accent: #35c7d9; --he-ok: #4cc38a; --he-sun: #f5b942; --he-import: #4aa3ff; --he-heat: #ff8a3d; --he-hot: #ff5d5d; --he-air: #7fd4c1; --he-cool: #6cc3ff;
     --he-text: var(--primary-text-color, #e6e6e6); --he-dim: var(--secondary-text-color, #9aa0a6);
     --he-soft: color-mix(in srgb, var(--he-text) 8%, transparent); }
   ha-card.txt-bright { --he-dim: color-mix(in srgb, var(--primary-text-color, #e6e6e6) 82%, var(--card-background-color, #1c1c1c)); }
@@ -648,6 +700,14 @@ const HE_CSS = `
   .pill.house ha-icon { color: #9d8cff; background: color-mix(in srgb, #9d8cff 22%, transparent); }
   .pill.hw ha-icon { color: var(--he-hot); background: color-mix(in srgb, var(--he-hot) 22%, transparent); animation: he-hwpulse 1.8s ease-in-out infinite; }
   @keyframes he-hwpulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--he-hot) 18%, transparent); } }
+  .pill.ftx ha-icon { color: var(--he-air); background: color-mix(in srgb, var(--he-air) 22%, transparent); }
+  .pill.ftx.boost ha-icon { animation: he-hwpulse 1.8s ease-in-out infinite; --he-hot: var(--he-air); }
+  .badge { position: absolute; transform: translate(-50%, -50%); width: 22px; height: 22px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    border: 1.5px solid var(--bc); background: color-mix(in srgb, var(--bc) 30%, #12161c); color: var(--bc); box-shadow: 0 1px 4px rgba(0,0,0,.45); --bc: #9aa4b0; z-index: 1; }
+  .badge ha-icon { --mdc-icon-size: 13px; display: flex; }
+  .badge.ok { --bc: var(--he-ok); } .badge.warn { --bc: #f5a524; } .badge.bad { --bc: var(--he-hot); } .badge.busy { --bc: var(--he-accent); animation: he-dot 1.2s infinite; }
+  .badge.warn { animation: he-badge 2s ease-in-out infinite; }
+  @keyframes he-badge { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--bc) 25%, transparent); } }
   .pill.hp ha-icon { color: var(--he-heat); background: color-mix(in srgb, var(--he-heat) 22%, transparent); }
   .pill.car ha-icon { color: var(--he-accent); background: color-mix(in srgb, var(--he-accent) 22%, transparent); }
   .pill.car.idle ha-icon { color: #b8c0ca; background: rgba(255,255,255,.08); }
@@ -793,6 +853,8 @@ const HE_CSS = `
   .lead.export, .leaddot.export { stroke: var(--he-ok); fill: var(--he-ok); }
   .lead.car, .leaddot.car { stroke: var(--he-accent); fill: var(--he-accent); }
   .lead.hp, .leaddot.hp { stroke: var(--he-heat); fill: var(--he-heat); }
+  .lead.ftx, .leaddot.ftx { stroke: var(--he-air); fill: var(--he-air); }
+  .gopen { fill: #1a1d22; } .gopen.lit { fill: #4a3d28; }
   .lead.hw, .leaddot.hw { stroke: var(--he-hot); fill: var(--he-hot); }
   .lead.hw { stroke-dasharray: 3 2; animation: he-hwdash 1s linear infinite; }
   @keyframes he-hwdash { to { stroke-dashoffset: -5; } }
@@ -818,7 +880,7 @@ const HE_CSS = `
   .stat .bar { display: block; margin-top: 6px; height: 4px; border-radius: 999px; background: var(--he-soft); overflow: hidden; }
   .stat .bar i { display: block; height: 100%; border-radius: 999px; transition: width .6s ease; }
   .s-pv .bar i { background: var(--he-sun); } .s-in .bar i { background: var(--he-import); } .s-out .bar i { background: var(--he-ok); } .s-load .bar i { background: #9d8cff; }
-  @media (max-width: 460px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pill { padding: 3px 8px 3px 4px; gap: 4px; } .pill b { font-size: 11.5px; } .pill span { font-size: 8.5px; } .pill ha-icon { width: 20px; height: 20px; --mdc-icon-size: 14px; } }
+  @media (max-width: 460px) { .badge { width: 18px; height: 18px; } .badge ha-icon { --mdc-icon-size: 11px; } .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pill { padding: 3px 8px 3px 4px; gap: 4px; } .pill b { font-size: 11.5px; } .pill span { font-size: 8.5px; } .pill ha-icon { width: 20px; height: 20px; --mdc-icon-size: 14px; } }
 
   @keyframes he-flow { to { stroke-dashoffset: -18; } }
   @keyframes he-spin { to { transform: rotate(360deg); } }
