@@ -2,7 +2,7 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
-  const VERSION = '0.12.2';
+  const VERSION = '0.12.3';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -150,7 +150,9 @@
     const base = moneyData && moneyData.base || {};
     const save = num(cfg.solar_saving), sb = base[cfg.solar_saving];
     const savedToday = save != null && sb != null ? Math.max(0, save - sb) : null;
-    return { inn, sold, fixed, transfer, tax, energy, spent, savedToday, y: moneyData && moneyData.year };
+    const pv = num(cfg.pv_today), out = num(cfg.grid_out_today);
+    const self = pv != null && out != null ? Math.max(0, pv - out) : null;
+    return { self, inn, sold, fixed, transfer, tax, energy, spent, savedToday, y: moneyData && moneyData.year };
   }
   function moneyPage() {
     const m = moneyCalc();
@@ -158,6 +160,10 @@
       <div class="money-sum">
         <div><div class="ml">Elkostnad</div><div class="v money">${kr(m.spent)}<small>kr</small></div></div>
         <div><div class="ml">Sparat med solel</div><div class="v saved">${kr(m.savedToday)}<small>kr</small></div></div>
+      </div>
+      <div class="money-sub">
+        <div><span>Faktisk kostnad</span><b class="money">${kr(num(cfg.cost_today))} <small>kr</small></b></div>
+        <div><span>Egen sol använd</span><b class="saved">${nf(m.self)} <small>kWh</small></b></div>
       </div>`;
   }
   function detailPage() {

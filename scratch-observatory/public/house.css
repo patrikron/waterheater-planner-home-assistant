@@ -100,6 +100,11 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
 .money-sum .ml{font-size:11.5px;color:var(--text);opacity:.85;white-space:nowrap}
 .money-sum .v.money{color:var(--orange)}
 .money-sum .v.saved{color:var(--sage)}
+.money-sub{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(200,210,190,.18)}
+.money-sub span{display:block;font-size:10px;color:var(--muted);white-space:nowrap}
+.money-sub b{font-size:14px;font-weight:600;white-space:nowrap}
+.money-sub b.money{color:var(--orange)}.money-sub b.saved{color:var(--sage)}
+.money-sub b small{font-size:9px;color:var(--muted);font-weight:500}
 .mrows.two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin-top:6px;padding-top:0;border-top:0}
 .mrows.two .mrow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .myear{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding-top:6px;border-top:1px solid rgba(200,210,190,.18);font-size:10.5px;color:var(--muted)}
