@@ -28,7 +28,7 @@ if (!HA_URL || !HA_TOKEN) {
 const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 // Alla strängvärden (även i nästlade objekt) som ser ut som entitets-id i card, house och water.
 const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { if (typeof v === 'string') { if (ID_RE.test(v)) out.push(v); } else if (v && typeof v === 'object') collectIds(v, out); } return out; };
-const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger), ...collectIds(CONFIG.car), ...collectIds(CONFIG.temps)]);
+const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger), ...collectIds(CONFIG.car), ...collectIds(CONFIG.temps), ...collectIds(CONFIG.spa)]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const STATS_IDS = new Set([CONFIG.card.solar, CONFIG.card.load, CONFIG.card.grid].filter(Boolean));
@@ -130,8 +130,10 @@ async function stats(hours) {
 
 // ---------- Historik för en entitet (detaljpanelen) ----------
 const histCache = new Map();
-async function history(id, hours) {
+const HIST_ATTRS = Object.assign({}, ...[CONFIG.spa].filter(Boolean).map(x => x.history_attrs || {}));
+async function history(id, hours, attr) {
   if (!ALLOWED.has(id)) throw Object.assign(new Error('Entiteten är inte tillåten'), { code: 403 });
+  if (attr) return attrHistory(id, hours, attr);
   const h = Math.max(1, Math.min(168, Math.round(hours) || 24));
   const key = id + '|' + h;
   const hit = histCache.get(key);
@@ -156,6 +158,28 @@ async function history(id, hours) {
     }
   }
   const data = { entity_id: id, hours: h, points };
+  histCache.set(key, { at: Date.now(), data });
+  return data;
+}
+
+// Historik för ett attribut (t.ex. termostatens vattentemperatur); bara attribut som står i config history_attrs
+async function attrHistory(id, hours, attr) {
+  if (!(HIST_ATTRS[id] || []).includes(attr)) throw Object.assign(new Error('Attributet är inte tillåtet'), { code: 403 });
+  const h = Math.max(1, Math.min(168, Math.round(hours) || 24));
+  const key = id + '|' + attr + '|' + h, hit = histCache.get(key);
+  if (hit && Date.now() - hit.at < 60 * 1000) return hit.data;
+  const start = new Date(Date.now() - h * 3600 * 1000).toISOString();
+  const hs = await haCall({ type: 'history/history_during_period', start_time: start, entity_ids: [id],
+    minimal_response: false, no_attributes: false, significant_changes_only: false });
+  const points = []; let last = null;
+  for (const r of hs[id] || []) {
+    const a = r.a || {}; const v = parseFloat(a[attr]); const t = (r.lu || r.lc || 0) * 1000;
+    if (!Number.isFinite(v) || !t) continue;
+    if (v === last && points.length && t - points[points.length - 1][0] < 1800e3) continue;
+    points.push([t, v]); last = v;
+  }
+  const heat = (hs[id] || []).map(r => [(r.lu || r.lc || 0) * 1000, (r.a || {}).hvac_action === 'heating' ? 1 : 0]);
+  const data = { entity_id: id, attr, hours: h, points, heating: heat };
   histCache.set(key, { at: Date.now(), data });
   return data;
 }
@@ -216,11 +240,12 @@ const HP = CONFIG.heatpump || {};
 const ctlLog = [];
 async function control(body) {
   // Sidor med egen styrning (FTX, laddbox, bilen): bara entiteter som står i respektive vitlista
-  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car].filter(x => x && x.controls);
+  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa].filter(x => x && x.controls);
   const allow = k => new Set(PAGES.flatMap(x => [...(x[k] || []), ...(k === 'numbers' && x.setpoint ? [x.setpoint] : [])]));
   const { action: act0, entity: ent0 } = body || {};
   const ftxOk = (act0 === 'toggle' && allow('toggles').has(ent0)) || (act0 === 'number' && allow('numbers').has(ent0)) || (act0 === 'select' && allow('selects').has(ent0))
-    || (act0 === 'script' && allow('scripts').has(ent0)) || (act0 === 'lock' && allow('locks').has(ent0));
+    || (act0 === 'script' && allow('scripts').has(ent0)) || (act0 === 'lock' && allow('locks').has(ent0))
+    || ((act0 === 'climate_mode' || act0 === 'climate_temp') && allow('climates').has(ent0));
   const hpOk = !!(HP.controls && HP.climate);
   if (!ftxOk && !hpOk) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
   const now = Date.now();
@@ -259,6 +284,19 @@ async function control(body) {
     const page = PAGES.find(x => (x.locks || []).includes(entity));
     if (value === 'unlock' && !(page && page.allow_unlock === true)) throw Object.assign(new Error('Upplåsning är avstängd i config'), { code: 403 });
     call = ['lock', value, entity, {}];
+  }
+  else if (ftxOk && (action === 'climate_mode' || action === 'climate_temp')) {
+    // termostat på en sida (t.ex. spabadet): läge och temperatur kontrolleras mot entitetens egna gränser
+    const s = states.get(entity), at = (s && s.attributes) || {};
+    if (action === 'climate_mode') {
+      if (!inList(at.hvac_modes, value)) throw Object.assign(new Error('Ogiltigt läge'), { code: 400 });
+      call = ['climate', 'set_hvac_mode', entity, { hvac_mode: value }];
+    } else {
+      const lo = Number(at.min_temp), hi = Number(at.max_temp), step = Number(at.target_temp_step) || 1;
+      if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isFinite(lo) || !Number.isFinite(hi) || value < lo || value > hi || Math.abs(value / step - Math.round(value / step)) > 1e-6)
+        throw Object.assign(new Error('Ogiltig temperatur'), { code: 400 });
+      call = ['climate', 'set_temperature', entity, { temperature: value }];
+    }
   }
   if (!call) throw Object.assign(new Error('Åtgärden är inte tillåten'), { code: 400 });
   ctlLog.push(now);
@@ -374,9 +412,10 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/charger') return json(res, 200, CONFIG.charger || {});
     if (url.pathname === '/api/car') return json(res, 200, CONFIG.car || {});
     if (url.pathname === '/api/temps') return json(res, 200, CONFIG.temps || {});
+    if (url.pathname === '/api/spa') return json(res, 200, CONFIG.spa || {});
     if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));
-    if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours'))));
+    if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours')), url.searchParams.get('attr') || ''));
     if (url.pathname === '/api/config') return json(res, 200, CONFIG.card);
     if (url.pathname === '/api/states') return json(res, 200, snapshot());
     if (url.pathname === '/api/money') return json(res, 200, await money());

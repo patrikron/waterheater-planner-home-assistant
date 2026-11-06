@@ -316,6 +316,38 @@
     ],
     "script.ev6_force_update_with_control": [
       "last_triggered"
+    ],
+    "climate.spa_thermostat": [
+      "hvac_modes",
+      "min_temp",
+      "max_temp",
+      "target_temp_step",
+      "current_temperature",
+      "temperature",
+      "hvac_action"
+    ],
+    "binary_sensor.spa_errors": [
+      "errors"
+    ],
+    "input_number.spa_filter_passlangd": [
+      "min",
+      "max",
+      "step"
+    ],
+    "automation.spabad_filter_pa_billigaste_el": [
+      "last_triggered"
+    ],
+    "automation.stang_av_kaffebryggare_nar_spabad_varme_pa": [
+      "last_triggered"
+    ],
+    "automation.stang_av_spabad_nar_kaffebyrggare_gar_pa": [
+      "last_triggered"
+    ],
+    "sensor.0xa4c1387cf86503ed_energy_monthly": [
+      "last_period"
+    ],
+    "sensor.0xa4c1387cf86503ed_energy_daily": [
+      "last_period"
     ]
   },
   "house": {
@@ -1099,5 +1131,58 @@
         ]
       }
     ]
+  },
+  "spa": {
+    "title": "Spabad.",
+    "subtitle": "Bestway Lay-Z-Spa Havana: vattentemperatur, värme, filter, bubblor, el och filterpass på billigaste elen – live från Home Assistant.",
+    "model": "Bestway Lay-Z-Spa Havana",
+    "volume_l": 937,
+    "heater_kw": 2.2,
+    "heat_rate": 2.0,
+    "controls": true,
+    "climate": "climate.spa_thermostat",
+    "power_switch": "switch.spa_power",
+    "filter": "switch.spa_filter",
+    "bubbles": "switch.spa_bubbles",
+    "locked": "switch.spa_locked",
+    "toggles": [
+      "switch.spa_power",
+      "switch.spa_filter",
+      "switch.spa_bubbles",
+      "switch.spa_locked"
+    ],
+    "climates": [
+      "climate.spa_thermostat"
+    ],
+    "numbers": [
+      "input_number.spa_filter_passlangd"
+    ],
+    "pass_length": "input_number.spa_filter_passlangd",
+    "cheap": "binary_sensor.spa_filter_billig_tid",
+    "connected": "binary_sensor.spa_connected",
+    "errors": "binary_sensor.spa_errors",
+    "active": "binary_sensor.utomhus_spa_aktiv",
+    "runtime_today": "sensor.utomhus_spa_drifttid_idag",
+    "plug": "switch.0xa4c1387cf86503ed",
+    "power": "sensor.0xa4c1387cf86503ed_power",
+    "voltage": "sensor.0xa4c1387cf86503ed_voltage",
+    "current": "sensor.0xa4c1387cf86503ed_current",
+    "energy_today": "sensor.0xa4c1387cf86503ed_energy_daily",
+    "energy_week": "sensor.0xa4c1387cf86503ed_energy_weekly",
+    "energy_month": "sensor.0xa4c1387cf86503ed_energy_monthly",
+    "energy_total": "sensor.0xa4c1387cf86503ed_energy",
+    "price": "sensor.nordpool_kwh_se3_sek_3_10_025",
+    "outdoor": "weather.smhi_home",
+    "automations": [
+      "automation.spabad_filter_pa_billigaste_el",
+      "automation.stang_av_kaffebryggare_nar_spabad_varme_pa",
+      "automation.stang_av_spabad_nar_kaffebyrggare_gar_pa"
+    ],
+    "history_attrs": {
+      "climate.spa_thermostat": [
+        "current_temperature",
+        "temperature"
+      ]
+    }
   }
 }
