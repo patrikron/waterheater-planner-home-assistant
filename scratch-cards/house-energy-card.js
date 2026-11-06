@@ -48,7 +48,7 @@
  *   secondary_text: theme | bright | primary
  */
 
-const HE_VERSION = "0.6.0";
+const HE_VERSION = "0.6.1";
 
 const HE_DEFAULTS = {
   pv_power: "sensor.growatt_tl_x_xh_tl3_xh_pv_power",
@@ -332,7 +332,7 @@ class HouseEnergyCard extends HTMLElement {
     const o = [];
     if (d.lock) {
       const m = { locked: ["mdi:lock", "ok", "Låst"], unlocked: ["mdi:lock-open-variant", "warn", "Olåst"], open: ["mdi:door-open", "warn", "Öppen"], locking: ["mdi:lock-clock", "busy", "Låser"], unlocking: ["mdi:lock-clock", "busy", "Låser upp"], opening: ["mdi:lock-clock", "busy", "Öppnar"], jammed: ["mdi:lock-alert", "bad", "Fastnat"] }[d.lock] || ["mdi:lock-question", "off", d.lock];
-      o.push(b("lock", [3.8, H.y1 + 0.05, 1.15], m[0], m[1], `Ytterdörr: ${m[2]}`));
+      o.push(b("lock", [3.8, H.y1 + 0.05, 0.6], m[0], m[1], `Ytterdörr: ${m[2]}`));
     }
     d.gd.forEach((st, i) => {
       if (!st) return;
