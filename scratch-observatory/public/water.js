@@ -2,6 +2,8 @@
 // Läser bara. Inga inställningar ändras härifrån.
 (() => {
   'use strict';
+  // Temafärg från CSS-variabel (temat sätts av theme.js)
+  const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
   const VERSION = '0.6.0';
   const $ = id => document.getElementById(id);
   let W = {}, S = {}, states = {}, connected = false;
@@ -47,7 +49,7 @@
     const ty = v => top + (1 - (v - lo) / (hi - lo)) * H;
     const mark = (v, cls, lbl) => v == null ? '' : `<line class="${cls}" x1="10" x2="86" y1="${ty(v)}" y2="${ty(v)}"/><text class="tl" x="92" y="${ty(v) + 3}">${lbl}</text>`;
     return `<svg class="tank" viewBox="0 0 132 180" role="img" aria-label="Beredaren ${nf(t)} grader">
-      <defs><linearGradient id="wg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#5f8fa6"/><stop offset=".55" stop-color="#d8bb72"/><stop offset="1" stop-color="#e0895a"/></linearGradient>
+      <defs><linearGradient id="wg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#5f8fa6"/><stop offset=".55" stop-color="${TC('gold')}"/><stop offset="1" stop-color="${TC('orange')}"/></linearGradient>
       <clipPath id="tc"><rect x="14" y="${top}" width="68" height="${H}" rx="22"/></clipPath></defs>
       <rect class="shell" x="14" y="${top}" width="68" height="${H}" rx="22"/>
       <rect clip-path="url(#tc)" x="14" y="${fillY}" width="68" height="${H + top - fillY}" fill="url(#wg)" opacity=".9"/>
@@ -238,10 +240,10 @@
     box('power-chart', 'Effekt · 48 h', 'kW', '<div class="empty">Hämtar …</div>');
     box('daily-chart', 'Energi per dag · 14 dagar', 'kWh', '<div class="empty">Hämtar …</div>');
     const fail = (id, e) => { const el = $(id).querySelector('.dchart'); if (el) el.innerHTML = `<div class="empty">Kunde inte hämta (${esc(e.message)}).</div>`; };
-    hist(W.temperature, 48).then(p => { $('temp-chart').querySelector('.dchart').innerHTML = lineChart(p, '#e0895a', { marks: [[A('target_temperature') ?? 60, 'mål'], ...(A('min_temperature') != null ? [[A('min_temperature'), 'komfort']] : [])] }); }).catch(e => fail('temp-chart', e));
-    hist(W.power, 48).then(p => { $('power-chart').querySelector('.dchart').innerHTML = lineChart(p, '#d8bb72', { div: 1000, zero: true, step: true }); }).catch(e => fail('power-chart', e));
+    hist(W.temperature, 48).then(p => { $('temp-chart').querySelector('.dchart').innerHTML = lineChart(p, TC('orange'), { marks: [[A('target_temperature') ?? 60, 'mål'], ...(A('min_temperature') != null ? [[A('min_temperature'), 'komfort']] : [])] }); }).catch(e => fail('temp-chart', e));
+    hist(W.power, 48).then(p => { $('power-chart').querySelector('.dchart').innerHTML = lineChart(p, TC('gold'), { div: 1000, zero: true, step: true }); }).catch(e => fail('power-chart', e));
     fetch(`api/daily?entity=${encodeURIComponent(W.energy_total)}&days=14`, { cache: 'no-store' }).then(async r => { if (!r.ok) throw new Error((await r.json()).error || r.statusText); return r.json(); })
-      .then(d => { $('daily-chart').querySelector('.dchart').innerHTML = barChart(d.points.map(([t, v]) => [typeof t === 'string' ? Date.parse(t) : t, v]), '#aebf91'); }).catch(e => fail('daily-chart', e));
+      .then(d => { $('daily-chart').querySelector('.dchart').innerHTML = barChart(d.points.map(([t, v]) => [typeof t === 'string' ? Date.parse(t) : t, v]), TC('sage')); }).catch(e => fail('daily-chart', e));
   }
 
   // ---------- Inställningar ----------

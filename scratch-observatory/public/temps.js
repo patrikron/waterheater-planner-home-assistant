@@ -1,6 +1,8 @@
 // Temperatursidan: alla rum, uterum och byggnader. Temperatur, fukt, daggpunkt, batterier och historik.
 (() => {
   'use strict';
+  // Temafärg från CSS-variabel (temat sätts av theme.js)
+  const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
   const VERSION = '0.12.0';
   const $ = id => document.getElementById(id);
   let C = {}, states = {}, connected = false;
@@ -117,7 +119,7 @@
 
   // ---------- Diagram ----------
   async function getJSON(u) { const r = await fetch(u, { cache: 'no-store' }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText); return r.json(); }
-  const PALETTE = ['#e0895a', '#d8bb72', '#aebf91', '#8fb7ba', '#c9a0dc', '#e6a3a3', '#7fb08a', '#b9b1a0', '#6e9ec9', '#d6d06a'];
+  const PALETTE = [TC('orange'), TC('gold'), TC('sage'), TC('blue'), '#c9a0dc', '#e6a3a3', '#7fb08a', '#b9b1a0', '#6e9ec9', '#d6d06a'];
   let chartGroup = 'inne', chartHours = 24, sel = null;
   const thin = (pts, n = 360) => { if (pts.length <= n) return pts; const k = Math.ceil(pts.length / n); return pts.filter((_, i) => i % k === 0 || i === pts.length - 1); };
   const hist = async (id, hours) => (await getJSON(`api/history?entity=${encodeURIComponent(id)}&hours=${hours}`)).points.map(([t, v]) => [tsOf(t), +v]).filter(p => Number.isFinite(p[1]));
@@ -180,11 +182,11 @@
     o.forEach(([t, v], i) => { const xx = pl + i * bw + bw * .18, w = bw * .64, d = new Date(t), iv = nm.get(d.toDateString());
       g += `<rect x="${xx}" y="${Math.min(y(v), y(0))}" width="${w}" height="${Math.abs(y(v) - y(0))}" fill="${tcol(v)}" opacity=".8"><title>${d.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })}: ute ${nf(v)} °C${iv != null ? ` · inne ${nf(iv)} °C` : ''}</title></rect>`;
       if (i % 3 === 0 || i === N - 1) g += `<text class="ax" x="${xx + w / 2}" y="${Hh - 6}" text-anchor="middle">${d.getDate()}/${d.getMonth() + 1}</text>`; });
-    if (n.length) g += `<path class="ln" stroke="#d8bb72" d="${n.map(([t, v], i) => { const k = o.findIndex(p => new Date(p[0]).toDateString() === new Date(t).toDateString()); return k < 0 ? '' : `${i ? 'L' : 'M'}${pl + k * bw + bw / 2},${y(v)}`; }).join('')}"/>`;
+    if (n.length) g += `<path class="ln" stroke="${TC('gold')}" d="${n.map(([t, v], i) => { const k = o.findIndex(p => new Date(p[0]).toDateString() === new Date(t).toDateString()); return k < 0 ? '' : `${i ? 'L' : 'M'}${pl + k * bw + bw / 2},${y(v)}`; }).join('')}"/>`;
     const ov = o.map(p => p[1]).filter(v => v != null), mean = ov.reduce((a, b) => a + b, 0) / (ov.length || 1);
     el.innerHTML = `<div class="wh"><div><div class="eyebrow">Senaste 30 dygnen · dygnsmedel</div><h3>Ute i snitt ${nf(mean)} °C</h3></div><span class="chip">kallast ${nf(Math.min(...ov))} · varmast ${nf(Math.max(...ov))} °C</span></div>
       <div class="dchart flat"><svg viewBox="0 0 ${Wd} ${Hh}" preserveAspectRatio="none" class="so-big">${g}</svg>
-      <div class="legend"><span><i style="background:#8fb7ba"></i>Ute, dygnsmedel</span><span><i style="background:#d8bb72;height:3px"></i>Vardagsrum, dygnsmedel</span></div></div>`;
+      <div class="legend"><span><i style="background:${TC('blue')}"></i>Ute, dygnsmedel</span><span><i style="background:${TC('gold')};height:3px"></i>Vardagsrum, dygnsmedel</span></div></div>`;
   }
   function renderBatteries() {
     const rows = all().filter(s => s.battery).map(s => ({ s, b: num(s.battery) })).sort((a, b) => (a.b ?? -1) - (b.b ?? -1));

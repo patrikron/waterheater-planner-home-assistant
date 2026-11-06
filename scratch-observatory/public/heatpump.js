@@ -2,6 +2,8 @@
 // Styrningen går via servern, som bara släpper igenom vitlistade åtgärder.
 (() => {
   'use strict';
+  // Temafärg från CSS-variabel (temat sätts av theme.js)
+  const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
   const VERSION = '0.7.0';
   const $ = id => document.getElementById(id);
   let H = {}, states = {}, connected = false;
@@ -314,12 +316,12 @@
     const cx = {};
     bars.forEach(([t, v], i) => {
       const xx = pl + i * bw + bw * .15, w = bw * .7; cx[day(t)] = xx + w / 2;
-      g += `<rect class="bar${i === n - 1 ? ' cur' : ''}" fill="#e0895a" x="${xx}" y="${y(v || 0)}" width="${w}" height="${Math.max(0, y(0) - y(v || 0))}"><title>${new Date(t).toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })}: ${nf(v, 1)} kWh</title></rect>`;
+      g += `<rect class="bar${i === n - 1 ? ' cur' : ''}" fill="${TC('orange')}" x="${xx}" y="${y(v || 0)}" width="${w}" height="${Math.max(0, y(0) - y(v || 0))}"><title>${new Date(t).toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })}: ${nf(v, 1)} kWh</title></rect>`;
       g += `<text class="ax" x="${xx + w / 2}" y="${Hh - 6}" text-anchor="middle">${new Date(t).getDate()}</text>`;
     });
     const lp = line.filter(([t]) => cx[day(t)] != null).map(([t, v]) => [cx[day(t)], y2(v)]);
-    if (lp.length) g += `<path class="ln" stroke="#8fb7ba" d="${lp.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)},${b.toFixed(1)}`).join('')}"/>` + lp.map(([a, b]) => `<circle cx="${a}" cy="${b}" r="2.2" fill="#8fb7ba"/>`).join('');
-    return `<svg viewBox="0 0 ${Wd} ${Hh}" preserveAspectRatio="none">${g}</svg><div class="legend"><span><i style="background:#e0895a"></i>kWh per dag</span><span><i style="background:#8fb7ba;height:3px"></i>Utetemperatur, dygnsmedel</span></div>`;
+    if (lp.length) g += `<path class="ln" stroke="${TC('blue')}" d="${lp.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)},${b.toFixed(1)}`).join('')}"/>` + lp.map(([a, b]) => `<circle cx="${a}" cy="${b}" r="2.2" fill="${TC('blue')}"/>`).join('');
+    return `<svg viewBox="0 0 ${Wd} ${Hh}" preserveAspectRatio="none">${g}</svg><div class="legend"><span><i style="background:${TC('orange')}"></i>kWh per dag</span><span><i style="background:${TC('blue')};height:3px"></i>Utetemperatur, dygnsmedel</span></div>`;
   }
   async function loadCharts() {
     const box = (id, title, u) => { $(id).innerHTML = `<div class="eyebrow">${title} <span style="float:right">${u}</span></div><div class="dchart flat"><div class="empty">Hämtar …</div></div>`; return $(id).querySelector('.dchart'); };
@@ -327,9 +329,9 @@
     const t = box('temp-chart', 'Inne och ute · 48 h', '°C'), p = box('power-chart', 'Effekt · 48 h', 'W'), d = box('daily-chart', 'Energi och utetemperatur · 14 dagar', 'kWh');
     Promise.all([hist(H.room, 48), hist(H.outdoor, 48).catch(() => [])]).then(([r, o]) => {
       const set = C('temperature');
-      t.innerHTML = multiLine([{ label: 'Inne', color: '#e0895a', points: r }, { label: 'Ute', color: '#8fb7ba', points: o }], { marks: set != null && st(H.climate).state !== 'off' ? [[set, 'börvärde']] : [] });
+      t.innerHTML = multiLine([{ label: 'Inne', color: TC('orange'), points: r }, { label: 'Ute', color: TC('blue'), points: o }], { marks: set != null && st(H.climate).state !== 'off' ? [[set, 'börvärde']] : [] });
     }).catch(e => fail(t, e));
-    hist(H.power, 48).then(pts => { p.innerHTML = multiLine([{ label: 'Effekt', color: '#d8bb72', points: pts }], { zero: true }); }).catch(e => fail(p, e));
+    hist(H.power, 48).then(pts => { p.innerHTML = multiLine([{ label: 'Effekt', color: TC('gold'), points: pts }], { zero: true }); }).catch(e => fail(p, e));
     Promise.all([daily(H.energy_total, 'change'), daily(H.outdoor, 'mean').catch(() => [])]).then(([b, l]) => { d.innerHTML = barsWithLine(b, l); }).catch(e => fail(d, e));
   }
 

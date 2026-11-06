@@ -2,6 +2,8 @@
 // Styrningen går via servern, som bara släpper igenom vitlistade entiteter.
 (() => {
   'use strict';
+  // Temafärg från CSS-variabel (temat sätts av theme.js)
+  const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
   const VERSION = '0.10.0';
   const $ = id => document.getElementById(id);
   let C = {}, states = {}, connected = false;
@@ -287,7 +289,7 @@
     let d = '', prev = null;
     for (const [t, v] of points.filter(p => p[0] >= t0)) { const yy = y(v / 1000); d += prev == null ? `M${x(t)},${yy}` : `L${x(t)},${prev}L${x(t)},${yy}`; prev = yy; }
     if (prev != null) d += `L${x(t1)},${prev}`;
-    return `<svg viewBox="0 0 ${Wd} ${Hh}" preserveAspectRatio="none" class="so-big">${g}<path class="ar" fill="#aebf91" style="opacity:.18" d="${d}L${x(t1)},${y(0)}L${pl},${y(0)}Z"/><path class="ln" stroke="#aebf91" d="${d}"/></svg>`;
+    return `<svg viewBox="0 0 ${Wd} ${Hh}" preserveAspectRatio="none" class="so-big">${g}<path class="ar" fill="${TC('sage')}" style="opacity:.18" d="${d}L${x(t1)},${y(0)}L${pl},${y(0)}Z"/><path class="ln" stroke="${TC('sage')}" d="${d}"/></svg>`;
   }
   async function loadCharts() {
     const pc = $('power-chart');

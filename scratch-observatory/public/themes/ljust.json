@@ -1,0 +1,19 @@
+{
+ "name": "Ljust",
+ "scheme": "light",
+ "vars": {
+  "bg": "#f1efe8",
+  "panel": "#fbfaf6",
+  "panel2": "rgba(251,250,246,.88)",
+  "line": "#dad6ca",
+  "line2": "#c3bfb0",
+  "text": "#1e231c",
+  "muted": "#5c6555",
+  "dim": "#878e7c",
+  "sage": "#5f7d3c",
+  "orange": "#c2612f",
+  "gold": "#9c7a23",
+  "blue": "#3b7b83",
+  "red": "#b84536"
+ }
+}

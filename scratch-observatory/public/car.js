@@ -2,6 +2,8 @@
 // Styrningen går via servern, som bara släpper igenom vitlistade entiteter och skript.
 (() => {
   'use strict';
+  // Temafärg från CSS-variabel (temat sätts av theme.js)
+  const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
   const VERSION = '0.12.1';
   const $ = id => document.getElementById(id);
   let C = {}, states = {}, connected = false;
@@ -243,7 +245,7 @@
   // ---------- Körning ----------
   const DAYKEYS = ['engine_consumption', 'climate_consumption', 'onboard_electronics_consumption', 'battery_care_consumption'];
   const DAYLBL = { engine_consumption: 'Drivlina', climate_consumption: 'Klimat', onboard_electronics_consumption: 'Elektronik', battery_care_consumption: 'Batterivård' };
-  const DAYCOL = { engine_consumption: '#aebf91', climate_consumption: '#e0895a', onboard_electronics_consumption: '#8fb7ba', battery_care_consumption: '#d8bb72' };
+  const DAYCOL = { engine_consumption: TC('sage'), climate_consumption: TC('orange'), onboard_electronics_consumption: TC('blue'), battery_care_consumption: TC('gold') };
   function dailyRows() {
     const a = attrs(C.daily_stats);
     return Object.keys(a).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().map(k => ({ day: k, ...a[k] }));
@@ -366,7 +368,7 @@
     if (!sc.innerHTML) sc.innerHTML = '<div class="eyebrow">Laddnivå · 7 dygn <span style="float:right">%</span></div><div class="body"><div class="empty">Hämtar …</div></div>';
     const hp = id => getJSON(`api/history?entity=${encodeURIComponent(id)}&hours=168`).then(h => h.points.map(([t, v]) => [tsOf(t), v]).filter(p => Number.isFinite(p[1])));
     try { [socPts, kiaPts] = await Promise.all([hp(C.soc).catch(() => []), hp(C.soc_kia).catch(() => [])]);
-      sc.querySelector('.body').innerHTML = lineChart([{ label: 'Tibber (direkt från bilen)', color: '#aebf91', points: socPts }, { label: 'Kia-molnet', color: '#8fb7ba', dash: true, points: kiaPts }], 168);
+      sc.querySelector('.body').innerHTML = lineChart([{ label: 'Tibber (direkt från bilen)', color: TC('sage'), points: socPts }, { label: 'Kia-molnet', color: TC('blue'), dash: true, points: kiaPts }], 168);
     } catch (e) { sc.querySelector('.body').innerHTML = `<div class="empty">Kunde inte hämta (${esc(e.message)}).</div>`; }
     try { const m = await getJSON(`api/monthly?entity=${encodeURIComponent(C.odometer)}&months=13`); months = m.points.map(([t, v]) => [tsOf(t), v]); } catch (e) { console.error(e); }
     try { renderMonths(); } catch (e) { console.error(e); }

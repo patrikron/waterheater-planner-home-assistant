@@ -3,13 +3,13 @@
 .t-hero{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
 .t-hero .hbig{transition:color .4s}
 .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px}
-.ttile{display:flex;flex-direction:column;align-items:stretch;gap:3px;text-align:left;padding:10px 12px 8px;background:#121712;border:1px solid var(--line);border-left:3px solid var(--tc);border-radius:5px;cursor:pointer;min-width:0}
-.ttile:hover{background:#171d16;border-color:var(--line2);border-left-color:var(--tc)}
-.ttile.sel{border-color:var(--gold);border-left-color:var(--tc);background:#1a1f15}
+.ttile{display:flex;flex-direction:column;align-items:stretch;gap:3px;text-align:left;padding:10px 12px 8px;background:var(--c-121712);border:1px solid var(--line);border-left:3px solid var(--tc);border-radius:5px;cursor:pointer;min-width:0}
+.ttile:hover{background:var(--c-171d16);border-color:var(--line2);border-left-color:var(--tc)}
+.ttile.sel{border-color:var(--gold);border-left-color:var(--tc);background:var(--c-1a1f15)}
 .ttile.off{opacity:.55}
 .tt-h{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
 .tt-h span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tt-h .bat{font-style:normal;font:9.5px var(--mono);color:#e8cf8e;border:1px solid #6b5f35;border-radius:3px;padding:1px 4px}
+.tt-h .bat{font-style:normal;font:9.5px var(--mono);color:var(--c-e8cf8e);border:1px solid var(--c-6b5f35);border-radius:3px;padding:1px 4px}
 .tt-v{font-size:28px;font-weight:700;letter-spacing:-.5px;color:var(--tc);line-height:1.05}
 .ttile.off .tt-v{font-size:15px;color:var(--dim);padding:8px 0 5px}
 .tt-v small{font-size:13px;color:var(--muted);font-weight:500;margin-left:2px}
@@ -30,7 +30,7 @@
 .ttable th{text-align:left;padding:0 8px 6px;border-bottom:1px solid var(--line);font:9.5px var(--mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:400}
 .ttable th button{background:none;border:0;padding:0;font:9.5px var(--mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
 .ttable th button.on{color:var(--gold)}
-.ttable td{padding:6px 8px;border-bottom:1px dashed #222b21;white-space:nowrap}
+.ttable td{padding:6px 8px;border-bottom:1px dashed var(--c-222b21);white-space:nowrap}
 .ttable td i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
 .ttable tr.off td{color:var(--dim)}
 .ttable td.wet{color:var(--blue);font-weight:600}

@@ -1,25 +1,25 @@
 /* Laddboxsidan */
 .chw{width:170px}
 .chsvg{width:170px;height:150px;display:block}
-.chsvg .cbx{fill:#151b14;stroke:#4c5a46;stroke-width:1.5}
-.chsvg .ring{fill:none;stroke:#3a4838;stroke-width:3}
-.chsvg .bolt{fill:#6c7a64}
-.chsvg .led{fill:#2a3328}
-.chsvg .cable{fill:none;stroke:#3e4a3b;stroke-width:6;stroke-linecap:round}
-.chsvg .cable.idle{stroke:#2e382c}
-.chsvg .plug{fill:#1d241c;stroke:#5c6b55;stroke-width:1.5}.chsvg .plug.idle{stroke:#3a4838}
-.chsvg .pin{fill:#5c6b55}
-.chsvg .flow{fill:none;stroke:#cfe0b4;stroke-width:2.2;stroke-dasharray:3 22;stroke-linecap:round;animation:dash 1.2s linear infinite}
-.chsvg.live .ring{stroke:var(--sage);filter:drop-shadow(0 0 6px rgba(174,191,145,.5))}
+.chsvg .cbx{fill:var(--c-151b14);stroke:var(--c-4c5a46);stroke-width:1.5}
+.chsvg .ring{fill:none;stroke:var(--line2);stroke-width:3}
+.chsvg .bolt{fill:var(--c-6c7a64)}
+.chsvg .led{fill:var(--c-2a3328)}
+.chsvg .cable{fill:none;stroke:var(--c-3e4a3b);stroke-width:6;stroke-linecap:round}
+.chsvg .cable.idle{stroke:var(--c-2e382c)}
+.chsvg .plug{fill:var(--c-1d241c);stroke:var(--c-5c6b55);stroke-width:1.5}.chsvg .plug.idle{stroke:var(--line2)}
+.chsvg .pin{fill:var(--c-5c6b55)}
+.chsvg .flow{fill:none;stroke:var(--c-cfe0b4);stroke-width:2.2;stroke-dasharray:3 22;stroke-linecap:round;animation:dash 1.2s linear infinite}
+.chsvg.live .ring{stroke:var(--sage);filter:drop-shadow(0 0 6px color-mix(in srgb,var(--sage) 50%,transparent))}
 .chsvg.live .bolt{fill:var(--sage)}
 .chsvg.live .led{fill:var(--sage);animation:pulse 2s infinite}
-.chsvg.live .cable{stroke:#4a603b}
+.chsvg.live .cable{stroke:var(--c-4a603b)}
 .ch-hero .hbig{color:var(--sage)}
-.hstatus.chg{border-color:#4a603b;background:#1d2a1b;color:#dfeccc}.hstatus.chg i{background:var(--sage)}
-.hstatus.err{border-color:#c0503f;background:#3a1a15;color:#fff}.hstatus.err i{background:#e06a55}
+.hstatus.chg{border-color:var(--c-4a603b);background:var(--c-1d2a1b);color:var(--c-dfeccc)}.hstatus.chg i{background:var(--sage)}
+.hstatus.err{border-color:var(--c-c0503f);background:var(--c-3a1a15);color:#fff}.hstatus.err i{background:var(--c-e06a55)}
 .soc-wide{grid-column:1/-1;margin-top:2px}
-.socbar{position:relative;height:12px;border-radius:6px;background:#1c231b;overflow:visible}
-.socbar span{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#6c8257,var(--sage))}
+.socbar{position:relative;height:12px;border-radius:6px;background:var(--c-1c231b);overflow:visible}
+.socbar span{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--c-6c8257),var(--sage))}
 .socbar i{position:absolute;top:-4px;width:2px;height:20px;background:var(--gold);border-radius:1px}
 .soc-l{display:flex;justify-content:space-between;font:10px var(--mono);letter-spacing:.8px;color:var(--muted);margin-top:6px;text-transform:uppercase}
 
@@ -32,14 +32,14 @@
 .stp b{font-size:22px;font-weight:700;min-width:58px;text-align:center}
 .stp b small{font-size:12px;color:var(--muted);font-weight:500;margin-left:2px}
 .stp b.pending{animation:blink 1s ease-in-out infinite}
-.ch-ctl select{background:#141914;color:var(--text);border:1px solid var(--line2);border-radius:4px;padding:7px 10px;font:12px system-ui,sans-serif}
+.ch-ctl select{background:var(--c-141914);color:var(--text);border:1px solid var(--line2);border-radius:4px;padding:7px 10px;font:12px system-ui,sans-serif}
 .ch-ctl select.pending{animation:blink 1s ease-in-out infinite}
 .ph{margin-bottom:10px}
 .phh{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px}
 .phh span{font:10px var(--mono);letter-spacing:1.2px;color:var(--muted)}
 .phh b small{font-size:.65em;color:var(--muted);margin-left:2px;font-weight:500}
-.b-chg{fill:#aebf91;opacity:.75}.b-chg:hover{opacity:1}
-.legend .l-chg{background:#aebf91}
+.b-chg{fill:var(--sage);opacity:.75}.b-chg:hover{opacity:1}
+.legend .l-chg{background:var(--sage)}
 #power-chart .so-big{height:220px}
 @media (max-width:900px){.ch-ctl{grid-template-columns:1fr}.chw,.chsvg{width:130px}.chsvg{height:115px}}
 @media (max-width:700px){.ch-ctl .crow{grid-template-columns:1fr}.chw{grid-column:1/-1;justify-self:center}}

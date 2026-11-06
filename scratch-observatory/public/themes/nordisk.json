@@ -1,0 +1,19 @@
+{
+ "name": "Nordisk blå",
+ "scheme": "dark",
+ "vars": {
+  "bg": "#0b1017",
+  "panel": "#111923",
+  "panel2": "rgba(11,17,25,.82)",
+  "line": "#223040",
+  "line2": "#32455a",
+  "text": "#e5ecf4",
+  "muted": "#91a2b4",
+  "dim": "#647589",
+  "sage": "#8fc3a5",
+  "orange": "#e39a6b",
+  "gold": "#d9c27a",
+  "blue": "#7fb4e0",
+  "red": "#e47c7c"
+ }
+}

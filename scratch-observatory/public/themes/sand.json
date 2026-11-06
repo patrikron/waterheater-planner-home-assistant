@@ -1,0 +1,19 @@
+{
+ "name": "Sand",
+ "scheme": "dark",
+ "vars": {
+  "bg": "#14100b",
+  "panel": "#1b1610",
+  "panel2": "rgba(23,18,12,.82)",
+  "line": "#392f23",
+  "line2": "#4c3f2e",
+  "text": "#f0e6d6",
+  "muted": "#b2a38a",
+  "dim": "#7c6f5b",
+  "sage": "#b5bf83",
+  "orange": "#e8935b",
+  "gold": "#e2c072",
+  "blue": "#9bbcb5",
+  "red": "#e2786a"
+ }
+}

@@ -2,6 +2,8 @@
 // Styrningen går via servern, som bara släpper igenom vitlistade brytare, termostaten och passlängden.
 (() => {
   'use strict';
+  // Temafärg från CSS-variabel (temat sätts av theme.js)
+  const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
   const VERSION = '0.13.0';
   const $ = id => document.getElementById(id);
   let S = {}, states = {}, connected = false;
@@ -337,7 +339,7 @@
         getJSON(`api/history?entity=${encodeURIComponent(S.climate)}&hours=${range}&attr=current_temperature`),
         getJSON(`api/history?entity=${encodeURIComponent(S.climate)}&hours=${range}&attr=temperature`).catch(() => ({ points: [] }))]);
       const wp = wt.points.map(([t, v]) => [tsOf(t), v]);
-      el.querySelector('.body').innerHTML = lineChart([{ label: 'Vatten', color: '#8fb7ba', points: wp }, { label: 'Mål', color: '#e0895a', points: tg.points.map(([t, v]) => [tsOf(t), v]), dash: true }], wt.heating || []);
+      el.querySelector('.body').innerHTML = lineChart([{ label: 'Vatten', color: TC('blue'), points: wp }, { label: 'Mål', color: TC('orange'), points: tg.points.map(([t, v]) => [tsOf(t), v]), dash: true }], wt.heating || []);
       if (range >= 48) measureRate(wp, wt.heating || []);
     } catch (e) { el.querySelector('.body').innerHTML = `<div class="empty">Kunde inte hämta (${esc(e.message)}).</div>`; }
   }

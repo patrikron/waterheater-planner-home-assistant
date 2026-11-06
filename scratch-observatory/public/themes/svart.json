@@ -1,0 +1,19 @@
+{
+ "name": "Svart",
+ "scheme": "dark",
+ "vars": {
+  "bg": "#000000",
+  "panel": "#0b0b0b",
+  "panel2": "rgba(0,0,0,.78)",
+  "line": "#232323",
+  "line2": "#343434",
+  "text": "#ededed",
+  "muted": "#9c9c9c",
+  "dim": "#6b6b6b",
+  "sage": "#aebf91",
+  "orange": "#e0895a",
+  "gold": "#d8bb72",
+  "blue": "#8fb7ba",
+  "red": "#e07a6a"
+ }
+}

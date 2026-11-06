@@ -1,6 +1,8 @@
 // Solcellssidan: allt från solpanelsrutan plus historik, rekord och månadsjämförelser.
 (() => {
   'use strict';
+  // Temafärg från CSS-variabel (temat sätts av theme.js)
+  const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
   const VERSION = '0.8.0';
   const $ = id => document.getElementById(id);
   let cfg = {}, S = {}, states = {}, connected = false, money = null;
@@ -172,15 +174,15 @@
       const tp = p.filter(q => q[0] >= mid.getTime());
       if (tp.length) { const m = tp.reduce((a, q) => q[1] > a[1] ? q : a); peakToday = { t: m[0], v: m[1] }; renderHero(); }
       el.querySelector('.dchart').innerHTML = multiLine([
-        { label: 'Produktion', color: '#d8bb72', points: p, fill: true },
+        { label: 'Produktion', color: TC('gold'), points: p, fill: true },
         { label: 'Prognos (Growatt)', color: '#9fb4c8', points: f, dash: true },
-        { label: 'Husets förbrukning', color: '#e0895a', points: l },
+        { label: 'Husets förbrukning', color: TC('orange'), points: l },
       ], { div: 1000 });
     } catch (e) { el.querySelector('.dchart').innerHTML = `<div class="empty">Kunde inte hämta (${esc(e.message)}).</div>`; }
     try {
       const [a, b, t] = await Promise.all([histPts(cfg.solar_1, 24), histPts(cfg.solar_2, 24), histPts(cfg.inverter_temp, 24).catch(() => [])]);
       $('strings-chart').innerHTML = '<div class="eyebrow">Sträng 1 mot sträng 2, 24 h <span style="float:right">kW</span></div>' +
-        multiLine([{ label: 'Sträng 1', color: '#e0895a', points: a }, { label: 'Sträng 2', color: '#aebf91', points: b }], { div: 1000, small: true });
+        multiLine([{ label: 'Sträng 1', color: TC('orange'), points: a }, { label: 'Sträng 2', color: TC('sage'), points: b }], { div: 1000, small: true });
       $('inverter-chart').innerHTML = '<div class="eyebrow">Temperatur, 24 h <span style="float:right">°C</span></div>' +
         multiLine([{ label: 'Växelriktarens temperatur', color: '#c98f6a', points: t }], { floor: true, small: true });
     } catch (e) { $('strings-chart').innerHTML = `<div class="empty">Kunde inte hämta strängdata (${esc(e.message)}).</div>`; }
@@ -214,7 +216,7 @@
     const byYear = {};
     for (const [t, v] of pts) { const d = new Date(t); (byYear[d.getFullYear()] = byYear[d.getFullYear()] || Array(12).fill(null))[d.getMonth()] = v; }
     const years = Object.keys(byYear).map(Number).sort().slice(-3);
-    const colors = ['#5f6f57', '#9fb4c8', '#d8bb72'].slice(-years.length);
+    const colors = ['#5f6f57', '#9fb4c8', TC('gold')].slice(-years.length);
     const Wd = 1100, Hh = 250, pl = 40, pr = 8, pt = 12, pb = 24;
     const hi = Math.max(...years.flatMap(yr => byYear[yr].map(v => v || 0))) * 1.1 || 1, gw = (Wd - pl - pr) / 12, bw = gw * .78 / years.length;
     const y = v => pt + (hi - v) / hi * (Hh - pt - pb);

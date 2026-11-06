@@ -2,7 +2,7 @@
 // Håller HA-token på serversidan, prenumererar på HA:s WebSocket-API och
 // skickar bara de entiteter som står i config.json vidare till webbläsaren.
 import http from 'node:http';
-import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, rename, mkdir, readdir, unlink } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +31,7 @@ const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { 
 const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger), ...collectIds(CONFIG.car), ...collectIds(CONFIG.temps), ...collectIds(CONFIG.spa)]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
+const THEME_DIR = join(DATA_DIR, 'themes'), THEME_DEFAULT = join(DATA_DIR, 'theme-default.json');
 const STATS_IDS = new Set([CONFIG.card.solar, CONFIG.card.load, CONFIG.card.grid].filter(Boolean));
 const ATTR_ALLOW = CONFIG.attributes || {};
 const BASE_ATTRS = ['unit_of_measurement', 'friendly_name', 'device_class'];
@@ -306,6 +307,66 @@ async function control(body) {
   return { ok: true };
 }
 
+// ---------- Teman ----------
+// Inbyggda teman ligger i public/themes/*.json, egna sparas i data/themes/*.json (inget bygge behövs).
+// Ett tema är bara färger: vitlistade variabelnamn och färgvärden som kontrolleras strikt.
+const THEME_VARS = ['bg', 'panel', 'panel2', 'line', 'line2', 'text', 'muted', 'dim', 'sage', 'orange', 'gold', 'blue', 'red'];
+const COLOR_RE = /^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+)\s*)?\))$/;
+const THEME_ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
+function cleanTheme(t, id, builtin) {
+  if (!t || typeof t !== 'object') return null;
+  const vars = {};
+  for (const k of THEME_VARS) if (typeof (t.vars || {})[k] === 'string' && COLOR_RE.test(t.vars[k].trim())) vars[k] = t.vars[k].trim();
+  return { id, name: String(t.name || id).slice(0, 40), scheme: t.scheme === 'light' ? 'light' : 'dark', builtin, vars };
+}
+async function readThemes(dir, builtin) {
+  let files = [];
+  try { files = (await readdir(dir)).filter(f => f.endsWith('.json')); } catch { return []; }
+  const out = [];
+  for (const f of files.sort()) {
+    const id = f.slice(0, -5); if (!THEME_ID_RE.test(id)) continue;
+    try { const t = cleanTheme(JSON.parse(await readFile(join(dir, f), 'utf8')), id, builtin); if (t) out.push(t); } catch {}
+  }
+  return out;
+}
+async function listThemes() {
+  const builtin = await readThemes(join(PUBLIC, 'themes'), true), own = await readThemes(THEME_DIR, false);
+  const ids = new Set(builtin.map(t => t.id));
+  let def = 'standard';
+  try { const d = JSON.parse(await readFile(THEME_DEFAULT, 'utf8')).id; if (THEME_ID_RE.test(d)) def = d; } catch {}
+  builtin.sort((a, b) => (a.id === 'standard' ? -1 : b.id === 'standard' ? 1 : 0));
+  return { default: def, vars: THEME_VARS, themes: [...builtin, ...own.filter(t => !ids.has(t.id))] };
+}
+async function themePost(body) {
+  const { action, id } = body || {};
+  if (typeof id !== 'string' || !THEME_ID_RE.test(id)) throw Object.assign(new Error('Ogiltigt tema-id (a–z, 0–9 och -)'), { code: 400 });
+  const builtin = (await readThemes(join(PUBLIC, 'themes'), true)).some(t => t.id === id);
+  if (action === 'save') {
+    if (builtin) throw Object.assign(new Error('Inbyggda teman kan inte skrivas över, välj ett annat namn'), { code: 400 });
+    const t = cleanTheme(body.theme, id, false);
+    if (!t || Object.keys(t.vars).length < 5) throw Object.assign(new Error('Temat saknar färger'), { code: 400 });
+    if ((await readThemes(THEME_DIR, false)).length >= 50 && !(await readThemes(THEME_DIR, false)).some(x => x.id === id)) throw Object.assign(new Error('Max 50 egna teman'), { code: 400 });
+    await mkdir(THEME_DIR, { recursive: true });
+    const file = join(THEME_DIR, id + '.json'), tmp = file + '.tmp';
+    await writeFile(tmp, JSON.stringify({ name: t.name, scheme: t.scheme, vars: t.vars, saved: new Date().toISOString() }, null, 1));
+    await rename(tmp, file);
+    return { ok: true };
+  }
+  if (action === 'delete') {
+    if (builtin) throw Object.assign(new Error('Inbyggda teman kan inte tas bort'), { code: 400 });
+    try { await unlink(join(THEME_DIR, id + '.json')); } catch {}
+    return { ok: true };
+  }
+  if (action === 'default') {
+    const all = await listThemes();
+    if (!all.themes.some(t => t.id === id)) throw Object.assign(new Error('Temat finns inte'), { code: 404 });
+    await mkdir(DATA_DIR, { recursive: true });
+    await writeFile(THEME_DEFAULT, JSON.stringify({ id }));
+    return { ok: true };
+  }
+  throw Object.assign(new Error('Okänd åtgärd'), { code: 400 });
+}
+
 // ---------- HTTP ----------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.ico': 'image/x-icon', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg' };
@@ -392,6 +453,13 @@ const server = http.createServer(async (req, res) => {
       await rename(tmp, LAYOUT_FILE);
       return json(res, 200, { ok: true });
     }
+    if (url.pathname === '/api/themes' && req.method === 'POST') {
+      if (!(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'JSON krävs' });
+      const origin = req.headers.origin;
+      let sameOrigin = true; if (origin) { try { sameOrigin = new URL(origin).host === req.headers.host; } catch { sameOrigin = false; } }
+      if (!sameOrigin) return json(res, 403, { error: 'Fel ursprung' });
+      return json(res, 200, await themePost(JSON.parse(await readBody(req, 8192))));
+    }
     if (url.pathname === '/api/control' && req.method === 'POST') {
       if (!(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'JSON krävs' });
       const origin = req.headers.origin;
@@ -413,6 +481,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/car') return json(res, 200, CONFIG.car || {});
     if (url.pathname === '/api/temps') return json(res, 200, CONFIG.temps || {});
     if (url.pathname === '/api/spa') return json(res, 200, CONFIG.spa || {});
+    if (url.pathname === '/api/themes') return json(res, 200, await listThemes());
     if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours')), url.searchParams.get('attr') || ''));
@@ -438,7 +507,7 @@ const server = http.createServer(async (req, res) => {
     res.end(body);
   } catch (e) {
     if (e.code === 'ENOENT') { res.writeHead(404); return res.end('Hittades inte'); }
-    if ([400, 403, 413, 429].includes(e.code)) return json(res, e.code, { error: e.message });
+    if ([400, 403, 404, 413, 429].includes(e.code)) return json(res, e.code, { error: e.message });
     if (e instanceof SyntaxError) return json(res, 400, { error: 'Ogiltig JSON' });
     json(res, 502, { error: e.message });
   }

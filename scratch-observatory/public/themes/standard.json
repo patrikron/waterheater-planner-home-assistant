@@ -1,0 +1,19 @@
+{
+ "name": "Standard",
+ "scheme": "dark",
+ "vars": {
+  "bg": "#0d100e",
+  "panel": "#131814",
+  "panel2": "rgba(14,18,15,.82)",
+  "line": "#2b352b",
+  "line2": "#3a4838",
+  "text": "#e7eadf",
+  "muted": "#98a48d",
+  "dim": "#6f7b66",
+  "sage": "#aebf91",
+  "orange": "#e0895a",
+  "gold": "#d8bb72",
+  "blue": "#8fb7ba",
+  "red": "#e07a6a"
+ }
+}

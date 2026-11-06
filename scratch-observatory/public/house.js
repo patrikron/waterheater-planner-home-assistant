@@ -2,6 +2,8 @@
 // Positioner anges i procent av fotot. Layouten kan redigeras och sparas på servern.
 (() => {
   'use strict';
+  // Temafärg från CSS-variabel (temat sätts av theme.js)
+  const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
   const VERSION = '0.12.3';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
@@ -424,27 +426,27 @@
   const DRAWERS = {
     solar: { eyebrow: 'Sol / produktion', title: 'Solpaneler', wide: true, rich: solarRich, stats: () => [],
       charts: () => [
-        { title: 'Produktion mot prognos', unit: 'kW', div: 1000, series: [[cfg.solar, 'Produktion', '#d8bb72'], [cfg.pv_predicted, 'Prognos', '#9fb4c8', 'dash']], peak: true },
-        { title: 'Sträng 1 mot sträng 2', unit: 'kW', div: 1000, series: [[cfg.solar_1, 'Sträng 1', '#e0895a'], [cfg.solar_2, 'Sträng 2', '#aebf91']] },
+        { title: 'Produktion mot prognos', unit: 'kW', div: 1000, series: [[cfg.solar, 'Produktion', TC('gold')], [cfg.pv_predicted, 'Prognos', '#9fb4c8', 'dash']], peak: true },
+        { title: 'Sträng 1 mot sträng 2', unit: 'kW', div: 1000, series: [[cfg.solar_1, 'Sträng 1', TC('orange')], [cfg.solar_2, 'Sträng 2', TC('sage')]] },
         [cfg.inverter_temp, 'Växelriktarens temperatur', '#c98f6a', 1, '°C'],
       ], extra: () => '<a class="btn primary-link" href="solceller.html">Öppna solcellssidan →</a>' },
     house: { eyebrow: 'Huset / förbrukning', title: 'Huset', stats: () => [
       ['Förbrukning', kw(num(cfg.load)), 'kW'], ['Idag', nf(num(cfg.load_today)), 'kWh'],
       ['Inne', nf(num(cfg.indoor)), '°C'], ['Varmvatten', nf(num(cfg.hot_water, 'temperature')), '°C']],
-      charts: () => [[cfg.load, 'Förbrukning', '#aebf91', 1000, 'kW']] },
+      charts: () => [[cfg.load, 'Förbrukning', TC('sage'), 1000, 'kW']] },
     grid: { eyebrow: 'Elnät / import & export', title: 'Elnät', stats: () => [
       ['Nät nu', kw(num(cfg.grid)), num(cfg.grid) < 0 ? 'kW ut' : 'kW in'], ['Elpris', nf(num(cfg.price), 2), 'kr/kWh'],
       ['Köpt idag', nf(num(cfg.grid_in_today)), 'kWh'], ['Sålt idag', nf(num(cfg.grid_out_today)), 'kWh'],
       ['Elkostnad idag', nf(num(cfg.cost_today), 2), 'kr']],
-      charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', '#8fb7ba', 1000, 'kW']] },
+      charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']] },
     heatpump: { eyebrow: 'Klimat / värmepump', title: 'Värmepump', stats: () => [
       ['Effekt', num(cfg.heatpump) == null ? '–' : Math.round(num(cfg.heatpump)).toLocaleString('sv-SE'), 'W'],
       ['Inne', nf(num(cfg.indoor)), '°C'], ['Ute', nf(outdoorTemp()), '°C']],
-      charts: () => [[cfg.heatpump, 'Effekt', '#e0895a', 1, 'W'], [cfg.indoor, 'Inomhustemperatur', '#aebf91', 1, '°C']],
+      charts: () => [[cfg.heatpump, 'Effekt', TC('orange'), 1, 'W'], [cfg.indoor, 'Inomhustemperatur', TC('sage'), 1, '°C']],
       extra: () => '<a class="btn primary-link" href="varmepump.html">Öppna luftvärmepumpssidan →</a>' },
     garage: { eyebrow: 'Garage / laddning', title: 'Laddbox & EV6', stats: () => [
       ['Laddeffekt', kw(num(cfg.charger)), 'kW'], ['EV6', num(cfg.ev_soc) == null ? '–' : Math.round(num(cfg.ev_soc)), '%']],
-      charts: () => [[cfg.charger, 'Laddeffekt', '#aebf91', 1000, 'kW'], [cfg.ev_soc, 'EV6 laddnivå', '#8fb7ba', 1, '%']],
+      charts: () => [[cfg.charger, 'Laddeffekt', TC('sage'), 1000, 'kW'], [cfg.ev_soc, 'EV6 laddnivå', TC('blue'), 1, '%']],
       extra: () => '<a class="btn primary-link" href="laddbox.html">Öppna laddboxsidan →</a> <a class="btn primary-link" href="ev6.html">Öppna EV6-sidan →</a>' },
     hotwater: { eyebrow: 'Värme / varmvatten', title: 'Varmvattenberedare', stats: () => {
       const s = st(cfg.hot_water);
@@ -454,7 +456,7 @@
     ftx: { eyebrow: 'Ventilation / FTX', title: 'FTX-aggregatet', stats: () => [
       ['Tilluft', nf(num(FX.supply)), '°C'], ['Frånluft', nf(num(FX.extract)), '°C'], ['Ute', nf(num(FX.outdoor)), '°C'],
       ['Verkningsgrad', nf(num(FX.efficiency), 0), '%'], ['Fläktnivå', num(FX.fan_level) == null ? '–' : Math.round(num(FX.fan_level)), ''], ['Effekt', num(FX.power) == null ? '–' : Math.round(num(FX.power)), 'W']],
-      charts: () => [{ title: 'Tilluft mot frånluft och ute', unit: '°C', div: 1, series: [[FX.supply, 'Tilluft', '#e0895a'], [FX.extract, 'Frånluft', '#d8bb72'], [FX.outdoor, 'Ute', '#8fb7ba']] }],
+      charts: () => [{ title: 'Tilluft mot frånluft och ute', unit: '°C', div: 1, series: [[FX.supply, 'Tilluft', TC('orange')], [FX.extract, 'Frånluft', TC('gold')], [FX.outdoor, 'Ute', TC('blue')]] }],
       extra: () => '<a class="btn primary-link" href="ftx.html">Öppna FTX-sidan →</a>' },
     veranda: { eyebrow: 'Uterummet', title: 'Uterummet', stats: () => [['Ute', nf(outdoorTemp()), '°C']], charts: () => [],
       note: 'Här finns inga sensorer kopplade ännu. Säg till vilka entiteter som hör till uterummet.' },
@@ -465,7 +467,7 @@
     }, charts: () => [], extra: () => {
       const s = st(cfg.price); const arr = s && Array.isArray(s.attributes.today) ? s.attributes.today.map(Number) : [];
       const start = new Date(); start.setHours(0, 0, 0, 0);
-      return chartBlock('Elpris idag (kr/kWh)', arr.map((v, i) => [start.getTime() + i * 86400000 / arr.length, v]), '#e0895a', 1, 'kr', true).replace('<div class="dchart">', '<div class="dchart" id="price-chart">');
+      return chartBlock('Elpris idag (kr/kWh)', arr.map((v, i) => [start.getTime() + i * 86400000 / arr.length, v]), TC('orange'), 1, 'kr', true).replace('<div class="dchart">', '<div class="dchart" id="price-chart">');
     } },
   };
   let drawerOpen = null;

@@ -2,6 +2,8 @@
 // Styrningen går via servern, som bara släpper igenom vitlistade brytare och börvärdet.
 (() => {
   'use strict';
+  // Temafärg från CSS-variabel (temat sätts av theme.js)
+  const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
   const VERSION = '0.9.0';
   const $ = id => document.getElementById(id);
   let F = {}, states = {}, connected = false;
@@ -257,7 +259,7 @@
     if (!tc.innerHTML) tc.innerHTML = '<div class="eyebrow">Temperaturer genom aggregatet · 24 h <span style="float:right">°C</span></div><div class="body"><div class="empty">Hämtar …</div></div>';
     if (!ec.innerHTML) ec.innerHTML = '<div class="eyebrow">Verkningsgrad och utetemperatur · 48 h</div><div class="body"><div class="empty">Hämtar …</div></div>';
     try {
-      const ids = [[F.outdoor, 'Uteluft', '#8fb7ba'], [F.supply, 'Tilluft', '#e0895a'], [F.extract, 'Frånluft', '#d8bb72'], [F.exhaust, 'Avluft', '#7b8873']];
+      const ids = [[F.outdoor, 'Uteluft', TC('blue')], [F.supply, 'Tilluft', TC('orange')], [F.extract, 'Frånluft', TC('gold')], [F.exhaust, 'Avluft', '#7b8873']];
       const res = await Promise.all(ids.map(([id]) => histPts(id, 24).catch(() => [])));
       tc.querySelector('.body').innerHTML = multiLine(ids.map(([, label, color], i) => ({ label, color, points: res[i] })));
     } catch (e) { tc.querySelector('.body').innerHTML = `<div class="empty">Kunde inte hämta (${esc(e.message)}).</div>`; }
@@ -265,7 +267,7 @@
       const [ef, out] = await Promise.all([histPts(F.efficiency, 48), histPts(F.outdoor, 48).catch(() => [])]);
       // Utetemperaturen ritas på samma skala (0–100) efter omskalning: −20…+30 °C → 0…100
       const sc = out.map(([t, v]) => [t, (v + 20) * 2]);
-      ec.querySelector('.body').innerHTML = multiLine([{ label: 'Temperaturverkningsgrad %', color: '#aebf91', points: ef }, { label: 'Ute (skala −20…30 °C)', color: '#8fb7ba', points: sc, dash: true }], { min: 0, max: 100, h: 200 });
+      ec.querySelector('.body').innerHTML = multiLine([{ label: 'Temperaturverkningsgrad %', color: TC('sage'), points: ef }, { label: 'Ute (skala −20…30 °C)', color: TC('blue'), points: sc, dash: true }], { min: 0, max: 100, h: 200 });
     } catch (e) { ec.querySelector('.body').innerHTML = `<div class="empty">Kunde inte hämta (${esc(e.message)}).</div>`; }
     try {
       const d = await getJSON(`api/daily?entity=${encodeURIComponent(F.energy_total)}&days=14`);
