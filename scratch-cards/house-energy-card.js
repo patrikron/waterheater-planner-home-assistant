@@ -29,6 +29,8 @@
  *   heatpump_today: sensor.daikinap97060_climatecontrol_daglig_energiforbrukning_for_varme
  *   room_temp: sensor.daikinap97060_climatecontrol_rumstemperatur
  *   outdoor_temp: sensor.daikinap97060_climatecontrol_utomhustemperatur
+ *   waterheater: sensor.varmvattenberedare_status        # waterheater-planner status sensor, a water_heater entity or a plain temp sensor
+ *   show_waterheater: true  # false hides the hot water pill
  *   weather: weather.smhi_home
  *   sun: sun.sun
  *   pv_peak: 10000          # W where the panels glow at full strength
@@ -40,7 +42,7 @@
  *   secondary_text: theme | bright | primary
  */
 
-const HE_VERSION = "0.4.4";
+const HE_VERSION = "0.5.0";
 
 const HE_DEFAULTS = {
   pv_power: "sensor.growatt_tl_x_xh_tl3_xh_pv_power",
@@ -65,6 +67,7 @@ const HE_DEFAULTS = {
   heatpump_today: "sensor.daikinap97060_climatecontrol_daglig_energiforbrukning_for_varme",
   room_temp: "sensor.daikinap97060_climatecontrol_rumstemperatur",
   outdoor_temp: "sensor.daikinap97060_climatecontrol_utomhustemperatur",
+  waterheater: "sensor.varmvattenberedare_status",
   weather: "weather.smhi_home",
   sun: "sun.sun",
 };
@@ -100,7 +103,7 @@ const GOE = { x0: 16.55, x1: 17.05, z0: 1.0, z1: 1.75 };
 const GROUND = { x0: -7, y0: -1.5, x1: 23, y1: 22.3 };
 const VB = { x: -262, y: -116, w: 478, h: 322 };
 // pill positions (bottom centre, scene units)
-const PILLS = { solar: [52, -62], grid: [-178, -58], house: [-150, 122], hp: [150, 22], car: [80, 192] };
+const PILLS = { solar: [52, -62], grid: [-178, -58], house: [-150, 150], hp: [150, 22], car: [80, 192], water: [-166, 96] };
 const roofPt = (u, t) => [u, H.y1 + H.ov - t * (H.y1 + H.ov - H.ridgeY), H.wall + t * (H.ridge - H.wall)];
 
 function heFmtW(w) {
@@ -121,6 +124,7 @@ class HouseEnergyCard extends HTMLElement {
         { type: "expandable", name: "", title: "Sol och nät", schema: ["pv_power", "grid_power", "load_power", "pv_today", "grid_in_today", "grid_out_today", "load_today", "grid_in_cost_today", "grid_out_comp_today", "pv_forecast_today", "price"].map((k) => e(k, "sensor")) },
         { type: "expandable", name: "", title: "Bil och laddbox", schema: ["charger_power", "charger_status", "charger_session", "car_soc", "car_range", "car_target"].map((k) => e(k, "sensor")) },
         { type: "expandable", name: "", title: "Värmepump", schema: [e("heatpump", "climate"), ...["heatpump_power", "heatpump_today", "room_temp", "outdoor_temp"].map((k) => e(k, "sensor"))] },
+        { type: "expandable", name: "", title: "Varmvatten", schema: [e("waterheater"), { name: "show_waterheater", selector: { boolean: {} } }] },
         { type: "expandable", name: "", title: "Himmel och utseende", schema: [e("weather", "weather"), e("sun", "sun"),
           { name: "pv_peak", selector: { number: { min: 1000, max: 30000, step: 500, unit_of_measurement: "W" } } },
           { name: "car_color", selector: { text: {} } },
@@ -131,7 +135,7 @@ class HouseEnergyCard extends HTMLElement {
   static getStubConfig() { return { name: "Huset" }; }
 
   setConfig(config) {
-    this._cfg = { name: "Huset", pv_peak: 10000, heatpump_on_w: 20, car_color: "#c8102e", secondary_text: "theme", show_header: true, show_stats: true, ...HE_DEFAULTS, ...config };
+    this._cfg = { name: "Huset", pv_peak: 10000, heatpump_on_w: 20, car_color: "#c8102e", secondary_text: "theme", show_header: true, show_stats: true, show_waterheater: true, ...HE_DEFAULTS, ...config };
     this._sceneKey = null;
     if (this._hass) this._render();
   }
@@ -160,9 +164,21 @@ class HouseEnergyCard extends HTMLElement {
     const hpMode = hp ? hp.state : "off";
     const hpOn = hpPower != null ? hpPower > c.heatpump_on_w : hpMode !== "off";
     const flow = grid > 30 ? "import" : grid < -30 ? "export" : "idle";
+    // hot water: waterheater-planner status sensor (attributes temperature / heater_on / power_w),
+    // a water_heater entity (current_temperature) or just a temperature sensor
+    const wh = c.show_waterheater === false ? undefined : this._st("waterheater");
+    let hwTemp = null, hwTarget = null, hwOn = false, hwPower = null;
+    if (wh) {
+      const a = wh.attributes || {};
+      const num = (v) => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+      hwTemp = num(a.temperature !== undefined && !String(c.waterheater).startsWith("water_heater.") ? a.temperature : a.current_temperature ?? wh.state);
+      hwTarget = num(String(c.waterheater).startsWith("water_heater.") ? a.temperature : a.target_temperature);
+      hwOn = a.heater_on !== undefined ? a.heater_on === true : /^(heating|boost)/.test(wh.state);
+      hwPower = hwOn ? num(a.power_w) : null;
+    }
     const speed = (w) => (w > 5000 ? 3 : w > 1500 ? 2 : 1);
     return {
-      pv, grid, load, night, sky, wx, flow, charging, plugged, chStatus, chPower, hpOn, hpMode, hpPower,
+      pv, grid, load, night, sky, wx, flow, hasWater: !!wh, hwTemp, hwTarget, hwOn, hwPower, charging, plugged, chStatus, chPower, hpOn, hpMode, hpPower,
       pvLevel: Math.min(1, pv / c.pv_peak),
       gridSpeed: speed(Math.abs(grid)), carSpeed: speed(chPower),
       soc: this._n("car_soc"), range: this._n("car_range"), target: this._n("car_target"), session: this._n("charger_session"),
@@ -187,7 +203,7 @@ class HouseEnergyCard extends HTMLElement {
     const d = this._data();
     const card = this.shadowRoot.querySelector("ha-card");
     card.className = `txt-${this._cfg.secondary_text}${this._cfg.show_header === false ? " no-head" : ""}${this._cfg.show_stats === false ? " no-stats" : ""}`;
-    const key = JSON.stringify([d.night, d.sky, d.flow, d.gridSpeed, d.charging, d.carSpeed, d.plugged, d.hpOn, d.pv > 20, Math.round(d.pvLevel * 10), this._cfg.car_color]);
+    const key = JSON.stringify([d.night, d.sky, d.flow, d.gridSpeed, d.charging, d.carSpeed, d.plugged, d.hpOn, d.hasWater, d.hwOn, d.pv > 20, Math.round(d.pvLevel * 10), this._cfg.car_color]);
     const wrap = this.shadowRoot.querySelector(".wrap");
     if (key !== this._sceneKey) {
       // keep the height while swapping content (iOS scroll lesson from the EV6 card)
@@ -202,7 +218,7 @@ class HouseEnergyCard extends HTMLElement {
   _tap(key) {
     const nav = this._cfg[`tap_${key}`];
     if (nav) { history.pushState(null, "", nav); window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } })); return; }
-    const map = { solar: "pv_power", grid: "grid_power", house: "load_power", car: "car_soc", charger: "charger_power", heatpump: "heatpump", in: "grid_in_today", out: "grid_out_today", pvday: "pv_today", load: "load_today" };
+    const map = { solar: "pv_power", grid: "grid_power", house: "load_power", car: "car_soc", charger: "charger_power", heatpump: "heatpump", water: "waterheater", in: "grid_in_today", out: "grid_out_today", pvday: "pv_today", load: "load_today" };
     const id = this._cfg[map[key] || key];
     if (id) this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId: id } }));
   }
@@ -230,6 +246,8 @@ class HouseEnergyCard extends HTMLElement {
     this._set(".p-hp b", d.hpPower != null ? heFmtW(d.hpPower) : HE_HVAC[d.hpMode] || d.hpMode);
     this._set(".p-hp span", `${HE_HVAC[d.hpMode] || d.hpMode}${d.room != null ? " · " + heNum(d.room, 1) + " °C" : ""}`);
 
+    this._set(".p-water b", d.hwTemp != null ? `${heNum(d.hwTemp, 1)} °C` : "–");
+    this._set(".p-water span", d.hwOn ? `Värmer${d.hwPower ? " · " + heFmtW(d.hwPower) : ""}` : d.hwTarget != null ? `Varmvatten · mål ${Math.round(d.hwTarget)}°` : "Varmvatten");
     this._set(".s-pv b", d.pvToday != null ? `${heNum(d.pvToday)} kWh` : "–");
     this._set(".s-pv .x", d.forecast != null ? `prognos ${heNum(d.forecast)} kWh` : "");
     this._set(".s-in b", d.inToday != null ? `${heNum(d.inToday)} kWh` : "–");
@@ -272,6 +290,7 @@ class HouseEnergyCard extends HTMLElement {
         ${pill("p-grid", "grid", "mdi:transmission-tower", PILLS.grid, d.flow)}
         ${pill("p-house", "house", "mdi:home-lightning-bolt", PILLS.house, "house")}
         ${pill("p-hp", "heatpump", d.hpMode === "cool" ? "mdi:snowflake" : d.hpMode === "heat" ? "mdi:heat-pump-outline" : "mdi:fan", PILLS.hp, d.hpOn ? "hp" : "dim")}
+        ${d.hasWater ? pill("p-water", "water", d.hwOn ? "mdi:water-boiler-alert" : "mdi:water-boiler", PILLS.water, d.hwOn ? "hw" : "dim") : ""}
         ${pill("p-car", "car", d.charging ? "mdi:ev-station" : "mdi:car-electric", PILLS.car, d.charging ? "car" : d.plugged ? "car idle" : "dim")}
       </div>${stats}`;
   }
@@ -350,6 +369,7 @@ class HouseEnergyCard extends HTMLElement {
     out.push(lead(up(PILLS.grid), pt, d.flow));
     out.push(lead([PILLS.house[0], PILLS.house[1] - 26], P(9.8, H.y1 + PORCH.depth - 0.3, 0.4), "house"));
     out.push(lead([PILLS.hp[0] - 30, PILLS.hp[1] - 4], P(HP.x1, HP.y0 + 0.5, HP.z1), d.hpOn ? "hp" : ""));
+    if (d.hasWater) out.push(lead([PILLS.water[0] + 40, PILLS.water[1] - 14], P(3.8, H.y1 + 0.02, 1.05), d.hwOn ? "hw" : ""));
     out.push(lead(up(PILLS.car, -10), P(CAR.x + CAR.w - 0.2, CAR.y + 1.8, 1.45), d.charging ? "car" : ""));
     out.push(`</svg>`);
     return out.join("");
@@ -587,7 +607,7 @@ class HouseEnergyCard extends HTMLElement {
 const HE_CSS = `
   :host { display: block; }
   ha-card { display: block; overflow: hidden; padding: 14px 14px 12px;
-    --he-accent: #35c7d9; --he-ok: #4cc38a; --he-sun: #f5b942; --he-import: #4aa3ff; --he-heat: #ff8a3d; --he-cool: #6cc3ff;
+    --he-accent: #35c7d9; --he-ok: #4cc38a; --he-sun: #f5b942; --he-import: #4aa3ff; --he-heat: #ff8a3d; --he-hot: #ff5d5d; --he-cool: #6cc3ff;
     --he-text: var(--primary-text-color, #e6e6e6); --he-dim: var(--secondary-text-color, #9aa0a6);
     --he-soft: color-mix(in srgb, var(--he-text) 8%, transparent); }
   ha-card.txt-bright { --he-dim: color-mix(in srgb, var(--primary-text-color, #e6e6e6) 82%, var(--card-background-color, #1c1c1c)); }
@@ -626,6 +646,8 @@ const HE_CSS = `
   .pill.import ha-icon { color: var(--he-import); background: color-mix(in srgb, var(--he-import) 22%, transparent); }
   .pill.export ha-icon { color: var(--he-ok); background: color-mix(in srgb, var(--he-ok) 22%, transparent); }
   .pill.house ha-icon { color: #9d8cff; background: color-mix(in srgb, #9d8cff 22%, transparent); }
+  .pill.hw ha-icon { color: var(--he-hot); background: color-mix(in srgb, var(--he-hot) 22%, transparent); animation: he-hwpulse 1.8s ease-in-out infinite; }
+  @keyframes he-hwpulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--he-hot) 18%, transparent); } }
   .pill.hp ha-icon { color: var(--he-heat); background: color-mix(in srgb, var(--he-heat) 22%, transparent); }
   .pill.car ha-icon { color: var(--he-accent); background: color-mix(in srgb, var(--he-accent) 22%, transparent); }
   .pill.car.idle ha-icon { color: #b8c0ca; background: rgba(255,255,255,.08); }
@@ -771,6 +793,9 @@ const HE_CSS = `
   .lead.export, .leaddot.export { stroke: var(--he-ok); fill: var(--he-ok); }
   .lead.car, .leaddot.car { stroke: var(--he-accent); fill: var(--he-accent); }
   .lead.hp, .leaddot.hp { stroke: var(--he-heat); fill: var(--he-heat); }
+  .lead.hw, .leaddot.hw { stroke: var(--he-hot); fill: var(--he-hot); }
+  .lead.hw { stroke-dasharray: 3 2; animation: he-hwdash 1s linear infinite; }
+  @keyframes he-hwdash { to { stroke-dashoffset: -5; } }
   .leaddot { stroke: none !important; }
 
   /* rain / snow */
