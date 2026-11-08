@@ -51,6 +51,54 @@
 
   window.ObsTheme = { list: list, choose: choose, apply: apply, vars: VARS, get current() { return current; }, get chosen() { return get(KEY); } };
 
+  // Liveströmmen (EventSource) håller en anslutning öppen hela tiden. Webbläsaren tillåter bara
+  // sex samtidiga anslutningar till samma adress, så flikar i bakgrunden och sidor i
+  // bakåt-cachen kunde ta slut på dem och nästa sida hängde sig. Här stängs strömmen när sidan
+  // döljs eller lämnas och öppnas igen (med ny ögonblicksbild) när den syns.
+  var NativeES = window.EventSource;
+  if (NativeES && !NativeES.__obs) {
+    var streams = [];
+    var ManagedES = function (url, opts) {
+      this.url = url; this._opts = opts; this._l = []; this._es = null; this._closed = false;
+      this.onopen = this.onmessage = this.onerror = null;
+      streams.push(this);
+      if (document.visibilityState !== 'hidden') this._open();
+    };
+    ManagedES.__obs = true;
+    ManagedES.CONNECTING = 0; ManagedES.OPEN = 1; ManagedES.CLOSED = 2;
+    ManagedES.prototype._open = function () {
+      if (this._closed || this._es) return;
+      var self = this, es = new NativeES(this.url, this._opts);
+      this._es = es;
+      for (var i = 0; i < this._l.length; i++) es.addEventListener(this._l[i][0], this._l[i][1], this._l[i][2]);
+      es.onopen = function (e) { if (self.onopen) self.onopen(e); };
+      es.onmessage = function (e) { if (self.onmessage) self.onmessage(e); };
+      es.onerror = function (e) { if (self.onerror) self.onerror(e); };
+    };
+    ManagedES.prototype._pause = function () { if (this._es) { this._es.close(); this._es = null; } };
+    ManagedES.prototype.addEventListener = function (t, f, o) { this._l.push([t, f, o]); if (this._es) this._es.addEventListener(t, f, o); };
+    ManagedES.prototype.removeEventListener = function (t, f, o) {
+      this._l = this._l.filter(function (x) { return !(x[0] === t && x[1] === f); });
+      if (this._es) this._es.removeEventListener(t, f, o);
+    };
+    ManagedES.prototype.close = function () { this._closed = true; this._pause(); };
+    Object.defineProperty(ManagedES.prototype, 'readyState', { get: function () { return this._es ? this._es.readyState : 2; } });
+    var pauseAll = function () { for (var i = 0; i < streams.length; i++) streams[i]._pause(); };
+    var resumeAll = function () { for (var i = 0; i < streams.length; i++) streams[i]._open(); };
+    var hideTimer = null;
+    document.addEventListener('visibilitychange', function () {
+      clearTimeout(hideTimer);
+      // En kort väntan så att ett snabbt flikbyte inte startar om strömmen i onödan
+      if (document.visibilityState === 'hidden') hideTimer = setTimeout(pauseAll, 5000);
+      else resumeAll();
+    });
+    window.addEventListener('pagehide', function () { clearTimeout(hideTimer); pauseAll(); });
+    document.addEventListener('freeze', function () { clearTimeout(hideTimer); pauseAll(); });
+    window.addEventListener('pageshow', function (e) { if (e.persisted && document.visibilityState !== 'hidden') resumeAll(); });
+    document.addEventListener('resume', function () { if (document.visibilityState !== 'hidden') resumeAll(); });
+    window.EventSource = ManagedES;
+  }
+
   // Menyval "Teman" läggs in i sidomenyn på alla sidor
   document.addEventListener('DOMContentLoaded', function () {
     var side = document.querySelector('nav.side');
