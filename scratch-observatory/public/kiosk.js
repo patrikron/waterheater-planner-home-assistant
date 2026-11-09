@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.19.0';
+  const VERSION = '0.19.1';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -104,7 +104,8 @@
     const evs = (cal && cal.events) || [];
     const name = evs.find(e => e.cal === (cal && cal.namedays) && dayKey(startOf(e)) === dayKey(now));
     if (name) html += `<div class="kname">Namnsdag: <b>${esc(name.title.replace(/\s+[–-]\s+\d.*$/, ''))}</b></div>`;
-    html += `</div><div class="kwxd" id="kwxd">${wxDetails()}</div></div></div><div class="kdays">`;
+    // Vind/fukt/sol (wxDetails) är bortplockat tills vidare (Patrik 2026-11-09)
+    html += `</div></div></div><div class="kdays">`;
     if (!cal) html += `<div class="kerr">${calErr ? 'Kunde inte hämta kalendern (' + esc(calErr) + ').' : 'Hämtar kalendern …'}</div>`;
     else {
       const colors = Object.fromEntries((cal.calendars || []).map(c => [c.entity, COL[c.color] || c.color]));
