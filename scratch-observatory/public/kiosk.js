@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.16.0';
+  const VERSION = '0.17.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -62,8 +62,6 @@
   // ---------- Kalenderkolumnen ----------
   const kcal = document.getElementById('kcal');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const WXI = { 'clear-night': '🌙', sunny: '☀️', partlycloudy: '⛅', cloudy: '☁️', rainy: '🌧️', pouring: '🌧️', snowy: '🌨️', 'snowy-rainy': '🌨️',
-    lightning: '🌩️', 'lightning-rainy': '⛈️', fog: '🌫️', hail: '🌨️', windy: '💨', 'windy-variant': '💨', exceptional: '⚠️' };
   const COL = { blue: 'var(--blue)', gold: 'var(--gold)', orange: 'var(--orange)', sage: 'var(--sage)', red: 'var(--red)', green: 'var(--sage)' };
   let cal = null, calErr = null;
   const dayKey = d => d.toLocaleDateString('sv-SE');
@@ -72,10 +70,18 @@
   const endOf = e => e.all_day ? new Date(e.end + 'T00:00:00') : new Date(e.end);
   const hm = d => d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
 
+  // Dagens väder bredvid klockan, från samma livedata som väderrutan
+  function nowWx() {
+    const w = window.ObsHouse && window.ObsHouse.weather(), I = window.ObsIcons;
+    if (!w || !I) return '';
+    return `${I.wx(w.cond, 'knowi')}<div><b>${w.temp != null && Number.isFinite(w.temp) ? Math.round(w.temp) + '°' : '–'}</b><span>${esc(I.label(w.cond))}</span></div>`;
+  }
+  let lastWx = '';
+  window.addEventListener('obs-render', () => { const el = document.getElementById('know'), h = nowWx(); if (el && h !== lastWx) { el.innerHTML = h; lastWx = h; } });
   function renderCal() {
     if (!kcal) return;
     const now = new Date();
-    let html = `<div><div class="kclock">${hm(now)}</div><div class="kdate">${now.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
+    let html = `<div><div class="khead"><div class="kclock">${hm(now)}</div><div class="know" id="know">${nowWx()}</div></div><div class="kdate">${now.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
     const evs = (cal && cal.events) || [];
     const name = evs.find(e => e.cal === (cal && cal.namedays) && dayKey(startOf(e)) === dayKey(now));
     if (name) html += `<div class="kname">Namnsdag: <b>${esc(name.title.replace(/\s+[–-]\s+\d.*$/, ''))}</b></div>`;
@@ -93,7 +99,7 @@
         if (!today.length && i > 1) continue; // dagar utan händelser visas inte, utom idag och imorgon
         const label = i === 0 ? 'Idag' : i === 1 ? 'Imorgon' : day.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' });
         const f = wx[dayKey(day)];
-        html += `<div class="kday${i === 0 ? ' today' : ''}"><div class="kday-h"><div class="eyebrow">${esc(label)}</div>${f ? `<div class="kwx"><span>${WXI[f.cond] || ''}</span><b>${Math.round(f.hi)}°</b>${f.lo != null ? ' / ' + Math.round(f.lo) + '°' : ''}</div>` : ''}</div>`;
+        html += `<div class="kday${i === 0 ? ' today' : ''}"><div class="kday-h"><div class="eyebrow">${esc(label)}</div>${f ? `<div class="kwx">${window.ObsIcons ? window.ObsIcons.wx(f.cond, 'kwxi') : ''}<b>${Math.round(f.hi)}°</b>${f.lo != null ? ' / ' + Math.round(f.lo) + '°' : ''}</div>` : ''}</div>`;
         if (!today.length) html += '<div class="knone">Inget inplanerat</div>';
         for (const e of today) {
           const s = startOf(e), en = endOf(e);

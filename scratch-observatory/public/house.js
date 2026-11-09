@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.12.3';
+  const VERSION = '0.17.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -64,6 +64,43 @@
     no_prices: 'Elpris saknas', no_surplus_sensor: 'Nätsensor saknas', floor_price_cap: 'Väntar (pristak)', manual: 'Manuell värmning' };
   const WX = { 'clear-night': 'Klart', sunny: 'Soligt', partlycloudy: 'Halvklart', cloudy: 'Molnigt', rainy: 'Regn', pouring: 'Skyfall', snowy: 'Snö',
     'snowy-rainy': 'Snöblandat regn', fog: 'Dimma', windy: 'Blåsigt', 'windy-variant': 'Blåsigt', lightning: 'Åska', 'lightning-rainy': 'Åskregn', hail: 'Hagel', exceptional: 'Ovanligt' };
+
+  // ---------- Ikoner ----------
+  // Linjeikoner för rutorna (färg från rubriken) och färgade väderikoner. Delas med kiosksidan via window.ObsIcons.
+  const svgI = d => `<svg class="bi" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const BOX_ICON = {
+    nat: svgI('<path d="M12 2 7 22M12 2l5 20M8.6 15h6.8M9.8 9.5h4.4M5 6h14M6 11h12"/>'),
+    sol: svgI('<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>'),
+    hus: svgI('<path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/>'),
+    ftx: svgI('<path d="M3 8h9a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>'),
+    vv: svgI('<path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/>'),
+    vp: svgI('<path d="M3 5h18v14H3z"/><circle cx="10" cy="12" r="3.5"/><path d="M10 8.5v7M6.5 12h7M17 9h1.5M17 12h1.5M17 15h1.5"/>'),
+    ladd: svgI('<path d="M5 3h8v18H5zM9.5 7 8 11h3l-1.5 4M13 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-2-2"/>'),
+    elpris: svgI('<path d="M3 17l5-6 4 3 5-7 4 4M3 21h18"/>'),
+    kostnad: svgI('<path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l12-3v3M16 13.5h2"/>'),
+  };
+  // Väderikoner, 32×32, med egna färger
+  const CLOUD = (y = 0, fill = 'var(--c-wxcloud, color-mix(in srgb,var(--text) 78%,var(--bg)))') => `<path transform="translate(0 ${y})" d="M9 24h14.5a5 5 0 0 0 .3-10 7.5 7.5 0 0 0-14.3 1.8A4.1 4.1 0 0 0 9 24z" fill="${fill}" stroke="none"/>`;
+  const SUN = (cx, cy, r) => `<g stroke="var(--gold)" stroke-width="2" stroke-linecap="round"><circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--gold)"/>${[0, 45, 90, 135, 180, 225, 270, 315].map(a => { const c = Math.cos(a * Math.PI / 180), s = Math.sin(a * Math.PI / 180); return `<line x1="${(cx + c * (r + 2.5)).toFixed(1)}" y1="${(cy + s * (r + 2.5)).toFixed(1)}" x2="${(cx + c * (r + 5)).toFixed(1)}" y2="${(cy + s * (r + 5)).toFixed(1)}"/>`; }).join('')}</g>`;
+  const MOON = '<path d="M20 5.5a10 10 0 1 0 6.5 15.8A8 8 0 0 1 20 5.5z" fill="var(--gold)"/>';
+  const DROPS = (n = 3) => `<g stroke="var(--blue)" stroke-width="2" stroke-linecap="round">${[10, 16, 22].slice(0, n).map(x => `<line x1="${x}" y1="24" x2="${x - 1.5}" y2="28.5"/>`).join('')}</g>`;
+  const FLAKES = '<g fill="var(--text)">' + [10, 16, 22].map((x, i) => `<circle cx="${x - i % 2}" cy="${26 + (i % 2) * 2}" r="1.5"/>`).join('') + '</g>';
+  const BOLT = '<path d="M17 21l-3.5 5h3l-1.5 4.5 5-6h-3l1.5-3.5z" fill="var(--gold)"/>';
+  const WX_SVG = {
+    sunny: SUN(16, 16, 6), 'clear-night': MOON,
+    partlycloudy: SUN(12, 11, 4.5) + CLOUD(3), cloudy: CLOUD(1, 'color-mix(in srgb,var(--text) 55%,var(--bg))') + CLOUD(4),
+    rainy: CLOUD(-4) + DROPS(3), pouring: CLOUD(-4) + DROPS(3) + '<g stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><line x1="13" y1="25" x2="11.5" y2="29.5"/><line x1="19" y1="25" x2="17.5" y2="29.5"/></g>',
+    snowy: CLOUD(-4) + FLAKES, 'snowy-rainy': CLOUD(-4) + DROPS(1) + '<circle cx="16" cy="27" r="1.5" fill="var(--text)"/><circle cx="22" cy="26" r="1.5" fill="var(--text)"/>',
+    hail: CLOUD(-4) + FLAKES, lightning: CLOUD(-5) + BOLT, 'lightning-rainy': CLOUD(-5) + BOLT + DROPS(1),
+    fog: CLOUD(-5) + '<g stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><line x1="6" y1="23" x2="26" y2="23"/><line x1="9" y1="27" x2="23" y2="27"/></g>',
+    windy: '<g fill="none" stroke="var(--blue)" stroke-width="2.2" stroke-linecap="round"><path d="M4 12h15a3.5 3.5 0 1 0-3.5-3.5"/><path d="M4 18h20a3.5 3.5 0 1 1-3.5 3.5"/><path d="M4 24h9"/></g>',
+    exceptional: '<path d="M16 5 28 26H4z" fill="none" stroke="var(--orange)" stroke-width="2"/><path d="M16 13v6M16 22v1" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"/>',
+  };
+  WX_SVG['windy-variant'] = WX_SVG.windy;
+  const wxIcon = (cond, cls = 'wxi') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${WX_SVG[cond] || WX_SVG.cloudy}</svg>`;
+  window.ObsIcons = { box: BOX_ICON, wx: wxIcon, label: c => WX[c] || c };
+  // Aktuellt väder för kiosksidans klocka
+  window.ObsHouse = { weather: () => { const s = st(cfg.outdoor); return s ? { cond: s.state, temp: outdoorTemp() } : null; } };
 
   // ---------- Rutornas innehåll ----------
   const BOX = {
@@ -241,11 +278,16 @@
     for (const el of boxesEl.children) {
       const def = BOX[el.dataset.id], r = def.render();
       el._flow = r.flow || null;
-      if (r.custom) { el.innerHTML = r.custom; continue; }
-      el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v">${r.v}<small>${r.u}</small></div><div class="s">${esc(r.s || '')}</div>` +
+      if (r.custom) el.innerHTML = r.custom;
+      else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v">${r.v}<small>${r.u}</small></div><div class="s">${esc(r.s || '')}</div>` +
         (r.soc != null ? `<div class="soc"><span style="width:${Math.max(0, Math.min(100, r.soc))}%"></span></div><div class="s">EV6 ${Math.round(r.soc)} %</div>` : '');
+      // Liten ikon framför rubriken; väderrutan får ikonen för aktuellt väder
+      const k = el.querySelector('.k'), id = el.dataset.id;
+      const ic = id === 'vader' ? (st(cfg.outdoor) ? wxIcon(st(cfg.outdoor).state, 'bi wx') : '') : BOX_ICON[id];
+      if (k && ic) k.insertAdjacentHTML('afterbegin', ic);
     }
     drawWires();
+    window.dispatchEvent(new CustomEvent('obs-render'));
   }
 
   // ---------- Klickytor ----------

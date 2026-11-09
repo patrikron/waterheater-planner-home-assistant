@@ -46,7 +46,7 @@ body.kiosk main{margin-inline:auto}
 .kday-h .eyebrow{color:var(--gold)}
 .kday.today .kday-h .eyebrow{color:var(--orange)}
 .kwx{font-size:12px;color:var(--muted);white-space:nowrap}
-.kwx span{font-size:15px;margin-right:4px;vertical-align:-1px}
+.kwx .kwxi{width:20px;height:20px;vertical-align:-5px;margin-right:4px}
 .kwx b{color:var(--text);font-weight:600}
 .kev{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;padding:4px 0 4px 10px;border-left:3px solid var(--blue);margin:4px 0}
 .kev .kt{font:12px var(--mono);color:var(--muted);white-space:nowrap;padding-top:1px}
@@ -55,3 +55,8 @@ body.kiosk main{margin-inline:auto}
 .kev.past{opacity:.45}
 .knone{font-size:12px;color:var(--dim);padding:2px 0 2px 13px}
 .kerr{font-size:12px;color:var(--muted);padding:12px 0}
+.kcal .khead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.kcal .know{display:flex;align-items:center;gap:8px;min-width:0}
+.kcal .know .knowi{width:clamp(44px,4.2vw,64px);height:clamp(44px,4.2vw,64px);flex:none}
+.kcal .know b{display:block;font-size:clamp(22px,2.2vw,32px);font-weight:600;line-height:1}
+.kcal .know span{display:block;font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap}

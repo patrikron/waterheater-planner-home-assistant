@@ -83,6 +83,11 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
 .box:hover,.box.hl{border-color:color-mix(in srgb,var(--text) 60%,transparent)}
 .box .k{display:flex;justify-content:space-between;align-items:center;font:9.5px/1.4 var(--mono);letter-spacing:1.5px;color:var(--gold);text-transform:uppercase}
 .box .k::after{content:"";width:9px;height:1px;background:var(--orange)}
+/* Ikon framför rutans rubrik */
+.box .k{justify-content:flex-start;gap:6px}
+.box .k::after{margin-left:auto;flex:none}
+.box .k .bi{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round;margin-top:-1px}
+.box .k .bi.wx{width:17px;height:17px;stroke:none;margin:-3px 0 -3px -2px}
 .box .v{font-size:clamp(16px,1.6cqw,24px);font-weight:600;letter-spacing:-.3px;line-height:1.2;margin-top:3px;white-space:nowrap}
 .box .v small{font-size:.5em;color:var(--muted);margin-left:4px;font-weight:500}
 .box .s{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
