@@ -518,6 +518,7 @@
     "climate": "climate.daikinap97060_room_temperature",
     "room": "sensor.daikinap97060_climatecontrol_rumstemperatur",
     "outdoor": "sensor.daikinap97060_climatecontrol_utomhustemperatur",
+    "exhaust": "sensor.0x00158d0001f5352c_temperature",
     "power": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
     "current": "sensor.shellypmminig3_48f6eeb4a5d4_strom",
     "energy_total": "sensor.shellypmminig3_48f6eeb4a5d4_energi",

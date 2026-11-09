@@ -60,10 +60,15 @@ body.kiosk main{margin-inline:auto}
 .kcal .know .knowi{width:clamp(44px,4.2vw,64px);height:clamp(44px,4.2vw,64px);flex:none}
 .kcal .know b{display:block;font-size:clamp(22px,2.2vw,32px);font-weight:600;line-height:1}
 .kcal .know span{display:block;font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap}
-.kcal .kwxd{display:grid;grid-template-columns:repeat(4,auto);justify-content:space-between;gap:4px 10px;margin-top:12px;padding:8px 0;border-block:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
-.kcal .kwxd span{font-size:10.5px;color:var(--muted);display:flex;flex-direction:column;gap:1px;white-space:nowrap}
-.kcal .kwxd b{font-size:15px;color:var(--text);font-weight:600}
+.kcal .kdrow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-top:6px}
+.kcal .kdl{min-width:0}
+.kcal .kdrow .kdate{margin-top:0}
+.kcal .kwxd{display:grid;grid-template-columns:auto auto;gap:5px 12px;flex:none;padding-top:3px}
+.kcal .kwxd span{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.kcal .kwxd svg{width:15px;height:15px;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.kcal .kwxd .kx-w svg{stroke:var(--blue)}.kcal .kwxd .kx-h svg{stroke:var(--sage)}.kcal .kwxd .kx-r svg,.kcal .kwxd .kx-s svg{stroke:var(--gold)}
+.kcal .kwxd b{font-size:12.5px;color:var(--text);font-weight:600}
 .kcal .kwxd b small{font-size:10px;color:var(--muted);font-weight:500}
-.kcal .kdate{margin-top:10px}
+
 /* Ute-rutan behövs inte i kiosken, vädret står vid klockan */
 body.kiosk .box[data-id="vader"]{display:none}

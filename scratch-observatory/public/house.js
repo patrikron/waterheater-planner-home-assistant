@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.18.0';
+  const VERSION = '0.19.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -21,7 +21,7 @@
       vp:      { x: 84,   y: 3,  anchor: [55.2, 34.4] }, // värmepumpen sitter på baksidan
       vader:   { x: 1.5,  y: 27 },
       ladd:    { x: 84,   y: 64, anchor: [81.5, 51] },
-      elpris:  { x: 1.5,  y: 72 },
+      elpris:  { x: 1.5,  y: 64 },
       kostnad: { x: 54,   y: 72 },
     },
     hotspots: {
@@ -157,7 +157,6 @@
       const mean = xs => xs.length ? xs.reduce((x, y) => x + y, 0) / xs.length : null;
       const avg = Number.isFinite(+a.average) && +a.average > 0 ? +a.average : mean(arr);
       const spot = num(cfg.spot), pct = p != null && avg ? Math.round((p / avg - 1) * 100) : null;
-      const tAvg = mean(tom), tPct = tAvg != null && avg ? Math.round((tAvg / mean(arr) - 1) * 100) : null;
       const sign = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v);
       // Sol idag mot prognos och imorgon (Solcast)
       const sol = num(cfg.pv_today), prog = num(cfg.solcast_today), solTom = num(cfg.solcast_tomorrow);
@@ -166,9 +165,8 @@
         <div class="ptop"><div class="v">${nf(p, 2)}<small>kr/kWh nu</small></div>
           <div class="pnow">${spot != null ? `<span class="spot">Spotpris ${nf(spot, 2)} kr</span>` : ''}${pct != null ? `<span class="${pct > 0 ? 'up' : 'down'}">${sign(pct)} % mot snitt</span>` : ''}</div></div>
         ${priceSpark(arr, tom)}
-        ${tPct != null ? `<div class="ptom"><i></i>Imorgon snitt ${nf(tAvg, 2)} kr · <b class="${tPct > 0 ? 'up' : 'down'}">${sign(tPct)} %</b> mot idag</div>` : '<div class="ptom dim">Morgondagens priser kommer efter kl 13</div>'}
-        <div class="psol"><div><div class="psl"><span>Sol idag ${nf(sol)} / ${nf(prog)} kWh</span></div><div class="pbar"><span style="width:${bar}%"></span></div></div>
-          <div class="pst"><span>Sol imorgon</span><b>${nf(solTom)} <small>kWh</small></b></div></div>` };
+        <div class="psol"><div><div class="psl">Sol idag <b>${nf(sol)}</b> / ${nf(prog)} kWh</div><div class="pbar"><span style="width:${bar}%"></span></div></div>
+          <div class="pst">Imorgon <b>${nf(solTom)}</b> kWh</div></div>` };
     } },
     ftx: { title: 'FTX', drawer: 'ftx', render() {
       if (!FX.supply) return { custom: '<div class="k">FTX</div><div class="s">Ingen FTX i config</div>' };
@@ -178,15 +176,10 @@
         <div class="s">Återvinner ${nf(num(FX.efficiency), 0)} % · ${esc(lbl)}</div>`,
         flow: unitOn ? { cls: 'air', dir: 'in', w: 1200 } : null };
     } },
-    kostnad: { title: 'Idag / pengar', cls: 'wide money-box', drawer: 'grid', render() {
-      const page = [moneyPage, detailPage, energyPage][kostnadPage]();
-      return { custom: page + `<div class="pager"><button data-page="-1" aria-label="Föregående">‹</button><span>${kostnadPage + 1} av ${PAGES}</span><button data-page="1" aria-label="Nästa">›</button></div>` };
-    } },
+    kostnad: { title: 'Idag / pengar', cls: 'wide money-box', drawer: 'money', render() { return { custom: moneyPage() }; } },
   };
 
   // Sida 1: elkostnad och sparat med solel idag. Sida 2: kostnaden i detalj + solen i år. Sida 3: energi idag.
-  const PAGES = 3;
-  let kostnadPage = Math.min(PAGES - 1, Math.max(0, parseInt(load('obs-kostnad-page'), 10) || 0));
   let moneyData = null;
   async function loadMoney() {
     try { moneyData = await fetch('api/money', { cache: 'no-store' }).then(r => r.ok ? r.json() : null); } catch {}
@@ -226,7 +219,7 @@
   function detailPage() {
     const m = moneyCalc(), y = m.y;
     const row = (k, v, cls = '') => `<div class="mrow ${cls}"><span>${k}</span><b>${v}</b></div>`;
-    return `<div class="k">Idag / kostnad i detalj</div>
+    return `<div class="eyebrow">Kostnad i detalj</div>
       <div class="mrows two">
         ${row('Köpt från nätet', `${nf(m.inn)} <small>kWh</small>`)}
         ${row('Elpris', `${kr(m.energy)} <small>kr</small>`)}
@@ -249,12 +242,6 @@
       <div class="row"><span>Förbrukat<b>${nf(use)} kWh</b></span><span>Sol<b>${nf(pv)} kWh</b></span>
         <span>Köpt<b>${nf(inn)} kWh</b></span><span>Sålt<b>${nf(out)} kWh</b></span></div>`;
   }
-  boxesEl.addEventListener('click', e => {
-    const b = e.target.closest('.pager button'); if (!b) return;
-    e.stopPropagation(); e.preventDefault();
-    kostnadPage = (kostnadPage + PAGES + Number(b.dataset.page)) % PAGES; store('obs-kostnad-page', String(kostnadPage));
-    renderBoxes(); drawWires();
-  }, true);
 
   function priceSpark(arr, tom = []) {
     if (!arr.length) return '<div class="s">Inga priser</div>';
@@ -294,6 +281,16 @@
       const b = layout.boxes[el.dataset.id] || DEFAULT.boxes[el.dataset.id];
       el.style.left = b.x + '%'; el.style.top = b.y + '%';
     }
+    fitBoxes();
+  }
+  // Rutor som blivit högre än platsen de sparats på flyttas upp så att de håller sig inne i bilden
+  function fitBoxes() {
+    const H = boxesEl.clientHeight; if (!H || editing) return;
+    for (const el of boxesEl.children) {
+      const b = layout.boxes[el.dataset.id] || DEFAULT.boxes[el.dataset.id];
+      const maxTop = (H - el.offsetHeight) / H * 100 - 1.5;
+      el.style.top = Math.max(0, Math.min(b.y, maxTop)) + '%';
+    }
   }
   function renderBoxes() {
     for (const el of boxesEl.children) {
@@ -307,7 +304,7 @@
       const ic = id === 'vader' ? (st(cfg.outdoor) ? wxIcon(st(cfg.outdoor).state, 'bi wx') : '') : BOX_ICON[id];
       if (k && ic) k.insertAdjacentHTML('afterbegin', ic);
     }
-    drawWires();
+    fitBoxes(); drawWires();
     window.dispatchEvent(new CustomEvent('obs-render'));
   }
 
@@ -375,7 +372,7 @@
     const sun = st(cfg.sun);
     const night = lightMode === 'night' || (lightMode === 'auto' && sun && sun.state === 'below_horizon');
     stage.classList.toggle('night', !!night);
-    document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === lightMode)));
+    document.querySelectorAll('.seg button[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === lightMode)));
   }
   document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { lightMode = b.dataset.mode; store('obs-light', lightMode); applyLight(); }));
   $('glows').innerHTML = GLOWS.map(([x, y, k]) => `<i class="${k || ''}" style="left:${x}%;top:${y}%"></i>`).join('') +
@@ -504,8 +501,8 @@
       charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']] },
     heatpump: { eyebrow: 'Klimat / värmepump', title: 'Värmepump', ctl: ctlHeatpump, stats: () => [
       ['Effekt', num(cfg.heatpump) == null ? '–' : Math.round(num(cfg.heatpump)).toLocaleString('sv-SE'), 'W'],
-      ['Inne', nf(num(cfg.indoor)), '°C'], ['Ute', nf(outdoorTemp()), '°C']],
-      charts: () => [[cfg.heatpump, 'Effekt', TC('orange'), 1, 'W'], [cfg.indoor, 'Inomhustemperatur', TC('sage'), 1, '°C']],
+      ['Inne', nf(num(cfg.indoor)), '°C'], ['Utblås', nf(num(HPC.exhaust)), '°C'], ['Ute', nf(outdoorTemp()), '°C']],
+      charts: () => [[cfg.heatpump, 'Effekt', TC('orange'), 1, 'W'], { title: 'Utblås mot inne', unit: '°C', div: 1, series: [[HPC.exhaust, 'Utblås', TC('orange')], [cfg.indoor, 'Inne', TC('sage')]] }],
       extra: () => '<a class="btn primary-link" href="varmepump.html">Öppna luftvärmepumpssidan →</a>' },
     garage: { eyebrow: 'Garage / laddning', title: 'Laddbox & EV6', stats: () => [
       ['Laddeffekt', kw(num(cfg.charger)), 'kW'], ['EV6', num(cfg.ev_soc) == null ? '–' : Math.round(num(cfg.ev_soc)), '%']],
@@ -516,6 +513,12 @@
       return [['Temperatur', nf(num(cfg.hot_water, 'temperature')), '°C'], ['Mål', nf(num(cfg.hot_water, 'target_temperature'), 0), '°C'],
         ['Status', s ? (HW[s.state] || s.state) : '–', '']];
     }, charts: () => [], extra: () => '<a class="btn primary-link" href="varmvatten.html">Öppna varmvattensidan →</a>' },
+    money: { eyebrow: 'Idag / uppskattat', title: 'Kostnad och energi', stats: () => {
+      const m = moneyCalc();
+      return [['Elkostnad', kr(m.spent), 'kr'], ['Sparat med solel', kr(m.savedToday), 'kr'], ['Faktisk kostnad', kr(num(cfg.cost_today)), 'kr'],
+        ['Förbrukat', nf(num(cfg.load_today)), 'kWh'], ['Sol', nf(num(cfg.pv_today)), 'kWh'], ['Egen sol använd', nf(m.self), 'kWh'],
+        ['Köpt', nf(num(cfg.grid_in_today)), 'kWh'], ['Sålt', nf(num(cfg.grid_out_today)), 'kWh']];
+    }, extra: () => `<div class="dmoney">${detailPage()}</div>`, charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']] },
     ftx: { eyebrow: 'Ventilation / FTX', title: 'FTX-aggregatet', ctl: ctlFtx, stats: () => [
       ['Tilluft', nf(num(FX.supply)), '°C'], ['Frånluft', nf(num(FX.extract)), '°C'], ['Ute', nf(num(FX.outdoor)), '°C'],
       ['Verkningsgrad', nf(num(FX.efficiency), 0), '%'], ['Fläktnivå', num(FX.fan_level) == null ? '–' : Math.round(num(FX.fan_level)), ''], ['Effekt', num(FX.power) == null ? '–' : Math.round(num(FX.power)), 'W']],
@@ -552,7 +555,9 @@
     const id = HPC.climate; if (!HPC.controls || !id || !st(id)) return '';
     const modes = A(id, 'hvac_modes') || [], fans = A(id, 'fan_modes') || [];
     const t = pendingVal[id] != null ? pendingVal[id] : A(id, 'temperature');
-    return `<div class="eyebrow">Styr värmepumpen</div>
+    const on = st(id).state !== 'off', fm = A(id, 'fan_mode');
+    const now = `<div class="cnow"><span>Nu</span><b>${esc(HVAC_L[st(id).state] || st(id).state)}</b>${on && A(id, 'temperature') != null ? `<b>${nf(A(id, 'temperature'), 1)} °C</b>` : ''}${on && fm ? `<b>Fläkt ${esc(FAN_L[fm] || fm)}</b>` : ''}</div>`;
+    return `<div class="eyebrow">Styr värmepumpen</div>${now}
       ${crow('Läge', segBtns(modes.map(m => [m, HVAC_L[m] || m]), st(id).state, 'hvac_mode'))}
       ${st(id).state !== 'off' && t != null ? crow('Måltemperatur', stepper(id, t, '°C', 1, 'temperature', id)) : ''}
       ${fans.length && st(id).state !== 'off' ? crow('Fläkt', segBtns(fans.map(f => [f, FAN_L[f] || f]), A(id, 'fan_mode'), 'fan_mode')) : ''}`;
@@ -560,7 +565,7 @@
   function ctlFtx() {
     if (!FX.controls) return '';
     return `<div class="eyebrow">Styr FTX</div>
-      <div class="ctogs">${toggleBtn(FX.unit, 'Aggregat på')}${toggleBtn(FX.boost, 'Forcering')}${toggleBtn(FX.away, 'Bortaläge')}</div>
+      <div class="ctogs">${toggleBtn(FX.unit, 'Aggregat på')}${toggleBtn(FX.boost, 'Forcering')}${toggleBtn(FX.away, 'Bortaläge')}${toggleBtn(FX.pressure, 'Tryckkompensering')}</div>
       ${FX.setpoint && st(FX.setpoint) ? crow('Tilluft börvärde', stepper(FX.setpoint, numVal(FX.setpoint), '°C', 0, 'number', FX.setpoint)) : ''}`;
   }
   function ctlWater() {
@@ -824,7 +829,7 @@
     es.onerror = () => { connected = false; refresh(); };
   }
   new ResizeObserver(() => drawWires()).observe(stage);
-  window.addEventListener('resize', drawWires);
+  window.addEventListener('resize', () => { fitBoxes(); drawWires(); });
   setInterval(() => { if (!drawerOpen) renderBoxes(); }, 60000); // flytta "nu"-markören i elpriset
   start().catch(e => toast('Kunde inte starta: ' + e.message));
   console.info('observatory house view', VERSION);

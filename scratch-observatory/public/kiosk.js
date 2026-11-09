@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.18.0';
+  const VERSION = '0.19.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -76,13 +76,21 @@
     if (!w || !I) return '';
     return `${I.wx(w.cond, 'knowi')}<div><b>${w.temp != null && Number.isFinite(w.temp) ? Math.round(w.temp) + '°' : '–'}</b><span>${esc(I.label(w.cond))}</span></div>`;
   }
-  // Vind, fukt och sol upp/ned under klockan (ersätter Ute-rutan i kiosken)
+  // Vind, fukt och sol upp/ned som små ikoner till höger om datum och namnsdag
+  const KI = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+  const KICON = {
+    wind: KI('<path d="M3 8h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>'),
+    hum: KI('<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>'),
+    rise: KI('<path d="M4 18h16M7 18a5 5 0 0 1 10 0M12 4v6M9 7l3-3 3 3"/>'),
+    set: KI('<path d="M4 18h16M7 18a5 5 0 0 1 10 0M12 4v6M9 7l3 3 3-3"/>'),
+  };
   function wxDetails() {
     const w = window.ObsHouse && window.ObsHouse.weather();
     if (!w) return '';
     const n1 = v => v == null || !Number.isFinite(+v) ? '–' : (+v).toFixed(1).replace('.', ',');
-    return `<span>Vind<b>${n1(w.wind)} <small>m/s</small></b></span><span>Fukt<b>${w.humidity != null ? Math.round(w.humidity) : '–'} %</b></span>`
-      + `<span>Sol upp<b>${esc(w.rise || '–')}</b></span><span>Sol ned<b>${esc(w.set || '–')}</b></span>`;
+    const it = (ic, cls, v, t) => `<span class="${cls}" title="${t}">${KICON[ic]}<b>${v}</b></span>`;
+    return it('wind', 'kx-w', `${n1(w.wind)}<small> m/s</small>`, 'Vind') + it('hum', 'kx-h', `${w.humidity != null ? Math.round(w.humidity) : '–'}<small> %</small>`, 'Luftfuktighet')
+      + it('rise', 'kx-r', esc(w.rise || '–'), 'Sol upp') + it('set', 'kx-s', esc(w.set || '–'), 'Sol ned');
   }
   let lastWx = '', lastWxd = '';
   window.addEventListener('obs-render', () => {
@@ -92,11 +100,11 @@
   function renderCal() {
     if (!kcal) return;
     const now = new Date();
-    let html = `<div><div class="khead"><div class="kclock">${hm(now)}</div><div class="know" id="know">${nowWx()}</div></div><div class="kwxd" id="kwxd">${wxDetails()}</div><div class="kdate">${now.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
+    let html = `<div><div class="khead"><div class="kclock">${hm(now)}</div><div class="know" id="know">${nowWx()}</div></div><div class="kdrow"><div class="kdl"><div class="kdate">${now.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
     const evs = (cal && cal.events) || [];
     const name = evs.find(e => e.cal === (cal && cal.namedays) && dayKey(startOf(e)) === dayKey(now));
     if (name) html += `<div class="kname">Namnsdag: <b>${esc(name.title.replace(/\s+[–-]\s+\d.*$/, ''))}</b></div>`;
-    html += '</div><div class="kdays">';
+    html += `</div><div class="kwxd" id="kwxd">${wxDetails()}</div></div></div><div class="kdays">`;
     if (!cal) html += `<div class="kerr">${calErr ? 'Kunde inte hämta kalendern (' + esc(calErr) + ').' : 'Hämtar kalendern …'}</div>`;
     else {
       const colors = Object.fromEntries((cal.calendars || []).map(c => [c.entity, COL[c.color] || c.color]));
