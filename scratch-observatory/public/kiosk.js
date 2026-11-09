@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.15.0';
+  const VERSION = '0.16.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -58,6 +58,66 @@
   // Skärmen hålls vaken där webbläsaren tillåter det (kräver oftast https)
   async function wake() { try { if ('wakeLock' in navigator && document.visibilityState === 'visible') await navigator.wakeLock.request('screen'); } catch (e) {} }
   document.addEventListener('visibilitychange', wake); wake();
+
+  // ---------- Kalenderkolumnen ----------
+  const kcal = document.getElementById('kcal');
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const WXI = { 'clear-night': '🌙', sunny: '☀️', partlycloudy: '⛅', cloudy: '☁️', rainy: '🌧️', pouring: '🌧️', snowy: '🌨️', 'snowy-rainy': '🌨️',
+    lightning: '🌩️', 'lightning-rainy': '⛈️', fog: '🌫️', hail: '🌨️', windy: '💨', 'windy-variant': '💨', exceptional: '⚠️' };
+  const COL = { blue: 'var(--blue)', gold: 'var(--gold)', orange: 'var(--orange)', sage: 'var(--sage)', red: 'var(--red)', green: 'var(--sage)' };
+  let cal = null, calErr = null;
+  const dayKey = d => d.toLocaleDateString('sv-SE');
+  // Heldagshändelser har bara datum ("2026-11-14"), övriga har klockslag
+  const startOf = e => e.all_day ? new Date(e.start + 'T00:00:00') : new Date(e.start);
+  const endOf = e => e.all_day ? new Date(e.end + 'T00:00:00') : new Date(e.end);
+  const hm = d => d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+
+  function renderCal() {
+    if (!kcal) return;
+    const now = new Date();
+    let html = `<div><div class="kclock">${hm(now)}</div><div class="kdate">${now.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
+    const evs = (cal && cal.events) || [];
+    const name = evs.find(e => e.cal === (cal && cal.namedays) && dayKey(startOf(e)) === dayKey(now));
+    if (name) html += `<div class="kname">Namnsdag: <b>${esc(name.title.replace(/\s+[–-]\s+\d.*$/, ''))}</b></div>`;
+    html += '</div><div class="kdays">';
+    if (!cal) html += `<div class="kerr">${calErr ? 'Kunde inte hämta kalendern (' + esc(calErr) + ').' : 'Hämtar kalendern …'}</div>`;
+    else {
+      const colors = Object.fromEntries((cal.calendars || []).map(c => [c.entity, COL[c.color] || c.color]));
+      const wx = Object.fromEntries((cal.forecast || []).map(f => [dayKey(new Date(f.t)), f]));
+      const list = evs.filter(e => e.cal !== cal.namedays);
+      const d0 = new Date(now); d0.setHours(0, 0, 0, 0);
+      for (let i = 0; i < cal.days; i++) {
+        const day = new Date(d0); day.setDate(d0.getDate() + i);
+        const next = new Date(day); next.setDate(day.getDate() + 1);
+        const today = list.filter(e => startOf(e) < next && endOf(e) > day);
+        if (!today.length && i > 1) continue; // dagar utan händelser visas inte, utom idag och imorgon
+        const label = i === 0 ? 'Idag' : i === 1 ? 'Imorgon' : day.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' });
+        const f = wx[dayKey(day)];
+        html += `<div class="kday${i === 0 ? ' today' : ''}"><div class="kday-h"><div class="eyebrow">${esc(label)}</div>${f ? `<div class="kwx"><span>${WXI[f.cond] || ''}</span><b>${Math.round(f.hi)}°</b>${f.lo != null ? ' / ' + Math.round(f.lo) + '°' : ''}</div>` : ''}</div>`;
+        if (!today.length) html += '<div class="knone">Inget inplanerat</div>';
+        for (const e of today) {
+          const s = startOf(e), en = endOf(e);
+          const t = e.all_day || (s <= day && en >= next) ? 'Heldag' : s < day ? 'till ' + hm(en) : hm(s);
+          const past = !e.all_day && en < now;
+          html += `<div class="kev${past ? ' past' : ''}" style="border-left-color:${colors[e.cal] || 'var(--blue)'}"><div class="kt">${t}</div><div class="kx">${esc(e.title)}${e.location ? `<small>${esc(e.location)}</small>` : ''}</div></div>`;
+        }
+        html += '</div>';
+      }
+    }
+    kcal.innerHTML = html + '</div>';
+  }
+  async function loadCal() {
+    try { const r = await fetch('api/calendar', { cache: 'no-store' }); if (!r.ok) throw new Error(r.statusText); cal = await r.json(); calErr = null; }
+    catch (e) { calErr = e.message; }
+    renderCal();
+  }
+  if (kcal) {
+    renderCal(); loadCal();
+    setInterval(loadCal, 5 * 60 * 1000);
+    // Klockan uppdateras på hela minuten
+    const tickCal = () => { renderCal(); setTimeout(tickCal, 60000 - Date.now() % 60000 + 50); };
+    setTimeout(tickCal, 60000 - Date.now() % 60000 + 50);
+  }
 
   console.info('observatory kiosk', VERSION);
 })();

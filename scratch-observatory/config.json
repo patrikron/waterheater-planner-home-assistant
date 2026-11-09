@@ -1184,5 +1184,22 @@
         "temperature"
       ]
     }
+  },
+  "calendar": {
+    "days": 14,
+    "weather": "weather.smhi_home",
+    "namedays": "calendar.namnsdagar",
+    "calendars": [
+      {
+        "entity": "calendar.gemensam",
+        "name": "Gemensam",
+        "color": "blue"
+      },
+      {
+        "entity": "calendar.familjefilm",
+        "name": "Familjefilm",
+        "color": "gold"
+      }
+    ]
   }
 }

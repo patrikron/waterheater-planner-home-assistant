@@ -216,6 +216,43 @@ async function monthly(id, months, stat = 'change') {
   return data;
 }
 
+// ---------- Kalender (kioskens kolumn) ----------
+// Bara kalendrar som står i config.calendar läses. Händelserna hämtas via HA:s REST-API och sparas 5 min.
+const CAL = CONFIG.calendar || {};
+const CAL_IDS = new Set([...(CAL.calendars || []).map(c => c.entity), CAL.namedays].filter(id => id && ID_RE.test(id)));
+let calCache = null;
+async function calEvents(id, start, end) {
+  const r = await fetch(`${HA_URL}/api/calendars/${encodeURIComponent(id)}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+    { headers: { Authorization: `Bearer ${HA_TOKEN}` }, signal: AbortSignal.timeout(15000) });
+  if (!r.ok) throw new Error(`Kalendern ${id} svarade ${r.status}`);
+  return (await r.json()).map(e => {
+    const s = e.start || {}, en = e.end || {};
+    // Bara rubrik, tid och plats skickas vidare; beskrivningar stannar i HA
+    return { cal: id, title: String(e.summary || '').slice(0, 200), all_day: !!s.date, start: s.dateTime || s.date, end: en.dateTime || en.date,
+      location: e.location ? String(e.location).split(',')[0].slice(0, 80) : null };
+  });
+}
+async function calendar() {
+  if (calCache && Date.now() - calCache.at < 5 * 60 * 1000) return calCache.data;
+  const days = Math.max(1, Math.min(31, Number(CAL.days) || 14));
+  const t0 = localStart('day').t, start = new Date(t0).toISOString(), end = new Date(t0 + days * 864e5).toISOString();
+  const events = [], errors = [];
+  await Promise.all([...CAL_IDS].map(id => calEvents(id, start, end).then(ev => events.push(...ev)).catch(e => errors.push(e.message))));
+  let forecast = [];
+  if (CAL.weather && ID_RE.test(CAL.weather)) {
+    try {
+      const r = await haCall({ type: 'call_service', domain: 'weather', service: 'get_forecasts', service_data: { type: 'daily' },
+        target: { entity_id: CAL.weather }, return_response: true });
+      forecast = ((((r || {}).response || {})[CAL.weather] || {}).forecast || []).slice(0, days)
+        .map(f => ({ t: f.datetime, cond: f.condition, hi: f.temperature, lo: f.templow, rain: f.precipitation }));
+    } catch (e) { errors.push('Väder: ' + e.message); }
+  }
+  const data = { days, calendars: (CAL.calendars || []).filter(c => CAL_IDS.has(c.entity)).map(c => ({ entity: c.entity, name: c.name || c.entity, color: c.color || 'blue' })),
+    namedays: CAL.namedays || null, events: events.sort((a, b) => String(a.start).localeCompare(String(b.start))), forecast, errors };
+  if (!errors.length || events.length) calCache = { at: Date.now(), data };
+  return data;
+}
+
 // ---------- Layout (husvyn) ----------
 function validLayout(l) {
   if (!l || typeof l !== 'object' || Array.isArray(l)) return false;
@@ -482,6 +519,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/temps') return json(res, 200, CONFIG.temps || {});
     if (url.pathname === '/api/spa') return json(res, 200, CONFIG.spa || {});
     if (url.pathname === '/api/themes') return json(res, 200, await listThemes());
+    if (url.pathname === '/api/calendar') return json(res, 200, await calendar());
     if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours')), url.searchParams.get('attr') || ''));

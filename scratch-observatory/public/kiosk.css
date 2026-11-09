@@ -4,8 +4,9 @@ html,body.kiosk{height:100%;overflow:hidden;overscroll-behavior:none;background:
 body.kiosk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 body.kiosk .content{position:relative;z-index:0;margin:0;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-body.kiosk main{max-width:none;margin:0;padding:0;width:min(100vw,calc(100dvh * 2400 / 1169))}
-body.kiosk .frame{border:0;border-radius:0;background:#000;box-shadow:0 0 60px rgba(0,0,0,.6)}
+body.kiosk{--kcol:clamp(270px,24vw,400px)}
+body.kiosk main{max-width:none;margin:0;padding:0;width:min(calc(100vw - var(--kcol)),calc(100dvh * 2400 / 1169));flex:none}
+body.kiosk .frame{overflow:visible;border:0;border-radius:0;background:#000;box-shadow:0 0 60px rgba(0,0,0,.6)}
 /* Ytan ovanför och under bilden fylls med en suddig och mörk kopia av husfotot i stället för svarta kanter */
 body.kiosk .content::before{content:"";position:fixed;inset:-40px;z-index:-1;background:url(foto/hus.jpg) center/cover;filter:blur(28px) brightness(.32) saturate(.8)}
 body.kiosk.hide-cursor,body.kiosk.hide-cursor *{cursor:none!important}
@@ -21,6 +22,36 @@ body.kiosk .drawer a.btn{display:none}
   html,body.kiosk{overflow:auto;height:auto}
   body.kiosk .content{display:block;height:auto}
   body.kiosk main{width:100%}
+  body.kiosk .kcal{width:auto;height:auto;border-left:0;border-top:1px solid var(--line)}
+  body.kiosk .kcal .kdays{max-height:none}
+  body.kiosk .kcal .kdays::after{display:none}
   body.kiosk .content::before{display:none}
   html,body.kiosk{background:var(--bg)}
 }
+
+/* ---------- Kalenderkolumnen till höger ---------- */
+body.kiosk .content{justify-content:flex-start}
+body.kiosk main{margin-inline:auto}
+.kcal{flex:none;width:var(--kcol);height:100%;display:flex;flex-direction:column;gap:14px;padding:22px 20px 0;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);border-left:1px solid var(--line);color:var(--text);overflow:hidden;backdrop-filter:blur(6px)}
+.kcal .kclock{font-size:clamp(46px,4.6vw,72px);font-weight:700;letter-spacing:-1.5px;line-height:1;font-variant-numeric:tabular-nums}
+.kcal .kdate{font-size:15px;color:var(--text);margin-top:6px}
+.kcal .kdate::first-letter{text-transform:uppercase}
+.kcal .kname{font-size:12px;color:var(--muted);margin-top:4px}
+.kcal .kname b{color:var(--gold);font-weight:600}
+.kcal .kdays{flex:1;min-height:0;overflow:hidden;position:relative;border-top:1px solid var(--line);padding-top:4px}
+.kcal .kdays::after{content:"";position:absolute;left:0;right:0;bottom:0;height:46px;background:linear-gradient(transparent,color-mix(in srgb,var(--bg) 92%,transparent));pointer-events:none}
+.kday{padding:10px 0 8px;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.kday-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+.kday-h .eyebrow{color:var(--gold)}
+.kday.today .kday-h .eyebrow{color:var(--orange)}
+.kwx{font-size:12px;color:var(--muted);white-space:nowrap}
+.kwx span{font-size:15px;margin-right:4px;vertical-align:-1px}
+.kwx b{color:var(--text);font-weight:600}
+.kev{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;padding:4px 0 4px 10px;border-left:3px solid var(--blue);margin:4px 0}
+.kev .kt{font:12px var(--mono);color:var(--muted);white-space:nowrap;padding-top:1px}
+.kev .kx{font-size:14px;line-height:1.3;min-width:0;overflow-wrap:anywhere}
+.kev .kx small{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kev.past{opacity:.45}
+.knone{font-size:12px;color:var(--dim);padding:2px 0 2px 13px}
+.kerr{font-size:12px;color:var(--muted);padding:12px 0}
