@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.17.0';
+  const VERSION = '0.18.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -76,12 +76,23 @@
     if (!w || !I) return '';
     return `${I.wx(w.cond, 'knowi')}<div><b>${w.temp != null && Number.isFinite(w.temp) ? Math.round(w.temp) + '°' : '–'}</b><span>${esc(I.label(w.cond))}</span></div>`;
   }
-  let lastWx = '';
-  window.addEventListener('obs-render', () => { const el = document.getElementById('know'), h = nowWx(); if (el && h !== lastWx) { el.innerHTML = h; lastWx = h; } });
+  // Vind, fukt och sol upp/ned under klockan (ersätter Ute-rutan i kiosken)
+  function wxDetails() {
+    const w = window.ObsHouse && window.ObsHouse.weather();
+    if (!w) return '';
+    const n1 = v => v == null || !Number.isFinite(+v) ? '–' : (+v).toFixed(1).replace('.', ',');
+    return `<span>Vind<b>${n1(w.wind)} <small>m/s</small></b></span><span>Fukt<b>${w.humidity != null ? Math.round(w.humidity) : '–'} %</b></span>`
+      + `<span>Sol upp<b>${esc(w.rise || '–')}</b></span><span>Sol ned<b>${esc(w.set || '–')}</b></span>`;
+  }
+  let lastWx = '', lastWxd = '';
+  window.addEventListener('obs-render', () => {
+    const el = document.getElementById('know'), h = nowWx(); if (el && h !== lastWx) { el.innerHTML = h; lastWx = h; }
+    const ed = document.getElementById('kwxd'), d = wxDetails(); if (ed && d !== lastWxd) { ed.innerHTML = d; lastWxd = d; }
+  });
   function renderCal() {
     if (!kcal) return;
     const now = new Date();
-    let html = `<div><div class="khead"><div class="kclock">${hm(now)}</div><div class="know" id="know">${nowWx()}</div></div><div class="kdate">${now.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
+    let html = `<div><div class="khead"><div class="kclock">${hm(now)}</div><div class="know" id="know">${nowWx()}</div></div><div class="kwxd" id="kwxd">${wxDetails()}</div><div class="kdate">${now.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
     const evs = (cal && cal.events) || [];
     const name = evs.find(e => e.cal === (cal && cal.namedays) && dayKey(startOf(e)) === dayKey(now));
     if (name) html += `<div class="kname">Namnsdag: <b>${esc(name.title.replace(/\s+[–-]\s+\d.*$/, ''))}</b></div>`;

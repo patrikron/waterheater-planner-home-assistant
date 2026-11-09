@@ -75,7 +75,10 @@
       "wind_gust_speed"
     ],
     "sensor.nordpool_kwh_se3_sek_3_10_025": [
-      "today"
+      "today",
+      "tomorrow",
+      "tomorrow_valid",
+      "average"
     ],
     "sun.sun": [
       "next_rising",
@@ -348,6 +351,19 @@
     ],
     "sensor.0xa4c1387cf86503ed_energy_daily": [
       "last_period"
+    ],
+    "select.varmvattenberedare_lage": [
+      "options"
+    ],
+    "number.varmvattenberedare_maltemperatur": [
+      "min",
+      "max",
+      "step"
+    ],
+    "number.varmvattenberedare_komfortgrans": [
+      "min",
+      "max",
+      "step"
     ]
   },
   "house": {
@@ -415,7 +431,8 @@
     "solcast_day_6": "sensor.solcast_pv_forecast_forecast_day_6",
     "solcast_day_7": "sensor.solcast_pv_forecast_forecast_day_7",
     "title": "Huset / översikt.",
-    "subtitle": "Sol, el, värme och laddning – live från Home Assistant."
+    "subtitle": "Sol, el, värme och laddning – live från Home Assistant.",
+    "spot": "sensor.nordpool_raw"
   },
   "water": {
     "title": "Varmvatten / beredaren.",
@@ -480,7 +497,19 @@
       "sun_surplus_only": "switch.varmvattenberedare_sol_lage_varm_i_soltimmar_bara_nar_overskottet_racker",
       "sun_priced": "switch.varmvattenberedare_sol_lage_sol_prissatts_som_utebliven_forsaljning",
       "sell_other_sun": "switch.varmvattenberedare_sol_lage_salj_overskott_utanfor_valda_soltimmar"
-    }
+    },
+    "controls": true,
+    "toggles": [
+      "switch.varmvattenberedare_varm_nu",
+      "switch.varmvattenberedare_automatik"
+    ],
+    "selects": [
+      "select.varmvattenberedare_lage"
+    ],
+    "numbers": [
+      "number.varmvattenberedare_maltemperatur",
+      "number.varmvattenberedare_komfortgrans"
+    ]
   },
   "heatpump": {
     "title": "Luftvärmepump / Daikin.",

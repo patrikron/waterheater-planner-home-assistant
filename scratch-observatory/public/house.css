@@ -266,3 +266,47 @@ body[data-page=oversikt] .nav-item[data-page=oversikt] svg,body[data-page=varmva
   .nav-item.minor{margin-top:0;margin-left:auto}
   .content{margin-left:0}
 }
+/* ---------- Elprisrutan: spotpris, imorgon och sol ---------- */
+.spark .tm{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:3 3;vector-effect:non-scaling-stroke;opacity:.8}
+.box .ptop{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.box .pnow{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:10.5px;color:var(--muted);padding-bottom:3px}
+.box .pnow .spot{color:var(--blue)}
+.box .up{color:var(--orange)}.box .down{color:var(--blue)}
+.box .ptom{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);margin-top:4px}
+.box .ptom i{width:12px;border-top:1.5px dashed var(--muted)}
+.box .ptom.dim{opacity:.7}
+.box .ptom b{font-weight:600}
+.box .psol{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-top:7px;padding-top:7px;border-top:1px solid color-mix(in srgb,var(--text) 18%,transparent)}
+.box .psl{font-size:10.5px;color:var(--muted);margin-bottom:4px;white-space:nowrap}
+.box .pbar{height:5px;border-radius:3px;background:color-mix(in srgb,var(--text) 14%,transparent);overflow:hidden}
+.box .pbar span{display:block;height:100%;background:var(--gold);border-radius:3px}
+.box .pst{text-align:right;font-size:10px;color:var(--muted);white-space:nowrap;display:flex;flex-direction:column}
+.box .pst b{font-size:14px;color:var(--gold);font-weight:600}
+.box .pst b small{font-size:9px;color:var(--muted);font-weight:500}
+.box .s.s2{font-size:10.5px;margin-top:0}
+/* ---------- Styrning i detaljpanelen ---------- */
+.dctl{border:1px solid var(--line2);border-radius:4px;padding:12px 14px;margin-bottom:12px;background:color-mix(in srgb,var(--orange) 4%,transparent)}
+.dctl:empty{display:none}
+.dctl .eyebrow{color:var(--gold);margin-bottom:8px}
+.dctl .crow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent);flex-wrap:wrap}
+.dctl .crow>span{font-size:12.5px;color:var(--muted)}
+.dctl .cseg{flex-wrap:wrap}
+.dctl .cseg button{padding:8px 11px;font-size:12.5px}
+.dctl .cstep{display:inline-flex;align-items:center;gap:10px}
+.dctl .cstep button{width:40px;height:36px;justify-content:center;font-size:18px;padding:0}
+.dctl .cstep b{font-size:20px;font-weight:600;min-width:64px;text-align:center}
+.dctl .cstep b small{font-size:11px;color:var(--muted);margin-left:2px;font-weight:500}
+.dctl .ctogs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.dctl .ctog{gap:8px;padding:9px 12px;font-size:12.5px}
+.dctl .ctog i{width:26px;height:14px;border-radius:7px;background:var(--line2);position:relative;transition:background .2s}
+.dctl .ctog i::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
+.dctl .ctog.on i{background:color-mix(in srgb,var(--sage) 45%,var(--panel))}
+.dctl .ctog.on i::after{transform:translateX(12px);background:var(--sage)}
+.dctl .cseg button[aria-pressed=true]{background:color-mix(in srgb,var(--orange) 30%,var(--panel));color:var(--text);box-shadow:inset 0 -2px 0 var(--orange)}
+/* Elprisrutan blev högre: rutorna får gå en bit utanför bilden i stället för att klippas */
+@media (min-width:901px){
+  .frame{overflow:visible}
+  .stage{border-radius:6px}
+  main{padding-bottom:140px}
+  .frame-head{top:clamp(96px,17.5%,136px)}
+}

@@ -277,8 +277,8 @@ async function readBody(req, max = 64 * 1024) {
 const HP = CONFIG.heatpump || {};
 const ctlLog = [];
 async function control(body) {
-  // Sidor med egen styrning (FTX, laddbox, bilen): bara entiteter som står i respektive vitlista
-  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa].filter(x => x && x.controls);
+  // Sidor med egen styrning (FTX, laddbox, bilen, spabad, varmvatten): bara entiteter som står i respektive vitlista
+  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa, CONFIG.water].filter(x => x && x.controls);
   const allow = k => new Set(PAGES.flatMap(x => [...(x[k] || []), ...(k === 'numbers' && x.setpoint ? [x.setpoint] : [])]));
   const { action: act0, entity: ent0 } = body || {};
   const ftxOk = (act0 === 'toggle' && allow('toggles').has(ent0)) || (act0 === 'number' && allow('numbers').has(ent0)) || (act0 === 'select' && allow('selects').has(ent0))

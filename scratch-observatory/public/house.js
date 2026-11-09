@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.17.0';
+  const VERSION = '0.18.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -37,7 +37,7 @@
   // Ljusslingan i uterummet: en liten lampa per glödlampa i fotot
   const BULBS = [[24.15, 51.97], [24.79, 52.31], [25.6, 52.31], [26.44, 51.71], [28.83, 51.41], [29.53, 50.64], [29.79, 50.3]];
 
-  let cfg = {}, FX = {}, states = {}, connected = false;
+  let cfg = {}, FX = {}, HPC = {}, WC = {}, states = {}, connected = false;
   let layout = clone(DEFAULT), saved = clone(DEFAULT);
   let editing = false, lightMode = load('obs-light') || 'auto';
 
@@ -100,21 +100,25 @@
   const wxIcon = (cond, cls = 'wxi') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${WX_SVG[cond] || WX_SVG.cloudy}</svg>`;
   window.ObsIcons = { box: BOX_ICON, wx: wxIcon, label: c => WX[c] || c };
   // Aktuellt väder för kiosksidans klocka
-  window.ObsHouse = { weather: () => { const s = st(cfg.outdoor); return s ? { cond: s.state, temp: outdoorTemp() } : null; } };
+  window.ObsHouse = { weather: () => {
+    const s = st(cfg.outdoor), sun = st(cfg.sun); if (!s) return null;
+    const a = s.attributes || {};
+    return { cond: s.state, temp: outdoorTemp(), wind: a.wind_speed != null ? a.wind_speed / 3.6 : null, humidity: a.humidity,
+      rise: sun ? time(sun.attributes.next_rising) : null, set: sun ? time(sun.attributes.next_setting) : null };
+  } };
 
   // ---------- Rutornas innehåll ----------
   const BOX = {
     sol: { title: 'Solpaneler', drawer: 'solar', wire: 'sol', render() {
       const w = num(cfg.solar), today = num(cfg.pv_today);
       const rem = num(cfg.fc_remaining), tom = num(cfg.fc_tomorrow);
-      const sub = rem != null && rem > 0.05 ? `${nf(today)} kWh idag · ${nf(rem)} kvar` : tom != null ? `${nf(today)} kWh idag · imorgon ~${nf(tom)}` : `${nf(today)} kWh idag`;
-      return { v: kw(w), u: 'kW', s: sub,
+      return { v: kw(w), u: 'kW', s: `${nf(today)} kWh idag`,
         flow: w > 20 ? { cls: 'sol', dir: 'out', w } : null };
     } },
     hus: { title: 'Huset', drawer: 'house', render() {
       const load = num(cfg.load), ch = num(cfg.charger);
       const house = load != null && ch != null && ch <= load ? load - ch : load;
-      return { v: kw(house), u: 'kW', s: 'Förbrukning utan laddbox', flow: house > 30 ? { cls: '', dir: 'in', w: house } : null };
+      return { v: kw(house), u: 'kW', s: `Förbrukat ${nf(num(cfg.load_today))} kWh`, flow: house > 30 ? { cls: '', dir: 'in', w: house } : null };
     } },
     vv: { title: 'Varmvatten', drawer: 'hotwater', render() {
       const t = num(cfg.hot_water, 'temperature'), s = st(cfg.hot_water);
@@ -124,7 +128,7 @@
     nat: { title: 'Elnät', drawer: 'grid', wire: 'grid', render() {
       const g = num(cfg.grid);
       const lbl = g == null ? 'okänt' : g > 30 ? 'Köper från nätet' : g < -30 ? 'Säljer till nätet' : 'I balans';
-      return { v: kw(g), u: 'kW', s: lbl, title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
+      return { v: kw(g), u: 'kW', s: `Köpt idag ${nf(num(cfg.grid_in_today))} kWh`, s2: `Sålt idag ${nf(num(cfg.grid_out_today))} kWh`, title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
     } },
     vp: { title: 'Värmepump', drawer: 'heatpump', render() {
       const w = num(cfg.heatpump), inne = num(cfg.indoor);
@@ -147,10 +151,24 @@
           <span>↓ Sol ned<b>${sun ? time(sun.attributes.next_setting) : '–'}</b></span></div>` };
     } },
     elpris: { title: 'Elpris idag', cls: 'wide', drawer: 'price', render() {
-      const p = num(cfg.price), s = st(cfg.price);
-      const arr = s && Array.isArray(s.attributes.today) ? s.attributes.today.map(Number) : [];
+      const p = num(cfg.price), s = st(cfg.price), a = s ? s.attributes : {};
+      const list = v => Array.isArray(v) ? v.map(Number).filter(Number.isFinite) : [];
+      const arr = list(a.today), tom = a.tomorrow_valid === false ? [] : list(a.tomorrow);
+      const mean = xs => xs.length ? xs.reduce((x, y) => x + y, 0) / xs.length : null;
+      const avg = Number.isFinite(+a.average) && +a.average > 0 ? +a.average : mean(arr);
+      const spot = num(cfg.spot), pct = p != null && avg ? Math.round((p / avg - 1) * 100) : null;
+      const tAvg = mean(tom), tPct = tAvg != null && avg ? Math.round((tAvg / mean(arr) - 1) * 100) : null;
+      const sign = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v);
+      // Sol idag mot prognos och imorgon (Solcast)
+      const sol = num(cfg.pv_today), prog = num(cfg.solcast_today), solTom = num(cfg.solcast_tomorrow);
+      const bar = prog > 0 && sol != null ? Math.min(100, sol / prog * 100) : 0;
       return { custom: `<div class="k">Idag / elpris</div>
-        <div class="v">${nf(p, 2)}<small>kr/kWh nu</small></div>${priceSpark(arr)}` };
+        <div class="ptop"><div class="v">${nf(p, 2)}<small>kr/kWh nu</small></div>
+          <div class="pnow">${spot != null ? `<span class="spot">Spotpris ${nf(spot, 2)} kr</span>` : ''}${pct != null ? `<span class="${pct > 0 ? 'up' : 'down'}">${sign(pct)} % mot snitt</span>` : ''}</div></div>
+        ${priceSpark(arr, tom)}
+        ${tPct != null ? `<div class="ptom"><i></i>Imorgon snitt ${nf(tAvg, 2)} kr · <b class="${tPct > 0 ? 'up' : 'down'}">${sign(tPct)} %</b> mot idag</div>` : '<div class="ptom dim">Morgondagens priser kommer efter kl 13</div>'}
+        <div class="psol"><div><div class="psl"><span>Sol idag ${nf(sol)} / ${nf(prog)} kWh</span></div><div class="pbar"><span style="width:${bar}%"></span></div></div>
+          <div class="pst"><span>Sol imorgon</span><b>${nf(solTom)} <small>kWh</small></b></div></div>` };
     } },
     ftx: { title: 'FTX', drawer: 'ftx', render() {
       if (!FX.supply) return { custom: '<div class="k">FTX</div><div class="s">Ingen FTX i config</div>' };
@@ -238,14 +256,17 @@
     renderBoxes(); drawWires();
   }, true);
 
-  function priceSpark(arr) {
+  function priceSpark(arr, tom = []) {
     if (!arr.length) return '<div class="s">Inga priser</div>';
-    const W = 100, H = 40, n = arr.length, lo = Math.min(...arr), hi = Math.max(...arr);
-    const x = i => i / (n - 1) * W, y = v => H - (hi === lo ? .5 : (v - lo) / (hi - lo)) * (H - 4) - 2;
+    const all = arr.concat(tom);
+    const W = 100, H = 40, n = arr.length, lo = Math.min(...all), hi = Math.max(...all);
+    const x = (i, m = n) => i / (m - 1) * W, y = v => H - (hi === lo ? .5 : (v - lo) / (hi - lo)) * (H - 4) - 2;
     let d = ''; arr.forEach((v, i) => { d += `${i ? 'L' : 'M'}${x(i).toFixed(2)},${y(v).toFixed(2)}`; });
+    // Morgondagens priser ritas streckat ovanpå samma 00–24-axel
+    let dt = ''; tom.forEach((v, i) => { dt += `${i ? 'L' : 'M'}${x(i, tom.length).toFixed(2)},${y(v).toFixed(2)}`; });
     const now = new Date(), idx = (now.getHours() * 60 + now.getMinutes()) / 1440 * (n - 1);
     return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-      <path class="ar" d="${d}L${W},${H}L0,${H}Z"/><path class="ln" d="${d}"/>
+      ${dt ? `<path class="tm" d="${dt}"/>` : ''}<path class="ar" d="${d}L${W},${H}L0,${H}Z"/><path class="ln" d="${d}"/>
       <line class="now" x1="${x(idx)}" x2="${x(idx)}" y1="0" y2="${H}"/></svg>
       <div class="lohi"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
       <div class="lohi"><span>Lägst ${nf(lo, 2)}</span><span class="hi">Högst ${nf(hi, 2)}</span></div>`;
@@ -279,7 +300,7 @@
       const def = BOX[el.dataset.id], r = def.render();
       el._flow = r.flow || null;
       if (r.custom) el.innerHTML = r.custom;
-      else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v">${r.v}<small>${r.u}</small></div><div class="s">${esc(r.s || '')}</div>` +
+      else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v">${r.v}<small>${r.u}</small></div><div class="s">${esc(r.s || '')}</div>${r.s2 ? `<div class="s s2">${esc(r.s2)}</div>` : ''}` +
         (r.soc != null ? `<div class="soc"><span style="width:${Math.max(0, Math.min(100, r.soc))}%"></span></div><div class="s">EV6 ${Math.round(r.soc)} %</div>` : '');
       // Liten ikon framför rubriken; väderrutan får ikonen för aktuellt väder
       const k = el.querySelector('.k'), id = el.dataset.id;
@@ -481,7 +502,7 @@
       ['Köpt idag', nf(num(cfg.grid_in_today)), 'kWh'], ['Sålt idag', nf(num(cfg.grid_out_today)), 'kWh'],
       ['Elkostnad idag', nf(num(cfg.cost_today), 2), 'kr']],
       charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']] },
-    heatpump: { eyebrow: 'Klimat / värmepump', title: 'Värmepump', stats: () => [
+    heatpump: { eyebrow: 'Klimat / värmepump', title: 'Värmepump', ctl: ctlHeatpump, stats: () => [
       ['Effekt', num(cfg.heatpump) == null ? '–' : Math.round(num(cfg.heatpump)).toLocaleString('sv-SE'), 'W'],
       ['Inne', nf(num(cfg.indoor)), '°C'], ['Ute', nf(outdoorTemp()), '°C']],
       charts: () => [[cfg.heatpump, 'Effekt', TC('orange'), 1, 'W'], [cfg.indoor, 'Inomhustemperatur', TC('sage'), 1, '°C']],
@@ -490,12 +511,12 @@
       ['Laddeffekt', kw(num(cfg.charger)), 'kW'], ['EV6', num(cfg.ev_soc) == null ? '–' : Math.round(num(cfg.ev_soc)), '%']],
       charts: () => [[cfg.charger, 'Laddeffekt', TC('sage'), 1000, 'kW'], [cfg.ev_soc, 'EV6 laddnivå', TC('blue'), 1, '%']],
       extra: () => '<a class="btn primary-link" href="laddbox.html">Öppna laddboxsidan →</a> <a class="btn primary-link" href="ev6.html">Öppna EV6-sidan →</a>' },
-    hotwater: { eyebrow: 'Värme / varmvatten', title: 'Varmvattenberedare', stats: () => {
+    hotwater: { eyebrow: 'Värme / varmvatten', title: 'Varmvattenberedare', ctl: ctlWater, stats: () => {
       const s = st(cfg.hot_water);
       return [['Temperatur', nf(num(cfg.hot_water, 'temperature')), '°C'], ['Mål', nf(num(cfg.hot_water, 'target_temperature'), 0), '°C'],
         ['Status', s ? (HW[s.state] || s.state) : '–', '']];
     }, charts: () => [], extra: () => '<a class="btn primary-link" href="varmvatten.html">Öppna varmvattensidan →</a>' },
-    ftx: { eyebrow: 'Ventilation / FTX', title: 'FTX-aggregatet', stats: () => [
+    ftx: { eyebrow: 'Ventilation / FTX', title: 'FTX-aggregatet', ctl: ctlFtx, stats: () => [
       ['Tilluft', nf(num(FX.supply)), '°C'], ['Frånluft', nf(num(FX.extract)), '°C'], ['Ute', nf(num(FX.outdoor)), '°C'],
       ['Verkningsgrad', nf(num(FX.efficiency), 0), '%'], ['Fläktnivå', num(FX.fan_level) == null ? '–' : Math.round(num(FX.fan_level)), ''], ['Effekt', num(FX.power) == null ? '–' : Math.round(num(FX.power)), 'W']],
       charts: () => [{ title: 'Tilluft mot frånluft och ute', unit: '°C', div: 1, series: [[FX.supply, 'Tilluft', TC('orange')], [FX.extract, 'Frånluft', TC('gold')], [FX.outdoor, 'Ute', TC('blue')]] }],
@@ -513,6 +534,79 @@
     } },
   };
   let drawerOpen = null;
+  // ---------- Styrning i detaljpanelen (värmepump, FTX, varmvatten) ----------
+  // Servern släpper bara igenom entiteter och värden som står i config; här byggs bara knapparna.
+  let lastCtl = '';
+  const pendingVal = {}, sendT = {};
+  const A = (id, k) => { const s = st(id); return s && s.attributes ? s.attributes[k] : undefined; };
+  const isOn = id => !!(st(id) && st(id).state === 'on');
+  const segBtns = (opts, cur, act, entity) => `<div class="seg cseg">${opts.map(([v, l]) => `<button data-ctl="${act}" data-entity="${esc(entity || '')}" data-v="${esc(v)}" aria-pressed="${String(v) === String(cur)}">${esc(l)}</button>`).join('')}</div>`;
+  const toggleBtn = (id, label) => id && st(id) ? `<button class="ctog${isOn(id) ? ' on' : ''}" data-ctl="toggle" data-entity="${esc(id)}" data-v="${isOn(id) ? 'off' : 'on'}" aria-pressed="${isOn(id)}"><i></i>${esc(label)}</button>` : '';
+  const stepper = (key, val, unit, dec, act, entity) => `<div class="cstep"><button data-ctl="${act}" data-entity="${esc(entity)}" data-step="-1" aria-label="Sänk">−</button><b>${val == null ? '–' : nf(val, dec)}<small>${unit}</small></b><button data-ctl="${act}" data-entity="${esc(entity)}" data-step="1" aria-label="Höj">+</button></div>`;
+  const crow = (label, html) => html ? `<div class="crow"><span>${esc(label)}</span>${html}</div>` : '';
+  const HVAC_L = { heat: 'Värme', cool: 'Kyla', fan_only: 'Fläkt', dry: 'Torka', auto: 'Auto', heat_cool: 'Auto', off: 'Av' };
+  const FAN_L = { auto: 'Auto', quiet: 'Tyst', low: 'Låg', medium: 'Mellan', high: 'Hög' };
+  const W_MODE = { cheapest: 'Billigast', solar: 'Sol', hybrid: 'Hybrid' };
+  const numVal = id => pendingVal[id] != null ? pendingVal[id] : num(id);
+  function ctlHeatpump() {
+    const id = HPC.climate; if (!HPC.controls || !id || !st(id)) return '';
+    const modes = A(id, 'hvac_modes') || [], fans = A(id, 'fan_modes') || [];
+    const t = pendingVal[id] != null ? pendingVal[id] : A(id, 'temperature');
+    return `<div class="eyebrow">Styr värmepumpen</div>
+      ${crow('Läge', segBtns(modes.map(m => [m, HVAC_L[m] || m]), st(id).state, 'hvac_mode'))}
+      ${st(id).state !== 'off' && t != null ? crow('Måltemperatur', stepper(id, t, '°C', 1, 'temperature', id)) : ''}
+      ${fans.length && st(id).state !== 'off' ? crow('Fläkt', segBtns(fans.map(f => [f, FAN_L[f] || f]), A(id, 'fan_mode'), 'fan_mode')) : ''}`;
+  }
+  function ctlFtx() {
+    if (!FX.controls) return '';
+    return `<div class="eyebrow">Styr FTX</div>
+      <div class="ctogs">${toggleBtn(FX.unit, 'Aggregat på')}${toggleBtn(FX.boost, 'Forcering')}${toggleBtn(FX.away, 'Bortaläge')}</div>
+      ${FX.setpoint && st(FX.setpoint) ? crow('Tilluft börvärde', stepper(FX.setpoint, numVal(FX.setpoint), '°C', 0, 'number', FX.setpoint)) : ''}`;
+  }
+  function ctlWater() {
+    const S = WC.settings || {}; if (!WC.controls) return '';
+    const mode = st(S.mode);
+    return `<div class="eyebrow">Styr varmvattnet</div>
+      <div class="ctogs">${toggleBtn(S.boost, 'Värm nu')}${toggleBtn(S.automatic, 'Automatik')}</div>
+      ${mode ? crow('Läge', segBtns((mode.attributes.options || []).map(o => [o, W_MODE[o] || o]), mode.state, 'select', S.mode)) : ''}
+      ${S.target && st(S.target) ? crow('Måltemperatur', stepper(S.target, numVal(S.target), '°C', 0, 'number', S.target)) : ''}
+      ${S.comfort && st(S.comfort) ? crow('Komfortgräns', stepper(S.comfort, numVal(S.comfort), '°C', 0, 'number', S.comfort)) : ''}`;
+  }
+  async function sendCtl(body) {
+    try {
+      const r = await fetch('api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+      toast('Skickat till Home Assistant.');
+    } catch (e) { toast('Gick inte: ' + e.message); }
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-ctl]'); if (!b || !b.closest('#dctl')) return;
+    e.stopPropagation();
+    const act = b.dataset.ctl, entity = b.dataset.entity || undefined, v = b.dataset.v;
+    if (b.dataset.step) {
+      // −/+ samlas ihop en kort stund så att flera tryck blir ett kommando
+      const id = entity, climate = act === 'temperature';
+      const step = climate ? (A(id, 'target_temp_step') || 0.5) : (A(id, 'step') || 1);
+      const lo = climate ? (A(id, 'min_temp') ?? 10) : A(id, 'min'), hi = climate ? (A(id, 'max_temp') ?? 30) : A(id, 'max');
+      const cur = pendingVal[id] != null ? pendingVal[id] : climate ? A(id, 'temperature') : num(id);
+      if (cur == null) return;
+      let nv = Math.round((cur + step * Number(b.dataset.step)) / step) * step;
+      if (lo != null) nv = Math.max(lo, nv); if (hi != null) nv = Math.min(hi, nv);
+      pendingVal[id] = +nv.toFixed(2); renderDrawerStats();
+      clearTimeout(sendT[id]);
+      sendT[id] = setTimeout(async () => { const val = pendingVal[id]; await sendCtl(climate ? { action: 'temperature', value: val } : { action: 'number', entity: id, value: val }); setTimeout(() => { delete pendingVal[id]; renderDrawerStats(); }, 4000); }, 800);
+      return;
+    }
+    if (act === 'toggle') {
+      if (entity === FX.unit && v === 'off' && !confirm('Stänga av FTX-aggregatet?')) return;
+      sendCtl({ action: 'toggle', entity, value: v === 'on' });
+    } else if (act === 'select') sendCtl({ action: 'select', entity, value: v });
+    else if (act === 'hvac_mode' || act === 'fan_mode') {
+      if (act === 'hvac_mode' && v === 'off' && !confirm('Stänga av värmepumpen?')) return;
+      sendCtl({ action: act, value: v });
+    }
+  }, true);
+
   async function openDrawer(id) {
     const d = DRAWERS[id]; if (!d) return;
     drawerOpen = id;
@@ -522,7 +616,8 @@
     $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false'); $('scrim').hidden = false;
     const body = $('drawer-charts');
     const charts = d.charts().map(c => Array.isArray(c) ? { title: c[1], unit: c[4], div: c[3], series: [[c[0], c[1], c[2]]] } : c);
-    body.innerHTML = (d.extra ? d.extra() : '') + charts.map((c, i) => `<div class="dchart" id="dc${i}"><div class="eyebrow">${esc(c.title)} · senaste 24 h</div><div class="empty">Hämtar historik …</div></div>`).join('') +
+    lastCtl = '';
+    body.innerHTML = (d.ctl ? `<div id="dctl" class="dctl">${(lastCtl = d.ctl())}</div>` : '') + (d.extra ? d.extra() : '') + charts.map((c, i) => `<div class="dchart" id="dc${i}"><div class="eyebrow">${esc(c.title)} · senaste 24 h</div><div class="empty">Hämtar historik …</div></div>`).join('') +
       (d.note ? `<p class="dnote">${esc(d.note)}</p>` : '');
     charts.forEach(async (c, i) => {
       const box = $('dc' + i);
@@ -546,6 +641,7 @@
   function renderDrawerStats() {
     if (!drawerOpen) return;
     const d = DRAWERS[drawerOpen];
+    if (d.ctl && $('dctl')) { const h = d.ctl(); if (h !== lastCtl) { $('dctl').innerHTML = h; lastCtl = h; } }
     if (d.rich) { $('drawer-stats').innerHTML = d.rich(); return; }
     $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>`;
     if (d.extra && drawerOpen === 'price' && $('price-chart')) $('price-chart').outerHTML = d.extra();
@@ -710,7 +806,9 @@
       fetch('api/house', { cache: 'no-store' }).then(r => r.json()),
       fetch('api/layout', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
       fetch('api/ftx', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-    ]).then(([a, b, f]) => { FX = f || {}; return [a, b]; });
+      fetch('api/heatpump', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch('api/water', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+    ]).then(([a, b, f, h, w]) => { FX = f || {}; HPC = h || {}; WC = w || {}; return [a, b]; });
     cfg = c;
     if (cfg.title) $('title').textContent = cfg.title;
     if (cfg.subtitle) $('subtitle').textContent = cfg.subtitle;
