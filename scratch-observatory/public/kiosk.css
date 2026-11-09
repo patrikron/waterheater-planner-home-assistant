@@ -72,3 +72,12 @@ body.kiosk main{margin-inline:auto}
 
 /* Ute-rutan behövs inte i kiosken, vädret står vid klockan */
 body.kiosk .box[data-id="vader"]{display:none}
+
+/* Lätt läge (kiosk.html?lite): inga suddfilter, skuggor eller animationer */
+body.kiosk.lite .content::before{display:none}
+body.lite .box,body.lite .kcal{backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;background:color-mix(in srgb,var(--bg) 94%,transparent)}
+body.lite .wires .base,body.lite .wires .flow,body.lite .hot polygon{filter:none!important}
+body.lite .wires .flow{animation:none!important;stroke-dasharray:2 10}
+body.lite .badge.live i,body.lite .glows .bulb{animation:none}
+body.lite .stage img,body.lite .tint,body.lite .glows{transition:none}
+body.lite .drawer{box-shadow:none}

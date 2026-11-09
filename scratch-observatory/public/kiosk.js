@@ -2,10 +2,20 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.19.1';
+  const VERSION = '0.20.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
+
+  // Lätt läge för svagare plattor: kiosk.html?lite (sparas på enheten), kiosk.html?lite=0 stänger av.
+  // Tar bort suddig bakgrund, glöd och rörliga prickar på linjerna.
+  (() => {
+    const q = new URLSearchParams(location.search);
+    try {
+      if (q.has('lite')) { if (q.get('lite') === '0') localStorage.removeItem('obs-lite'); else localStorage.setItem('obs-lite', '1'); }
+      if (localStorage.getItem('obs-lite') === '1' || (q.has('lite') && q.get('lite') !== '0')) body.classList.add('lite');
+    } catch (e) { if (q.has('lite') && q.get('lite') !== '0') body.classList.add('lite'); }
+  })();
 
   // Helskärm kräver ett tryck från användaren; misslyckas tyst där det inte stöds
   function fullscreen() {
