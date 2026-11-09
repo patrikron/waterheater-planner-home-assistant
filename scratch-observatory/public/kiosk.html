@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d100e">
+<title>Huset – kiosk</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<script src="theme.js"></script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="kiosk.css">
+</head>
+<body data-page="oversikt" class="kiosk">
+<div class="content">
+<!-- Rubrik och knappar finns kvar men döljs: översiktens skript behöver dem -->
+<header class="top" hidden>
+  <div>
+    <div class="eyebrow"><span class="slash">//</span> OBSERVATORIET / HEMMA</div>
+    <h1 id="title">Huset / översikt.</h1>
+    <p id="subtitle"></p>
+  </div>
+  <div class="top-right">
+    <span id="badge" class="badge stale"><i></i><span>Väntar på data</span></span>
+    <span id="clock" class="mono"></span>
+    <div class="btns">
+      <div class="seg" role="group" aria-label="Ljus">
+        <button data-mode="auto" aria-pressed="true">Auto</button><button data-mode="day">Dag</button><button data-mode="night">Natt</button>
+      </div>
+      <button id="edit-btn">Redigera layout</button>
+    </div>
+  </div>
+</header>
+
+<div id="edit-bar" class="edit-bar" hidden>
+  <span>Dra rutorna och de runda punkterna. Dra hörnen på klickytorna, dra en liten mittpunkt för att lägga till ett hörn och dubbelklicka på ett hörn för att ta bort det.</span>
+  <span class="edit-actions">
+    <button id="edit-reset">Återställ standard</button>
+    <button id="edit-cancel">Avbryt</button>
+    <button id="edit-save" class="primary">Spara</button>
+  </span>
+</div>
+
+<main>
+  <section class="frame">
+    <div id="stage" class="stage">
+      <img id="photo" src="foto/hus.jpg" alt="Foto av huset" draggable="false">
+      <div class="tint"></div>
+      <div id="glows" class="glows" aria-hidden="true"></div>
+      <svg id="hot" class="hot" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+      <svg id="wires" class="wires"></svg>
+      <div id="handles" class="handles"></div>
+    </div>
+    <div id="boxes" class="boxes"></div>
+  </section>
+</main>
+
+</div>
+
+<aside id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div><div class="eyebrow" id="drawer-eyebrow"></div><h3 id="drawer-title"></h3></div>
+    <button id="drawer-close" aria-label="Stäng">✕</button>
+  </div>
+  <div id="drawer-body"><div id="drawer-stats"></div><div id="drawer-charts"></div></div>
+</aside>
+<div id="scrim" class="scrim" hidden></div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="house.js"></script>
+<script src="kiosk.js"></script>
+</body>
+</html>

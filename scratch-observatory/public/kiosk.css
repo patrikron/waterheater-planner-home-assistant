@@ -1,0 +1,26 @@
+/* Kioskläge för surfplattan: bara husbilden med rutorna, utan meny, rubriker och knappar.
+   Bilden skalas så att hela den får plats på skärmen och centreras. */
+html,body.kiosk{height:100%;overflow:hidden;overscroll-behavior:none;background:#000}
+body.kiosk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+body.kiosk .content{position:relative;z-index:0;margin:0;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+body.kiosk main{max-width:none;margin:0;padding:0;width:min(100vw,calc(100dvh * 2400 / 1169))}
+body.kiosk .frame{border:0;border-radius:0;background:#000;box-shadow:0 0 60px rgba(0,0,0,.6)}
+/* Ytan ovanför och under bilden fylls med en suddig och mörk kopia av husfotot i stället för svarta kanter */
+body.kiosk .content::before{content:"";position:fixed;inset:-40px;z-index:-1;background:url(foto/hus.jpg) center/cover;filter:blur(28px) brightness(.32) saturate(.8)}
+body.kiosk.hide-cursor,body.kiosk.hide-cursor *{cursor:none!important}
+/* Länkar till andra sidor i detaljpanelen tas bort, det finns ingen meny att gå tillbaka med */
+body.kiosk .drawer a.btn{display:none}
+/* Liten markering i hörnet bara när sidan tappat kontakten med Home Assistant */
+.kiosk-dot{position:fixed;right:max(10px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));z-index:70;
+  display:flex;align-items:center;gap:7px;font:10px var(--mono);letter-spacing:1px;text-transform:uppercase;
+  padding:5px 9px;border-radius:3px;background:var(--c-2c2a1c);color:var(--c-d8c98e);border:1px solid var(--c-5d5639);pointer-events:none}
+.kiosk-dot i{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+/* Stående surfplatta: rutorna läggs i ett rutnät under bilden som på mobilen, och sidan får rulla */
+@media (max-width:900px){
+  html,body.kiosk{overflow:auto;height:auto}
+  body.kiosk .content{display:block;height:auto}
+  body.kiosk main{width:100%}
+  body.kiosk .content::before{display:none}
+  html,body.kiosk{background:var(--bg)}
+}
