@@ -769,11 +769,15 @@
       : '<p class="dnote">Morgondagens priser kommer vid 13-tiden.</p>') + '</div>';
     const A = cfg.ai;
     if (A) {
-      const tx = id => { const s = st(id); return s && s.state && !['unknown', 'unavailable', ''].includes(s.state) ? s.state : ''; };
-      const s0 = st(A.elpris), when = s0 && s0.last_changed ? new Date(s0.last_changed).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) : '';
-      const part = (k, id, main) => tx(id) ? `<div class="aip${main ? ' main' : ''}"><span>${k}</span><p>${esc(tx(id))}</p></div>` : '';
-      const body = part('Elpris', A.elpris, true) + part('Förbrukning', A.sammanfattning) + part('Största förbrukare', A.storsta) + part('Solel', A.solel) + part('Jämförelse', A.jamforelse);
-      if (body) h = `<div class="aisum"><div class="aihead"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/></svg><b>${esc(tx(A.rubrik) || 'AI-sammanfattning')}</b>${when ? `<small>uppdaterad ${when}</small>` : ''}</div>${body}</div>` + h;
+      // AI-råd från HA (input_text.elrad_*): rubrik, status, sammanfattning och när maskinerna bör köras
+      const tx = id => { const s = st(id); return id && s && s.state && !['unknown', 'unavailable'].includes(s.state) ? s.state.trim() : ''; };
+      const s0 = st(A.rubrik), when = s0 && s0.last_changed ? new Date(s0.last_changed).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) : '';
+      const status = tx(A.status).toLowerCase(), scls = /dyr/.test(status) ? 'hi' : /billig/.test(status) ? 'lo' : 'mid';
+      const IC = { disk: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 8h14"/><circle cx="12" cy="14.5" r="3.5"/>', tvatt: '<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13.5" r="4.5"/><path d="M8 6h.01M11 6h3"/>', tork: '<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13.5" r="4.5"/><path d="M10 12c1-1 3 1 4 0M10 15c1-1 3 1 4 0"/>' };
+      const rows = (A.rows || []).map(r => tx(r.entity) ? `<div class="airow"><svg viewBox="0 0 24 24" aria-hidden="true">${IC[r.icon] || IC.disk}</svg><span>${esc(tx(r.entity))}</span></div>` : '').join('');
+      if (tx(A.rubrik) || tx(A.sammanfattning)) h = `<div class="aisum ${scls}"><div class="aieye"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/></svg>AI-råd${when ? ' · ' + when : ''}${status ? `<em class="aistat">${esc(status.charAt(0).toUpperCase() + status.slice(1))}</em>` : ''}</div>
+        <div class="aihead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg><b>${esc(tx(A.rubrik))}</b></div>
+        ${tx(A.sammanfattning) ? `<p class="aitext">${esc(tx(A.sammanfattning))}</p>` : ''}${rows ? `<div class="airows">${rows}</div>` : ''}</div>` + h;
     }
     return h;
   }

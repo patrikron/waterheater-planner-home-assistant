@@ -1220,12 +1220,26 @@
       "code_max_len": 12
     },
     "ai": {
-      "rubrik": "input_text.elforbrukning_rubrik",
-      "elpris": "input_text.elforbrukning_elpris",
-      "sammanfattning": "input_text.elforbrukning_sammanfattning",
-      "storsta": "input_text.elforbrukning_storsta_forbrukare",
-      "solel": "input_text.elforbrukning_solel",
-      "jamforelse": "input_text.elforbrukning_jamforelse"
+      "rubrik": "input_text.elrad_rubrik",
+      "status": "input_text.elrad_status",
+      "sammanfattning": "input_text.elrad_sammanfattning",
+      "rows": [
+        {
+          "name": "Diskmaskin",
+          "entity": "input_text.elrad_disk",
+          "icon": "disk"
+        },
+        {
+          "name": "Tvättmaskin",
+          "entity": "input_text.elrad_tvatt",
+          "icon": "tvatt"
+        },
+        {
+          "name": "Torktumlare",
+          "entity": "input_text.elrad_tork",
+          "icon": "tork"
+        }
+      ]
     }
   },
   "water": {
