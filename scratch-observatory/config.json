@@ -1240,7 +1240,81 @@
           "icon": "tork"
         }
       ]
-    }
+    },
+    "temp_pins": [
+      {
+        "name": "Vardagsrum",
+        "temp": "sensor.vardagsrum_temperature",
+        "hum": "sensor.vardagsrum_humidity",
+        "pos": [
+          34,
+          45
+        ],
+        "lo": 19,
+        "hi": 24,
+        "short": "Vardagsrum"
+      },
+      {
+        "name": "Sovrum/Kontor",
+        "temp": "sensor.netatmo_station_sovrum_temperature",
+        "hum": "sensor.netatmo_station_sovrum_humidity",
+        "pos": [
+          56,
+          45
+        ],
+        "lo": 17,
+        "hi": 23,
+        "short": "Sovrum"
+      },
+      {
+        "name": "Uterum fram",
+        "temp": "sensor.0xa4c1384fb9bddf1d_temperature",
+        "hum": "sensor.0xa4c1384fb9bddf1d_humidity",
+        "pos": [
+          17,
+          43
+        ],
+        "lo": 5,
+        "hi": 28,
+        "short": "Uterum"
+      },
+      {
+        "name": "Garage",
+        "temp": "sensor.garage_temp_garage_temperature",
+        "hum": "sensor.garage_temp_garage_humidity",
+        "pos": [
+          67,
+          50
+        ],
+        "lo": 4,
+        "hi": 25,
+        "short": "Garage"
+      },
+      {
+        "name": "Lilla toa",
+        "temp": "sensor.0xa4c138bc6c5a4e64_temperature",
+        "hum": "sensor.0xa4c138bc6c5a4e64_humidity",
+        "pos": [
+          42,
+          43
+        ],
+        "lo": 18,
+        "hi": 24,
+        "short": "Toa"
+      },
+      {
+        "name": "Oliver",
+        "temp": "sensor.0xa4c13888b4afcaa3_temperature",
+        "hum": "sensor.0xa4c13888b4afcaa3_humidity",
+        "pos": [
+          25,
+          47
+        ],
+        "lo": 18,
+        "hi": 23,
+        "short": "Oliver"
+      }
+    ]
   },
   "water": {
     "title": "Varmvatten / beredaren.",

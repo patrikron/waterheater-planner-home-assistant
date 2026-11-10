@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.28.0';
+  const VERSION = '0.29.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -321,7 +321,7 @@
       const ic = id === 'vader' ? (st(cfg.outdoor) ? wxIcon(st(cfg.outdoor).state, 'bi wx') : '') : BOX_ICON[id];
       if (k && ic) k.insertAdjacentHTML('afterbegin', ic);
     }
-    fitBoxes(); drawWires(); renderLocks();
+    fitBoxes(); drawWires(); renderLocks(); renderTemps();
     window.dispatchEvent(new CustomEvent('obs-render'));
   }
 
@@ -368,6 +368,25 @@
     }).join('');
     if (wrap._h !== html) { wrap.innerHTML = html; wrap._h = html; placeLocks(); }
   }
+  // Temperaturbrickor på bilden (utvalda rum), tryck öppnar alla temperaturer
+  const tempPos = m => m && ((layout.temps && layout.temps[m.temp]) || m.pos);
+  const tempCls = (v, m) => v == null ? 'off' : v < (m.lo ?? 18) ? 'cold' : v > (m.hi ?? 24) ? 'warm' : 'ok';
+  function renderTemps() {
+    const P = cfg.temp_pins; if (!Array.isArray(P) || !P.length) return;
+    let wrap = $('tpins');
+    if (!wrap) { wrap = document.createElement('div'); wrap.id = 'tpins'; wrap.className = 'tpins'; stage.appendChild(wrap); }
+    const html = P.map(m => { const v = num(m.temp); return `<button class="tpin ${tempCls(v, m)}" data-tpin="${esc(m.temp)}" title="${esc(m.name)}" aria-label="${esc(m.name)}: ${v == null ? 'okänt' : nf(v) + ' grader'}"><i></i><b>${v == null ? '–' : nf(v)}°</b><span>${esc(m.short || m.name)}</span></button>`; }).join('');
+    if (wrap._h !== html) { wrap.innerHTML = html; wrap._h = html; placeTemps(); }
+  }
+  function placeTemps() {
+    const wrap = $('tpins'), P = cfg.temp_pins; if (!wrap || !P) return;
+    const c = parseFloat(stage.style.getPropertyValue('--crop')) || 0;
+    wrap.querySelectorAll('.tpin').forEach((el, i) => {
+      const pos = tempPos(P[i]); if (!pos) return;
+      el.style.left = ((pos[0] / 100 - c) / (1 - 2 * c) * 100) + '%'; el.style.top = pos[1] + '%';
+    });
+  }
+  stage.addEventListener('click', e => { if (!e.target.closest('.tpin')) return; e.stopPropagation(); openDrawer('temps'); });
   const lockPos = m => m && ((layout.locks && layout.locks[m.entity]) || m.pos);
   function placeLocks(sr) {
     const wrap = $('locks'), D = cfg.door; if (!wrap || !D) return;
@@ -423,7 +442,7 @@
       out += `<circle class="dot" cx="${ax}" cy="${ay}" r="5"/><circle class="dotc" cx="${ax}" cy="${ay}" r="1.8"/>`;
     }
     wires.innerHTML = out;
-    placeLocks(sr);
+    placeLocks(sr); placeTemps();
   }
 
   // ---------- Dag / natt ----------
@@ -582,6 +601,8 @@
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl },
     info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
+    temps: { eyebrow: 'Inomhus och byggnader', title: 'Temperaturer', wide: true, rich: () => '', stats: () => [], ctl: tempsCtl,
+      charts: () => { const cols = ['orange', 'blue', 'sage', 'gold', 'red', 'text']; return (cfg.temp_pins || []).length ? [{ title: 'Utvalda rum', unit: '°C', div: 1, series: cfg.temp_pins.map((m, i) => [m.temp, m.name, TC(cols[i % cols.length])]) }] : []; } },
     alarm: { eyebrow: 'Säkerhet / larm', title: 'Larm', rich: () => '', stats: () => [], charts: () => [], ctl: alarmCtl },
     chores: { eyebrow: 'Barnen / sysslor', title: 'Poäng', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: choresCtl },
     money: { eyebrow: 'Idag', title: 'Kostnad och energi', stats: () => {
@@ -780,6 +801,20 @@
         ${tx(A.sammanfattning) ? `<p class="aitext">${esc(tx(A.sammanfattning))}</p>` : ''}${rows ? `<div class="airows">${rows}</div>` : ''}</div>` + h;
     }
     return h;
+  }
+  // ---------- Alla temperaturer (grupperna från temperatursidan) ----------
+  let TEMPS = null;
+  function tempsCtl() {
+    if (!TEMPS) { fetch('api/temps', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(t => { TEMPS = t || { groups: [] }; renderDrawerStats(); }).catch(() => {}); return '<p class="dnote">Hämtar …</p>'; }
+    const pinned = new Set((cfg.temp_pins || []).map(m => m.temp));
+    return (TEMPS.groups || []).map(g => {
+      const vals = g.sensors.map(x => num(x.temp)).filter(v => v != null), avg = g.avg && vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      const tiles = g.sensors.map(x => {
+        const v = num(x.temp), h = x.hum ? num(x.hum) : null, hw = x.hum_warn && h != null && h >= x.hum_warn;
+        return `<div class="ttile${pinned.has(x.temp) ? ' pin' : ''}${v == null ? ' off' : ''}"><span>${esc(x.name)}</span><b>${v == null ? '–' : nf(v)}<small>°C</small></b><em class="${hw ? 'warn' : ''}">${h == null ? '' : Math.round(h) + ' % fukt'}</em></div>`;
+      }).join('');
+      return `<div class="tgrp"><div class="eyebrow">${esc(g.title)}${avg != null ? ' · snitt ' + nf(avg) + ' °C' : ''}</div><div class="tgrid">${tiles}</div></div>`;
+    }).join('');
   }
   // ---------- Larm ----------
   const ALARM_L = { disarmed: 'Avlarmat', armed_home: 'Larmat hemma', armed_away: 'Larmat borta', armed_night: 'Larmat natt', armed_vacation: 'Larmat semester', armed_custom_bypass: 'Larmat (förbikoppling)', arming: 'Larmar på …', pending: 'Inpassering – avlarma!', triggered: 'LARMET HAR GÅTT', disarming: 'Avlarmar …', unavailable: 'Ej nåbart', unknown: 'Okänt' };
@@ -1080,6 +1115,10 @@
       const p = lockPos(m); if (!p) continue;
       dragHandle(mk('lockh', p, 'Låsikon ' + (m.name || m.entity)), q => { (layout.locks = layout.locks || {})[m.entity] = q; placeLocks(); });
     }
+    for (const m of cfg.temp_pins || []) {
+      const p = tempPos(m); if (!p) continue;
+      dragHandle(mk('temph', p, 'Temperatur ' + m.name), q => { (layout.temps = layout.temps || {})[m.temp] = q; placeTemps(); });
+    }
     for (const [id, hs] of Object.entries(layout.hotspots)) {
       const poly = hot.querySelector(`polygon[data-id="${id}"]`);
       const sync = () => poly.setAttribute('points', hs.points.map(q => q.join(',')).join(' '));
@@ -1106,8 +1145,8 @@
     buildHandles();
   }
   $('edit-btn').addEventListener('click', () => setEditing(!editing));
-  $('edit-cancel').addEventListener('click', () => { layout = clone(saved); buildHot(); placeBoxes(); placeLocks(); setEditing(false); drawWires(); });
-  $('edit-reset').addEventListener('click', () => { layout = clone(DEFAULT); delete layout.boxes.ev6.auto; buildHot(); placeBoxes(); placeLocks(); buildHandles(); drawWires(); toast('Standardlayouten är tillbaka. Tryck Spara för att behålla den.'); });
+  $('edit-cancel').addEventListener('click', () => { layout = clone(saved); buildHot(); placeBoxes(); placeLocks(); placeTemps(); setEditing(false); drawWires(); });
+  $('edit-reset').addEventListener('click', () => { layout = clone(DEFAULT); delete layout.boxes.ev6.auto; buildHot(); placeBoxes(); placeLocks(); placeTemps(); buildHandles(); drawWires(); toast('Standardlayouten är tillbaka. Tryck Spara för att behålla den.'); });
   $('edit-save').addEventListener('click', async () => {
     try {
       const r = await fetch('api/layout', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(layout) });
@@ -1159,6 +1198,7 @@
     }
     for (const [id, h] of Object.entries(l.hotspots || {})) if (layout.hotspots[id] && h.points) layout.hotspots[id].points = h.points;
     if (l.locks && typeof l.locks === 'object') layout.locks = l.locks;
+    if (l.temps && typeof l.temps === 'object') layout.temps = l.temps;
     buildBoxes(); buildHot(); refresh();
     loadMoney(); setInterval(loadMoney, 10 * 60 * 1000);
 

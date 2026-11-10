@@ -269,6 +269,10 @@ function validLayout(l) {
     if (typeof l.locks !== 'object' || Array.isArray(l.locks) || Object.keys(l.locks).length > 20) return false;
     for (const [k, p] of Object.entries(l.locks)) if (!/^lock\.[a-z0-9_]+$/.test(k) || !pt(p)) return false;
   }
+  if (l.temps != null) {
+    if (typeof l.temps !== 'object' || Array.isArray(l.temps) || Object.keys(l.temps).length > 40) return false;
+    for (const [k, p] of Object.entries(l.temps)) if (!/^sensor\.[a-z0-9_]+$/.test(k) || !pt(p)) return false;
+  }
   return true;
 }
 async function readBody(req, max = 64 * 1024) {
@@ -535,7 +539,7 @@ const server = http.createServer(async (req, res) => {
       if (!validLayout(layout)) return json(res, 400, { error: 'Ogiltig layout' });
       await mkdir(DATA_DIR, { recursive: true });
       const tmp = LAYOUT_FILE + '.tmp';
-      await writeFile(tmp, JSON.stringify({ boxes: layout.boxes || {}, hotspots: layout.hotspots || {}, locks: layout.locks || {}, saved: new Date().toISOString() }, null, 1));
+      await writeFile(tmp, JSON.stringify({ boxes: layout.boxes || {}, hotspots: layout.hotspots || {}, locks: layout.locks || {}, temps: layout.temps || {}, saved: new Date().toISOString() }, null, 1));
       await rename(tmp, LAYOUT_FILE);
       return json(res, 200, { ok: true });
     }
