@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.24.0';
+  const VERSION = '0.25.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -103,7 +103,7 @@
   const wxIcon = (cond, cls = 'wxi') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${WX_SVG[cond] || WX_SVG.cloudy}</svg>`;
   window.ObsIcons = { box: BOX_ICON, wx: wxIcon, label: c => WX[c] || c };
   // Aktuellt väder för kiosksidans klocka
-  window.ObsHouse = { weather: () => {
+  window.ObsHouse = { open: id => openDrawer(id), lightsOn: () => cfg.lights ? cfg.lights.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on').length : 0, weather: () => {
     const s = st(cfg.outdoor), sun = st(cfg.sun); if (!s) return null;
     const a = s.attributes || {};
     return { cond: s.state, temp: outdoorTemp(), wind: a.wind_speed != null ? a.wind_speed / 3.6 : null, humidity: a.humidity,
@@ -575,6 +575,8 @@
     // Laddbox och EV6 visar sina egna sidor i en bredare panel
     charger: { eyebrow: 'Garage / laddbox', title: 'Laddbox', frame: 'laddbox.html' },
     car: { eyebrow: 'Garage / bil', title: 'Kia EV6', frame: 'ev6.html' },
+    lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
+    chores: { eyebrow: 'Barnen / sysslor', title: 'Poäng', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: choresCtl },
     money: { eyebrow: 'Idag / uppskattat', title: 'Kostnad och energi', stats: () => {
       const m = moneyCalc();
       return [['Elkostnad', kr(m.spent), 'kr'], ['Sparat med solel', kr(m.savedToday), 'kr'], ['Faktisk kostnad', kr(num(cfg.cost_today)), 'kr'],
@@ -602,6 +604,59 @@
   // ---------- Styrning i detaljpanelen (värmepump, FTX, varmvatten) ----------
   // Servern släpper bara igenom entiteter och värden som står i config; här byggs bara knapparna.
   let lastCtl = '';
+  // ---------- Lampor och barnens poäng (menyn längst ner i kiosken) ----------
+  const BULB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>';
+  let armed = null; // två tryck för "Släck alla" och sysslor: första trycket väljer, andra skickar
+  const isArmed = k => armed && armed.k === k && Date.now() - armed.t < 4000;
+  function arm(k) { armed = { k, t: Date.now() }; renderDrawerStats(); setTimeout(() => { if (armed && armed.k === k && Date.now() - armed.t >= 4000) { armed = null; renderDrawerStats(); } }, 4100); }
+  function lightsCtl() {
+    const L = cfg.lights; if (!L) return '<p class="dnote">Inga lampor i config.</p>';
+    const on = L.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on');
+    const head = `<div class="lhead"><span><b>${on.length}</b> tända</span>${L.all_off ? `<button class="lalloff${isArmed('alloff') ? ' armed' : ''}" data-alloff ${on.length ? '' : 'disabled'}>${isArmed('alloff') ? 'Tryck igen för att släcka' : 'Släck alla'}</button>` : ''}</div>`;
+    return head + L.groups.map(g => `<div class="lgroup"><div class="eyebrow">${esc(g.name)}</div><div class="lgrid">${g.lights.map(l => {
+      const s = st(l.entity), state = s ? s.state : 'unavailable', ok = state === 'on' || state === 'off';
+      const br = state === 'on' && s.attributes && s.attributes.brightness != null ? Math.round(s.attributes.brightness / 2.55) + ' %' : '';
+      return `<button class="lbtn ${state === 'on' ? 'on' : ''}" data-light="${esc(l.entity)}" data-on="${state === 'on'}" ${ok ? '' : 'disabled'}>${BULB}<span>${esc(l.name)}</span><small>${ok ? (state === 'on' ? (br || 'På') : 'Av') : 'Ej nåbar'}</small></button>`;
+    }).join('')}</div></div>`).join('');
+  }
+  let choreKid = null;
+  function choresCtl() {
+    const C = cfg.chores; if (!C) return '<p class="dnote">Inga sysslor i config.</p>';
+    const goal = num(C.threshold) || 50;
+    if (!choreKid || !C.kids.some(k => k.id === choreKid)) choreKid = C.kids[0].id;
+    const kids = `<div class="ckids">${C.kids.map(k => {
+      const p = num(k.points) || 0, w = num(k.pending) || 0, pct = Math.min(100, p / goal * 100);
+      return `<button class="ckid ${k.id === choreKid ? 'sel' : ''}" data-kid="${esc(k.id)}"><div class="cname">${esc(k.name)}</div>
+        <div class="cpts"><b>${nf(p, 0)}</b><small> / ${nf(goal, 0)} p</small></div>
+        <div class="cbar"><i style="width:${pct}%"></i></div><div class="cwait">${w ? `${nf(w, 0)} väntar på godkännande` : 'Inget väntar'}</div></button>`;
+    }).join('')}</div>`;
+    const last = st(C.last), lastTxt = last && last.state && !['unknown', 'unavailable', ''].includes(last.state) ? `<p class="clast">Senast: ${esc(last.state)}</p>` : '';
+    const kid = C.kids.find(k => k.id === choreKid);
+    const list = [...C.chores].sort((a, b) => a.name.localeCompare(b.name, 'sv')).map(c => {
+      const k = 'chore:' + choreKid + ':' + c.id;
+      return `<button class="cbtn${isArmed(k) ? ' armed' : ''}" data-chore="${esc(c.id)}"><span>${isArmed(k) ? 'Tryck igen' : esc(c.name)}</span><small>+${c.points} p</small></button>`;
+    }).join('');
+    return kids + lastTxt + `<div class="eyebrow">Vad har ${esc(kid.name)} gjort?</div><div class="cgrid">${list}</div><p class="dnote">Poängen läggs till när en förälder godkänner i mobilen.</p>`;
+  }
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-light],[data-alloff],[data-kid],[data-chore]'); if (!t || !t.closest('#dctl')) return;
+    e.stopPropagation();
+    if (t.dataset.light) {
+      const on = t.dataset.on !== 'true';
+      const s = states[t.dataset.light]; if (s) { states[t.dataset.light] = Object.assign({}, s, { state: on ? 'on' : 'off' }); renderDrawerStats(); } // visa direkt, strömmen rättar
+      sendCtl({ action: 'toggle', entity: t.dataset.light, value: on }, true);
+    } else if (t.hasAttribute('data-alloff')) {
+      if (!isArmed('alloff')) return arm('alloff');
+      armed = null; sendCtl({ action: 'lights_off' }); renderDrawerStats();
+    } else if (t.dataset.kid) { choreKid = t.dataset.kid; armed = null; renderDrawerStats(); }
+    else if (t.dataset.chore) {
+      const k = 'chore:' + choreKid + ':' + t.dataset.chore;
+      if (!isArmed(k)) return arm(k);
+      armed = null; renderDrawerStats();
+      const C = cfg.chores, kid = C.kids.find(x => x.id === choreKid), ch = C.chores.find(x => x.id === t.dataset.chore);
+      sendCtl({ action: 'chore', value: { barn: choreKid, syssla: t.dataset.chore } }, true).then(ok => { if (ok) toast(`${kid.name}: ${ch.name.toLowerCase()} skickat för godkännande.`); });
+    }
+  }, true);
   const pendingVal = {}, sendT = {};
   const A = (id, k) => { const s = st(id); return s && s.attributes ? s.attributes[k] : undefined; };
   const isOn = id => !!(st(id) && st(id).state === 'on');
@@ -639,12 +694,13 @@
       ${S.target && st(S.target) ? crow('Måltemperatur', stepper(S.target, numVal(S.target), '°C', 0, 'number', S.target)) : ''}
       ${S.comfort && st(S.comfort) ? crow('Komfortgräns', stepper(S.comfort, numVal(S.comfort), '°C', 0, 'number', S.comfort)) : ''}`;
   }
-  async function sendCtl(body) {
+  async function sendCtl(body, quiet) {
     try {
       const r = await fetch('api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
-      toast('Skickat till Home Assistant.');
-    } catch (e) { toast('Gick inte: ' + e.message); }
+      if (!quiet) toast('Skickat till Home Assistant.');
+      return true;
+    } catch (e) { toast('Gick inte: ' + e.message); return false; }
   }
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-ctl]'); if (!b || !b.closest('#dctl')) return;

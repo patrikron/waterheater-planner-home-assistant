@@ -280,14 +280,16 @@ async function readBody(req, max = 64 * 1024) {
 // ---------- Styrning (bara luftvärmepumpen, bara vitlistade åtgärder) ----------
 const HP = CONFIG.heatpump || {};
 const ctlLog = [];
+const LIGHTS = CONFIG.house && CONFIG.house.lights, CHORES = CONFIG.house && CONFIG.house.chores;
 async function control(body) {
   // Sidor med egen styrning (FTX, laddbox, bilen, spabad, varmvatten): bara entiteter som står i respektive vitlista
-  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa, CONFIG.water, CONFIG.house && CONFIG.house.door].filter(x => x && x.controls);
+  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa, CONFIG.water, CONFIG.house && CONFIG.house.door, CONFIG.house && CONFIG.house.lights].filter(x => x && x.controls);
   const allow = k => new Set(PAGES.flatMap(x => [...(x[k] || []), ...(k === 'numbers' && x.setpoint ? [x.setpoint] : [])]));
   const { action: act0, entity: ent0 } = body || {};
   const ftxOk = (act0 === 'toggle' && allow('toggles').has(ent0)) || (act0 === 'number' && allow('numbers').has(ent0)) || (act0 === 'select' && allow('selects').has(ent0))
     || (act0 === 'script' && allow('scripts').has(ent0)) || (act0 === 'lock' && allow('locks').has(ent0))
-    || ((act0 === 'climate_mode' || act0 === 'climate_temp') && allow('climates').has(ent0));
+    || ((act0 === 'climate_mode' || act0 === 'climate_temp') && allow('climates').has(ent0))
+    || (act0 === 'lights_off' && !!(LIGHTS && LIGHTS.controls && LIGHTS.all_off)) || (act0 === 'chore' && !!(CHORES && CHORES.controls && CHORES.script));
   const hpOk = !!(HP.controls && HP.climate);
   if (!ftxOk && !hpOk) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
   const now = Date.now();
@@ -339,6 +341,15 @@ async function control(body) {
         throw Object.assign(new Error('Ogiltig temperatur'), { code: 400 });
       call = ['climate', 'set_temperature', entity, { temperature: value }];
     }
+  }
+  else if (action === 'lights_off' && ftxOk) {
+    // släck alla: bara lamporna i house.lights.toggles
+    call = ['light', 'turn_off', LIGHTS.toggles.filter(x => x.startsWith('light.')), {}];
+  } else if (action === 'chore' && ftxOk) {
+    // barnens sysslor: barn och syssla måste finnas i config, skriptet är fast
+    const v = value || {}, kid = (CHORES.kids || []).find(k => k.id === v.barn), ch = (CHORES.chores || []).find(c => c.id === v.syssla);
+    if (!kid || !ch) throw Object.assign(new Error('Okänd syssla'), { code: 400 });
+    call = ['script', 'turn_on', CHORES.script, { variables: { barn: kid.id, syssla: ch.id } }];
   }
   if (!call) throw Object.assign(new Error('Åtgärden är inte tillåten'), { code: 400 });
   ctlLog.push(now);

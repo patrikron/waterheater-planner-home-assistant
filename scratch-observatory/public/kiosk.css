@@ -81,3 +81,14 @@ body.lite .wires .flow{animation:none!important;stroke-dasharray:2 10}
 body.lite .badge.live i,body.lite .glows .bulb{animation:none}
 body.lite .stage img,body.lite .tint,body.lite .glows{transition:none}
 body.lite .drawer{box-shadow:none}
+
+/* 0.25: meny längst ner (Lampor, Poäng) */
+.kmenu{position:fixed;z-index:20;bottom:max(14px,env(safe-area-inset-bottom));left:calc((100vw - var(--kcol)) / 2);transform:translateX(-50%);display:flex;gap:10px;padding:6px;border-radius:999px;
+  background:color-mix(in srgb,var(--bg) 78%,transparent);border:1px solid var(--line2);box-shadow:0 6px 24px rgba(0,0,0,.5);backdrop-filter:blur(8px)}
+.kmenu button{position:relative;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 22px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-size:15px;cursor:pointer}
+.kmenu button:active{background:var(--panel2)}
+.kmenu svg{width:20px;height:20px;fill:none;stroke:var(--gold);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.kmenu i{font-style:normal;font-size:11px;min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:9px;background:var(--gold);color:var(--bg);font-weight:600}
+.kmenu i[hidden],.kmenu i:empty{display:none}
+body.lite .kmenu{backdrop-filter:none}
+@media (max-width:900px) and (orientation:portrait){.kmenu{left:50%}}

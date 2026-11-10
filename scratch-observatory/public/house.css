@@ -337,3 +337,35 @@ html.embed body{padding-top:0}
 .handles .h.lockh{width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:rgba(255,255,255,.08);border:2px dashed #fff;box-shadow:0 0 0 3px rgba(0,0,0,.35);z-index:6}
 body.edit .locks{opacity:.55;z-index:4}
 body.edit .lockm{pointer-events:none}
+/* 0.25: lampor och barnens poäng i panelen */
+.dctl .lhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px;font-size:14px;color:var(--muted)}
+.dctl .lhead b{color:var(--gold);font-size:18px}
+.lalloff,.lbtn,.cbtn,.ckid{font:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lalloff{min-height:42px;padding:0 18px;border-radius:999px;border:1px solid var(--line2);background:var(--panel2)}
+.lalloff.armed,.cbtn.armed{background:color-mix(in srgb,var(--orange) 30%,var(--panel));border-color:var(--orange)}
+.lalloff:disabled{opacity:.4}
+.lgroup{margin-top:12px}
+.lgroup .eyebrow{color:var(--muted)!important;margin-bottom:6px}
+.lgrid,.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.lbtn{display:grid;grid-template-columns:22px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;text-align:left;min-height:56px;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel)}
+.lbtn svg{grid-row:1/3;width:22px;height:22px;fill:none;stroke:var(--dim);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lbtn span{font-size:13.5px;line-height:1.2}
+.lbtn small{font-size:11.5px;color:var(--dim)}
+.lbtn.on{border-color:color-mix(in srgb,var(--gold) 70%,transparent);background:color-mix(in srgb,var(--gold) 16%,var(--panel))}
+.lbtn.on svg{stroke:var(--gold);fill:color-mix(in srgb,var(--gold) 35%,transparent)}
+.lbtn.on small{color:var(--gold)}
+.lbtn:disabled{opacity:.4}
+.ckids{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.ckid{display:block;width:100%;text-align:left;padding:12px 14px;border-radius:6px;border:1px solid var(--line);background:var(--panel)}
+.ckid.sel{border-color:var(--sage);background:color-mix(in srgb,var(--sage) 14%,var(--panel))}
+.ckid .cname{font-size:15px;font-weight:600}
+.ckid .cpts b{font-size:26px;color:var(--gold)}
+.ckid .cpts small{color:var(--muted)}
+.ckid .cbar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:6px 0}
+.ckid .cbar i{display:block;height:100%;background:var(--sage)}
+.ckid .cwait{font-size:12px;color:var(--muted)}
+.clast{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.cbtn{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;text-align:left;min-height:58px;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel)}
+.cbtn span{font-size:13.5px;line-height:1.2}
+.cbtn small{font-size:12px;color:var(--gold)}
+.dctl .cgrid+.dnote{margin-top:10px}

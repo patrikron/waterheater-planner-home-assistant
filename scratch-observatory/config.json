@@ -458,6 +458,361 @@
           ]
         }
       ]
+    },
+    "lights": {
+      "controls": true,
+      "toggles": [
+        "light.shellydimmer_d3e607",
+        "light.shellydimmer2_24d7ebe47fe7",
+        "light.0x14b457fffe266d78",
+        "light.wled",
+        "light.shelly1_bcddc277bfd3",
+        "light.takflakt_main_light",
+        "light.takflakt_second_light",
+        "light.0x84ba20fffea3881d",
+        "light.wled_2",
+        "light.0x086bd7fffe219043",
+        "light.0x14b457fffe4a61c1",
+        "light.shelly1minig4_7c2c67704ac8",
+        "light.0x94deb8fffecaebdb",
+        "light.0x000d6ffffe62fe98",
+        "light.shelly1minig4_ccba97c95510",
+        "light.shelly1pmminig3_34b7daca6ec0_switch_0",
+        "light.0x14b457fffe40b2a8",
+        "light.0xd0cf5efffeda4cc4",
+        "light.wifi_rgbpro_lighting_strip",
+        "light.shelly1pm_349454764950",
+        "light.hue_lightstrip_plus_1",
+        "light.0x680ae2fffef0694f",
+        "light.shelly1minig4_ccba97d73918",
+        "light.0x086bd7fffe09537b",
+        "light.0x680ae2fffe628580",
+        "light.0x842e14fffe01f6ae",
+        "light.yeelight",
+        "light.0x680ae2fffefa255f",
+        "light.0x086bd7fffe6178e9",
+        "light.0xf4b3b1fffe8c1c06",
+        "light.0x680ae2fffe1aa86d",
+        "light.smart_ljus",
+        "light.0x00158d000389a77a",
+        "light.shelly1minig4_ccba97c898f4",
+        "light.shelly1pm_8caab505faf2",
+        "light.shelly_shdm_1_d0b28d",
+        "light.ute_spottar",
+        "light.0x000b57fffec87452",
+        "light.0x14b457fffe6caf0d"
+      ],
+      "all_off": true,
+      "groups": [
+        {
+          "name": "Kök",
+          "lights": [
+            {
+              "entity": "light.shellydimmer_d3e607",
+              "name": "Kök tak"
+            },
+            {
+              "entity": "light.shellydimmer2_24d7ebe47fe7",
+              "name": "Köksbord"
+            },
+            {
+              "entity": "light.0x14b457fffe266d78",
+              "name": "Kök fönster"
+            },
+            {
+              "entity": "light.wled",
+              "name": "Wled kök"
+            }
+          ]
+        },
+        {
+          "name": "Vardagsrum",
+          "lights": [
+            {
+              "entity": "light.shelly1_bcddc277bfd3",
+              "name": "Taklampa"
+            },
+            {
+              "entity": "light.takflakt_main_light",
+              "name": "Takfläkt"
+            },
+            {
+              "entity": "light.takflakt_second_light",
+              "name": "Takfläkt ring"
+            },
+            {
+              "entity": "light.0x84ba20fffea3881d",
+              "name": "Sofflampa"
+            },
+            {
+              "entity": "light.wled_2",
+              "name": "Soffa LED"
+            },
+            {
+              "entity": "light.0x086bd7fffe219043",
+              "name": "Fönster"
+            },
+            {
+              "entity": "light.0x14b457fffe4a61c1",
+              "name": "Bordslampa"
+            }
+          ]
+        },
+        {
+          "name": "Hall",
+          "lights": [
+            {
+              "entity": "light.shelly1minig4_7c2c67704ac8",
+              "name": "Taklampa"
+            },
+            {
+              "entity": "light.0x94deb8fffecaebdb",
+              "name": "Spottar"
+            },
+            {
+              "entity": "light.0x000d6ffffe62fe98",
+              "name": "Byrå"
+            }
+          ]
+        },
+        {
+          "name": "Sovrum",
+          "lights": [
+            {
+              "entity": "light.shelly1minig4_ccba97c95510",
+              "name": "Taklampa"
+            }
+          ]
+        },
+        {
+          "name": "Olivers rum",
+          "lights": [
+            {
+              "entity": "light.shelly1pmminig3_34b7daca6ec0_switch_0",
+              "name": "Taklampa"
+            },
+            {
+              "entity": "light.0x14b457fffe40b2a8",
+              "name": "Fönsterlampa"
+            },
+            {
+              "entity": "light.0xd0cf5efffeda4cc4",
+              "name": "Fotbollslampa"
+            },
+            {
+              "entity": "light.wifi_rgbpro_lighting_strip",
+              "name": "Legohylla"
+            }
+          ]
+        },
+        {
+          "name": "Ludvigs rum",
+          "lights": [
+            {
+              "entity": "light.shelly1pm_349454764950",
+              "name": "Taklampa"
+            },
+            {
+              "entity": "light.hue_lightstrip_plus_1",
+              "name": "Koja"
+            },
+            {
+              "entity": "light.0x680ae2fffef0694f",
+              "name": "Fotbollslampa"
+            }
+          ]
+        },
+        {
+          "name": "Kontor",
+          "lights": [
+            {
+              "entity": "light.shelly1minig4_ccba97d73918",
+              "name": "Taklampa"
+            },
+            {
+              "entity": "light.0x086bd7fffe09537b",
+              "name": "Stora fönster"
+            },
+            {
+              "entity": "light.0x680ae2fffe628580",
+              "name": "Lilla fönster"
+            },
+            {
+              "entity": "light.0x842e14fffe01f6ae",
+              "name": "LED-strip"
+            },
+            {
+              "entity": "light.yeelight",
+              "name": "Yeelight"
+            }
+          ]
+        },
+        {
+          "name": "Uterum",
+          "lights": [
+            {
+              "entity": "light.0x680ae2fffefa255f",
+              "name": "Framsida"
+            },
+            {
+              "entity": "light.0x086bd7fffe6178e9",
+              "name": "Gamla lampan"
+            },
+            {
+              "entity": "light.0xf4b3b1fffe8c1c06",
+              "name": "Ljusslinga baksida"
+            }
+          ]
+        },
+        {
+          "name": "Garage",
+          "lights": [
+            {
+              "entity": "light.0x680ae2fffe1aa86d",
+              "name": "Hörnlampa"
+            },
+            {
+              "entity": "light.smart_ljus",
+              "name": "Smart ljus"
+            },
+            {
+              "entity": "light.0x00158d000389a77a",
+              "name": "Uppfart"
+            }
+          ]
+        },
+        {
+          "name": "Ute",
+          "lights": [
+            {
+              "entity": "light.shelly1minig4_ccba97c898f4",
+              "name": "Ytterlampa"
+            },
+            {
+              "entity": "light.shelly1pm_8caab505faf2",
+              "name": "Garage ytterbelysning"
+            },
+            {
+              "entity": "light.shelly_shdm_1_d0b28d",
+              "name": "Spottar"
+            },
+            {
+              "entity": "light.ute_spottar",
+              "name": "Ute spottar"
+            },
+            {
+              "entity": "light.0x000b57fffec87452",
+              "name": "Lyktstolpe"
+            },
+            {
+              "entity": "light.0x14b457fffe6caf0d",
+              "name": "Gårdshus"
+            }
+          ]
+        }
+      ]
+    },
+    "chores": {
+      "controls": true,
+      "script": "script.syssla_utford",
+      "threshold": "input_number.sysslor_beloningsgrans",
+      "last": "input_text.sysslor_senaste",
+      "kids": [
+        {
+          "id": "oliver",
+          "name": "Oliver",
+          "points": "input_number.sysslor_poang_oliver",
+          "pending": "input_number.sysslor_vantar_oliver"
+        },
+        {
+          "id": "ludvig",
+          "name": "Ludvig",
+          "points": "input_number.sysslor_poang_ludvig",
+          "pending": "input_number.sysslor_vantar_ludvig"
+        }
+      ],
+      "chores": [
+        {
+          "id": "badda",
+          "name": "Bädda",
+          "points": 3
+        },
+        {
+          "id": "bordet",
+          "name": "Plocka av bordet",
+          "points": 5
+        },
+        {
+          "id": "dammsuga",
+          "name": "Dammsuga rummet",
+          "points": 10
+        },
+        {
+          "id": "diskmaskin",
+          "name": "Tömma diskmaskinen",
+          "points": 10
+        },
+        {
+          "id": "duka",
+          "name": "Duka",
+          "points": 5
+        },
+        {
+          "id": "duscha",
+          "name": "Duscha",
+          "points": 3
+        },
+        {
+          "id": "idrottsvaska",
+          "name": "Plocka ihop idrottsväskan",
+          "points": 5
+        },
+        {
+          "id": "katten",
+          "name": "Mata katten",
+          "points": 2
+        },
+        {
+          "id": "kattlada",
+          "name": "Göra rent kattlådan",
+          "points": 3
+        },
+        {
+          "id": "klader",
+          "name": "Kläder till nästa dag",
+          "points": 2
+        },
+        {
+          "id": "laslaxa",
+          "name": "Läsläxa",
+          "points": 1
+        },
+        {
+          "id": "plocka",
+          "name": "Plocka upp i rummet",
+          "points": 5
+        },
+        {
+          "id": "sopor",
+          "name": "Gå ut med soporna",
+          "points": 2
+        },
+        {
+          "id": "stada",
+          "name": "Städa rummet",
+          "points": 15
+        },
+        {
+          "id": "tvatt",
+          "name": "Hänga upp tvätt",
+          "points": 20
+        },
+        {
+          "id": "vardagsrum",
+          "name": "Plocka upp vardagsrum/hall",
+          "points": 3
+        }
+      ]
     }
   },
   "water": {

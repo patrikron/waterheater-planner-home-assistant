@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.22.0';
+  const VERSION = '0.25.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -175,4 +175,14 @@
   }
 
   console.info('observatory kiosk', VERSION);
+  // Meny längst ner: Lampor och barnens poäng öppnas i panelen från höger
+  const kmenu = document.getElementById('kmenu');
+  if (kmenu) {
+    kmenu.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b && window.ObsHouse && window.ObsHouse.open) window.ObsHouse.open(b.dataset.open); });
+    const cnt = document.getElementById('kmenu-lights');
+    window.addEventListener('obs-render', () => {
+      const n = window.ObsHouse && window.ObsHouse.lightsOn ? window.ObsHouse.lightsOn() : 0;
+      cnt.textContent = n ? String(n) : ''; cnt.hidden = !n;
+    });
+  }
 })();
