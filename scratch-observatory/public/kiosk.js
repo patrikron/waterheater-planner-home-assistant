@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.21.0';
+  const VERSION = '0.22.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -25,6 +25,24 @@
     if (f) try { const p = f.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (e) {}
   }
   document.addEventListener('pointerdown', fullscreen, { once: true });
+
+  // Format för mindre/fyrkantigare skärmar: kiosk.html?10 beskär bilden 10 % på var sida (passar 10" 16:10),
+  // kiosk.html?crop=15 väljer egen procent, kiosk.html?crop=0 tillbaka till hela bilden. Valet sparas på enheten.
+  (() => {
+    const q = new URLSearchParams(location.search);
+    let pct = null;
+    if (q.has('10')) pct = 10; else if (q.has('crop')) pct = Math.max(0, Math.min(25, parseFloat(q.get('crop')) || 0));
+    try {
+      if (pct != null) { if (pct > 0) localStorage.setItem('obs-crop', String(pct)); else localStorage.removeItem('obs-crop'); }
+      else pct = parseFloat(localStorage.getItem('obs-crop')) || 0;
+    } catch (e) { pct = pct || 0; }
+    if (!(pct > 0)) return;
+    const c = pct / 100, ar = 2400 * (1 - 2 * c) / 1169, stage = document.getElementById('stage');
+    if (!stage) return;
+    stage.classList.add('crop'); stage.style.setProperty('--crop', String(c)); stage.style.aspectRatio = `${(2400 * (1 - 2 * c)).toFixed(1)} / 1169`;
+    body.style.setProperty('--ar', String(ar));
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  })();
 
   // Muspekaren och panelen
   let idle = null, cursor = null;

@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.21.0';
+  const VERSION = '0.22.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -363,7 +363,9 @@
       if (!b || !b.anchor) continue;
       const r = el.getBoundingClientRect();
       const bx = r.left - sr.left, by = r.top - sr.top, bw = r.width, bh = r.height;
-      const ax = b.anchor[0] / 100 * sr.width, ay = b.anchor[1] / 100 * sr.height;
+      // Beskuren bild (kioskens 10"-läge): punkterna ligger i fotots koordinater, rutorna i den synliga ytan
+      const c = parseFloat(stage.style.getPropertyValue('--crop')) || 0;
+      const ax = (b.anchor[0] / 100 - c) / (1 - 2 * c) * sr.width, ay = b.anchor[1] / 100 * sr.height;
       // Fäst linjen i den kant som ligger närmast punkten
       let sx, sy;
       if (ay > by + bh) { sx = Math.min(Math.max(ax, bx + 14), bx + bw - 14); sy = by + bh; }

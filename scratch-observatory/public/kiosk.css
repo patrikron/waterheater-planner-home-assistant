@@ -5,7 +5,7 @@ body.kiosk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
 body.kiosk .content{position:relative;z-index:0;margin:0;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 body.kiosk{--kcol:clamp(270px,24vw,400px)}
-body.kiosk main{max-width:none;margin:0;padding:0;width:min(calc(100vw - var(--kcol)),calc(100dvh * 2400 / 1169));flex:none}
+body.kiosk main{max-width:none;margin:0;padding:0;width:min(calc(100vw - var(--kcol)),calc(100dvh * var(--ar, 2.053)));flex:none}
 body.kiosk .frame{overflow:visible;border:0;border-radius:0;background:#000;box-shadow:0 0 60px rgba(0,0,0,.6)}
 /* Ytan ovanför och under bilden fylls med en suddig och mörk kopia av husfotot i stället för svarta kanter */
 body.kiosk .content::before{content:"";position:fixed;inset:-40px;z-index:-1;background:url(foto/hus.jpg) center/cover;filter:blur(28px) brightness(.32) saturate(.8)}

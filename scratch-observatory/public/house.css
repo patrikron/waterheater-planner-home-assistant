@@ -323,3 +323,5 @@ body[data-page=oversikt] .nav-item[data-page=oversikt] svg,body[data-page=varmva
 html.embed nav.side,html.embed header.top{display:none!important}
 html.embed .content{margin-left:0!important}
 html.embed body{padding-top:0}
+/* 0.22: beskuren bild (kiosk.html?10): fotot och klickytorna blir bredare än ytan och centreras */
+.stage.crop img,.stage.crop .tint,.stage.crop .glows,.stage.crop .hot{right:auto;width:calc(100% / (1 - 2 * var(--crop)));left:calc(-100% * var(--crop) / (1 - 2 * var(--crop)))}
