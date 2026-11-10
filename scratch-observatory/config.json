@@ -432,7 +432,33 @@
     "solcast_day_7": "sensor.solcast_pv_forecast_forecast_day_7",
     "title": "Huset / översikt.",
     "subtitle": "Sol, el, värme och laddning – live från Home Assistant.",
-    "spot": "sensor.nordpool_raw"
+    "spot": "sensor.nordpool_raw",
+    "door": {
+      "controls": true,
+      "locks": [
+        "lock.aqara_smart_lock_u200",
+        "lock.front_door_lock"
+      ],
+      "allow_unlock": false,
+      "markers": [
+        {
+          "entity": "lock.aqara_smart_lock_u200",
+          "name": "Ytterdörren",
+          "pos": [
+            48.0,
+            56
+          ]
+        },
+        {
+          "entity": "lock.front_door_lock",
+          "name": "Garagedörren",
+          "pos": [
+            82.8,
+            56
+          ]
+        }
+      ]
+    }
   },
   "water": {
     "title": "Varmvatten / beredaren.",

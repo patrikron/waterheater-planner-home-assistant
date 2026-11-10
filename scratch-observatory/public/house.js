@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.22.0';
+  const VERSION = '0.23.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -322,7 +322,7 @@
       const ic = id === 'vader' ? (st(cfg.outdoor) ? wxIcon(st(cfg.outdoor).state, 'bi wx') : '') : BOX_ICON[id];
       if (k && ic) k.insertAdjacentHTML('afterbegin', ic);
     }
-    fitBoxes(); drawWires();
+    fitBoxes(); drawWires(); renderLocks();
     window.dispatchEvent(new CustomEvent('obs-render'));
   }
 
@@ -352,6 +352,43 @@
   }
 
   // ---------- Linjer med flödespulser ----------
+  // ---------- Låsikoner på dörrarna i fotot ----------
+  const LOCK_SVG = {
+    locked: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+    unlocked: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/></svg>',
+  };
+  const LOCK_L = { locked: 'Låst', unlocked: 'Olåst', locking: 'Låser …', unlocking: 'Låser upp …', jammed: 'Fastnat', open: 'Öppen', opening: 'Öppnar …', unavailable: 'Ej nåbar', unknown: 'Okänt' };
+  function renderLocks() {
+    const D = cfg.door; if (!D || !Array.isArray(D.markers)) return;
+    let wrap = $('locks');
+    if (!wrap) { wrap = document.createElement('div'); wrap.id = 'locks'; wrap.className = 'locks'; stage.appendChild(wrap); }
+    const html = D.markers.map(m => {
+      const s = st(m.entity), state = s ? s.state : 'unknown';
+      const cls = state === 'locked' ? 'ok' : state === 'unlocked' || state === 'open' || state === 'jammed' ? 'warn' : 'mid';
+      return `<button class="lockm ${cls}" data-lock="${esc(m.entity)}" data-state="${esc(state)}" title="${esc(m.name || '')}: ${esc(LOCK_L[state] || state)}" aria-label="${esc(m.name || 'Lås')}: ${esc(LOCK_L[state] || state)}">${state === 'locked' ? LOCK_SVG.locked : LOCK_SVG.unlocked}</button>`;
+    }).join('');
+    if (wrap._h !== html) { wrap.innerHTML = html; wrap._h = html; placeLocks(); }
+  }
+  function placeLocks(sr) {
+    const wrap = $('locks'), D = cfg.door; if (!wrap || !D) return;
+    const c = parseFloat(stage.style.getPropertyValue('--crop')) || 0;
+    wrap.querySelectorAll('.lockm').forEach((el, i) => {
+      const m = D.markers[i]; if (!m || !m.pos) return;
+      el.style.left = ((m.pos[0] / 100 - c) / (1 - 2 * c) * 100) + '%'; el.style.top = m.pos[1] + '%';
+    });
+  }
+  stage.addEventListener('click', e => {
+    const b = e.target.closest('.lockm'); if (!b) return;
+    e.stopPropagation();
+    const D = cfg.door || {}, m = (D.markers || []).find(x => x.entity === b.dataset.lock) || {}, state = b.dataset.state, name = m.name || 'Dörren';
+    if (state === 'locked') {
+      if (D.allow_unlock !== true) return toast(`${name} är låst. Upplåsning är avstängd här.`);
+      if (confirm(`Låsa upp ${name.toLowerCase()}?`)) sendCtl({ action: 'lock', entity: b.dataset.lock, value: 'unlock' });
+    } else if (state === 'unlocked' || state === 'open') {
+      if (confirm(`${name} är olåst. Låsa nu?`)) sendCtl({ action: 'lock', entity: b.dataset.lock, value: 'lock' });
+    } else toast(`${name}: ${LOCK_L[state] || state}`);
+  }, true);
+
   function drawWires() {
     if (getComputedStyle(wires).display === 'none') return;
     const sr = stage.getBoundingClientRect();
@@ -385,6 +422,7 @@
       out += `<circle class="dot" cx="${ax}" cy="${ay}" r="5"/><circle class="dotc" cx="${ax}" cy="${ay}" r="1.8"/>`;
     }
     wires.innerHTML = out;
+    placeLocks(sr);
   }
 
   // ---------- Dag / natt ----------

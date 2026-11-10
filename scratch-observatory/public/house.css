@@ -325,3 +325,12 @@ html.embed .content{margin-left:0!important}
 html.embed body{padding-top:0}
 /* 0.22: beskuren bild (kiosk.html?10): fotot och klickytorna blir bredare än ytan och centreras */
 .stage.crop img,.stage.crop .tint,.stage.crop .glows,.stage.crop .hot{right:auto;width:calc(100% / (1 - 2 * var(--crop)));left:calc(-100% * var(--crop) / (1 - 2 * var(--crop)))}
+/* 0.23: låsikoner på dörrarna */
+.locks{position:absolute;inset:0;z-index:5;pointer-events:none}
+.lockm{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);border:1.5px solid var(--line2);box-shadow:0 2px 8px rgba(0,0,0,.45)}
+.lockm svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lockm.ok{color:var(--sage);border-color:color-mix(in srgb,var(--sage) 70%,transparent)}
+.lockm.warn{color:var(--red);border-color:var(--red);background:color-mix(in srgb,var(--red) 22%,var(--bg))}
+.lockm.mid{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 60%,transparent)}
+@media (max-width:900px){.lockm{width:24px;height:24px}.lockm svg{width:13px;height:13px}}
