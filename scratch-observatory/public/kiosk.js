@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.30.0';
+  const VERSION = '0.31.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -231,6 +231,8 @@
       const H = window.ObsHouse;
       const vac = document.getElementById('kmenu-vac'), vs = H && H.st && H.st('vacuum.l20_ultra');
       if (vac) { const t = vs && vs.state === 'cleaning' ? 'städar' : vs && vs.state === 'error' ? 'fel' : ''; vac.textContent = t; vac.hidden = !t; }
+      const rb = document.getElementById('kmenu-rads');
+      if (rb && H && H.rads) { const n = H.rads(); rb.textContent = n ? String(n) : ''; rb.hidden = !n; }
       const inf = document.getElementById('kmenu-info');
       if (inf && H && H.alerts) { const a = H.alerts(); inf.textContent = a ? String(a) : ''; inf.hidden = !a; }
       const al = H && H.alarm ? H.alarm() : null, ab = document.getElementById('kmenu-alarmbtn'), ai = document.getElementById('kmenu-alarm'), ban = document.getElementById('kalarm');

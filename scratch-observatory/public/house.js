@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.30.0';
+  const VERSION = '0.31.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -39,7 +39,7 @@
   // Ljusslingan i uterummet: en liten lampa per glödlampa i fotot
   const BULBS = [[24.15, 51.97], [24.79, 52.31], [25.6, 52.31], [26.44, 51.71], [28.83, 51.41], [29.53, 50.64], [29.79, 50.3]];
 
-  let cfg = {}, FX = {}, HPC = {}, WC = {}, CHC = {}, CARC = {}, states = {}, connected = false;
+  let cfg = {}, FX = {}, HPC = {}, WC = {}, CHC = {}, CARC = {}, RADC = {}, states = {}, connected = false;
   const CAR_STATE = { Idle: 'Ingen bil ansluten', Charging: 'Laddar', 'Wait for car': 'Väntar på bilen', Complete: 'Laddning klar', Error: 'Fel' };
   let layout = clone(DEFAULT), saved = clone(DEFAULT);
   let editing = false, lightMode = load('obs-light') || 'auto';
@@ -105,7 +105,7 @@
   const wxIcon = (cond, cls = 'wxi') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${WX_SVG[cond] || WX_SVG.cloudy}</svg>`;
   window.ObsIcons = { box: BOX_ICON, wx: wxIcon, label: c => WX[c] || c };
   // Aktuellt väder för kiosksidans klocka
-  window.ObsHouse = { open: id => openDrawer(id), media: () => mediaHtml(), alarm: () => { const A = cfg.alarm, s = A && st(A.entity); return s ? { state: s.state, label: ALARM_L[s.state] || s.state, cls: alarmCls(s.state) } : null; }, st: id => st(id), alerts: () => { const I = cfg.info; if (!I) return 0; const on = id => (st(id) || {}).state === 'on';
+  window.ObsHouse = { open: id => openDrawer(id), rads: () => radList().filter(radHeating).length, media: () => mediaHtml(), alarm: () => { const A = cfg.alarm, s = A && st(A.entity); return s ? { state: s.state, label: ALARM_L[s.state] || s.state, cls: alarmCls(s.state) } : null; }, st: id => st(id), alerts: () => { const I = cfg.info; if (!I) return 0; const on = id => (st(id) || {}).state === 'on';
       return (I.doors || []).filter(d => on(d.entity)).length + (I.leaks || []).filter(d => on(d.entity)).length + (I.smoke || []).filter(d => on(d.entity)).length; }, lightsOn: () => cfg.lights ? cfg.lights.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on').length : 0, weather: () => {
     const s = st(cfg.outdoor), sun = st(cfg.sun); if (!s) return null;
     const a = s.attributes || {};
@@ -641,6 +641,7 @@
     }, charts: () => cfg.stove ? [[cfg.stove.temp, 'Temperatur vid utblåset', TC('orange'), 1, '°C']] : [] },
     temps: { eyebrow: 'Inomhus och byggnader', title: 'Temperaturer', wide: true, rich: () => '', stats: () => [], ctl: tempsCtl,
       charts: () => { const cols = ['orange', 'blue', 'sage', 'gold', 'red', 'text']; return (cfg.temp_pins || []).length ? [{ title: 'Utvalda rum', unit: '°C', div: 1, series: cfg.temp_pins.map((m, i) => [m.temp, m.name, TC(cols[i % cols.length])]) }] : []; } },
+    radiators: { eyebrow: 'Värme / element', title: 'Element och golvvärme', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: radsCtl, extra: () => '<a class="btn primary-link" href="element.html">Öppna elementsidan →</a>' },
     alarm: { eyebrow: 'Säkerhet / larm', title: 'Larm', rich: () => '', stats: () => [], charts: () => [], ctl: alarmCtl },
     chores: { eyebrow: 'Barnen / sysslor', title: 'Poäng', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: choresCtl },
     money: { eyebrow: 'Idag', title: 'Kostnad och energi', stats: () => {
@@ -854,6 +855,31 @@
       return `<div class="tgrp"><div class="eyebrow">${esc(g.title)}${avg != null ? ' · snitt ' + nf(avg) + ' °C' : ''}</div><div class="tgrid">${tiles}</div></div>`;
     }).join('');
   }
+  // ---------- Element och golvvärme (config radiators) ----------
+  function radHeating(r) {
+    const h = r.heating && st(r.heating); if (h && (h.state === 'on' || h.state === 'off')) return h.state === 'on';
+    const w = num(r.power); if (w != null) return w > 20;
+    return A(r.climate, 'hvac_action') === 'heating';
+  }
+  const radList = () => RADC.radiators || [];
+  function radsCtl() {
+    const list = radList(); if (!list.length) return '<p class="dnote">Inga element i config.</p>';
+    const hot = list.filter(radHeating), W = list.reduce((a, r) => a + (num(r.power) || 0), 0), kwh = list.reduce((a, r) => a + (num(r.energy_today) || 0), 0);
+    const lb = isOn(RADC.load_balancing);
+    const head = `<div class="lhead"><span><b>${hot.length}</b> av ${list.length} värmer · ${Math.round(W).toLocaleString('sv-SE')} W · ${nf(kwh, 1)} kWh idag</span>${toggleBtn(RADC.price_control, 'Elprisstyrning')}</div>`
+      + (lb ? '<p class="dnote rwarn">Lastbalansering är på, alla element är spärrade.</p>' : '');
+    const rows = list.map(r => {
+      const c = st(r.climate), ok = c && c.state !== 'unavailable' && c.state !== 'unknown', heat = c && c.state === 'heat', h = radHeating(r);
+      const room = num(r.room_temperature) ?? A(r.climate, 'current_temperature'), sp = pendingVal[r.climate] != null ? pendingVal[r.climate] : A(r.climate, 'temperature');
+      const blk = r.fuse_block && isOn(r.fuse_block), man = r.manual && isOn(r.manual), w = num(r.power);
+      const sub = !ok ? 'Ej nåbar' : blk ? 'Säkringsspärr' : h ? `Värmer · ${Math.round(w || 0)} W` : heat ? 'Väntar' : 'Av';
+      return `<div class="rrow${h ? ' heat' : ''}${ok ? '' : ' off'}"><div class="rname"><b>${esc(r.short || r.name)}</b><small class="${blk ? 'warn' : ''}">${sub}${man ? ' · manuell' : ''}</small></div>
+        <div class="rroom">${room == null ? '–' : nf(room)}<small>°C</small></div>
+        ${ok ? stepper('', sp, '°C', 1, 'ctemp', r.climate) : '<div></div>'}
+        <button class="ctog${heat ? ' on' : ''}" data-ctl="cmode" data-entity="${esc(r.climate)}" data-v="${heat ? 'off' : 'heat'}" aria-pressed="${!!heat}" ${ok ? '' : 'disabled'}><i></i>${heat ? 'På' : 'Av'}</button></div>`;
+    }).join('');
+    return head + `<div class="rlist">${rows}</div><p class="dnote">Element som inte står på Manuell styrs av Node-RED och kan få nytt börvärde vid nästa prisändring.</p>`;
+  }
   // ---------- Larm ----------
   const ALARM_L = { disarmed: 'Avlarmat', armed_home: 'Larmat hemma', armed_away: 'Larmat borta', armed_night: 'Larmat natt', armed_vacation: 'Larmat semester', armed_custom_bypass: 'Larmat (förbikoppling)', arming: 'Larmar på …', pending: 'Inpassering – avlarma!', triggered: 'LARMET HAR GÅTT', disarming: 'Avlarmar …', unavailable: 'Ej nåbart', unknown: 'Okänt' };
   const ALARM_M = { arm_home: 'Hemma', arm_away: 'Borta', arm_night: 'Natt', arm_vacation: 'Semester' };
@@ -973,7 +999,7 @@
     const act = b.dataset.ctl, entity = b.dataset.entity || undefined, v = b.dataset.v;
     if (b.dataset.step) {
       // −/+ samlas ihop en kort stund så att flera tryck blir ett kommando
-      const id = entity, climate = act === 'temperature';
+      const id = entity, climate = act === 'temperature' || act === 'ctemp';
       const step = climate ? (A(id, 'target_temp_step') || 0.5) : (A(id, 'step') || 1);
       const lo = climate ? (A(id, 'min_temp') ?? 10) : A(id, 'min'), hi = climate ? (A(id, 'max_temp') ?? 30) : A(id, 'max');
       const cur = pendingVal[id] != null ? pendingVal[id] : climate ? A(id, 'temperature') : num(id);
@@ -982,13 +1008,14 @@
       if (lo != null) nv = Math.max(lo, nv); if (hi != null) nv = Math.min(hi, nv);
       pendingVal[id] = +nv.toFixed(2); renderDrawerStats();
       clearTimeout(sendT[id]);
-      sendT[id] = setTimeout(async () => { const val = pendingVal[id]; await sendCtl(climate ? { action: 'temperature', value: val } : { action: 'number', entity: id, value: val }); setTimeout(() => { delete pendingVal[id]; renderDrawerStats(); }, 4000); }, 800);
+      sendT[id] = setTimeout(async () => { const val = pendingVal[id]; await sendCtl(act === 'ctemp' ? { action: 'climate_temp', entity: id, value: val } : climate ? { action: 'temperature', value: val } : { action: 'number', entity: id, value: val }); setTimeout(() => { delete pendingVal[id]; renderDrawerStats(); }, 4000); }, 800);
       return;
     }
     if (act === 'toggle') {
       if (entity === FX.unit && v === 'off' && !confirm('Stänga av FTX-aggregatet?')) return;
       sendCtl({ action: 'toggle', entity, value: v === 'on' });
-    } else if (act === 'select') sendCtl({ action: 'select', entity, value: v });
+    } else if (act === 'cmode') sendCtl({ action: 'climate_mode', entity, value: v });
+    else if (act === 'select') sendCtl({ action: 'select', entity, value: v });
     else if (act === 'hvac_mode' || act === 'fan_mode') {
       if (act === 'hvac_mode' && v === 'off' && !confirm('Stänga av värmepumpen?')) return;
       sendCtl({ action: act, value: v });
@@ -1223,7 +1250,8 @@
       fetch('api/water', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       fetch('api/charger', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       fetch('api/car', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-    ]).then(([a, b, f, h, w, ch, car]) => { FX = f || {}; HPC = h || {}; WC = w || {}; CHC = ch || {}; CARC = car || {}; return [a, b]; });
+      fetch('api/radiators', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+    ]).then(([a, b, f, h, w, ch, car, rad]) => { FX = f || {}; HPC = h || {}; WC = w || {}; CHC = ch || {}; CARC = car || {}; RADC = rad || {}; return [a, b]; });
     cfg = c;
     if (cfg.title) $('title').textContent = cfg.title;
     if (cfg.subtitle) $('subtitle').textContent = cfg.subtitle;

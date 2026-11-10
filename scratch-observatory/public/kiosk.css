@@ -136,3 +136,4 @@ body.ov-cal:not(.kiosk) #kcal{display:flex;position:sticky;top:14px;width:clamp(
 body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
 .ovtog[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
 @media (max-width:900px){body.ov-cal:not(.kiosk) main{display:block}body.ov-cal:not(.kiosk) #kcal{position:static;width:auto;max-height:none;margin-top:14px}}
+.kmenu i#kmenu-rads{background:var(--orange);color:var(--bg)}
