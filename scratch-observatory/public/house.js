@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.25.0';
+  const VERSION = '0.26.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -103,7 +103,8 @@
   const wxIcon = (cond, cls = 'wxi') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${WX_SVG[cond] || WX_SVG.cloudy}</svg>`;
   window.ObsIcons = { box: BOX_ICON, wx: wxIcon, label: c => WX[c] || c };
   // Aktuellt väder för kiosksidans klocka
-  window.ObsHouse = { open: id => openDrawer(id), lightsOn: () => cfg.lights ? cfg.lights.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on').length : 0, weather: () => {
+  window.ObsHouse = { open: id => openDrawer(id), media: () => mediaHtml(), st: id => st(id), alerts: () => { const I = cfg.info; if (!I) return 0; const on = id => (st(id) || {}).state === 'on';
+      return (I.doors || []).filter(d => on(d.entity)).length + (I.leaks || []).filter(d => on(d.entity)).length + (I.smoke || []).filter(d => on(d.entity)).length; }, lightsOn: () => cfg.lights ? cfg.lights.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on').length : 0, weather: () => {
     const s = st(cfg.outdoor), sun = st(cfg.sun); if (!s) return null;
     const a = s.attributes || {};
     return { cond: s.state, temp: outdoorTemp(), wind: a.wind_speed != null ? a.wind_speed / 3.6 : null, humidity: a.humidity,
@@ -382,6 +383,7 @@
     const b = e.target.closest('.lockm'); if (!b) return;
     e.stopPropagation();
     const D = cfg.door || {}, m = (D.markers || []).find(x => x.entity === b.dataset.lock) || {}, state = b.dataset.state, name = m.name || 'Dörren';
+    if (D.items && DRAWERS.access) return openDrawer('access');
     if (state === 'locked') {
       if (D.allow_unlock !== true) return toast(`${name} är låst. Upplåsning är avstängd här.`);
       if (confirm(`Låsa upp ${name.toLowerCase()}?`)) sendCtl({ action: 'lock', entity: b.dataset.lock, value: 'unlock' });
@@ -552,7 +554,9 @@
     house: { eyebrow: 'Huset / förbrukning', title: 'Huset', stats: () => [
       ['Förbrukning', kw(num(cfg.load)), 'kW'], ['Idag', nf(num(cfg.load_today)), 'kWh'],
       ['Inne', nf(num(cfg.indoor)), '°C'], ['Varmvatten', nf(num(cfg.hot_water, 'temperature')), '°C']],
-      charts: () => [[cfg.load, 'Förbrukning', TC('sage'), 1000, 'kW']] },
+      ctl: () => phasesCtl(),
+      charts: () => [[cfg.load, 'Förbrukning', TC('sage'), 1000, 'kW']].concat(cfg.phases && cfg.phases.current ? [{ title: 'Ström per fas', unit: 'A', div: 1,
+        series: cfg.phases.current.map((e, i) => [e, 'L' + (i + 1), [TC('gold'), TC('sage'), TC('blue')][i]]) }] : []) },
     grid: { eyebrow: 'Elnät / import & export', title: 'Elnät', stats: () => [
       ['Nät nu', kw(num(cfg.grid)), num(cfg.grid) < 0 ? 'kW ut' : 'kW in'], ['Elpris', nf(num(cfg.price), 2), 'kr/kWh'],
       ['Köpt idag', nf(num(cfg.grid_in_today)), 'kWh'], ['Sålt idag', nf(num(cfg.grid_out_today)), 'kWh'],
@@ -575,6 +579,9 @@
     // Laddbox och EV6 visar sina egna sidor i en bredare panel
     charger: { eyebrow: 'Garage / laddbox', title: 'Laddbox', frame: 'laddbox.html' },
     car: { eyebrow: 'Garage / bil', title: 'Kia EV6', frame: 'ev6.html' },
+    access: { eyebrow: 'Säkerhet / lås och portar', title: 'Lås och garageportar', rich: () => '', stats: () => [], charts: () => [], ctl: accessCtl },
+    vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl },
+    info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
     chores: { eyebrow: 'Barnen / sysslor', title: 'Poäng', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: choresCtl },
     money: { eyebrow: 'Idag / uppskattat', title: 'Kostnad och energi', stats: () => {
@@ -609,6 +616,106 @@
   let armed = null; // två tryck för "Släck alla" och sysslor: första trycket väljer, andra skickar
   const isArmed = k => armed && armed.k === k && Date.now() - armed.t < 4000;
   function arm(k) { armed = { k, t: Date.now() }; renderDrawerStats(); setTimeout(() => { if (armed && armed.k === k && Date.now() - armed.t >= 4000) { armed = null; renderDrawerStats(); } }, 4100); }
+  const ago = iso => { if (!iso) return ''; const m = Math.floor((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? 'nyss' : m < 60 ? m + ' min' : m < 1440 ? Math.floor(m / 60) + ' h' : Math.floor(m / 1440) + ' d'; };
+  const pill = (txt, cls) => `<span class="ipill ${cls || ''}">${esc(txt)}</span>`;
+  // Fasbelastning i Huset-panelen
+  function phasesCtl() {
+    const P = cfg.phases; if (!P || !P.current) return '';
+    const fuse = P.fuse || 20;
+    const rows = P.current.map((e, i) => {
+      const a = num(e), w = P.power && num(P.power[i]), v = P.voltage && num(P.voltage[i]);
+      const pct = a == null ? 0 : Math.min(100, a / fuse * 100), cls = pct >= 90 ? 'hi' : pct >= 70 ? 'mid' : '';
+      return `<div class="prow ${cls}"><span class="pl">L${i + 1}</span><div class="pbar"><i style="width:${pct}%"></i></div><b>${a == null ? '–' : nf(a, 1)}<small> A</small></b><span class="px">${w == null ? '' : nf(w / 1000, 2) + ' kW'}${v == null ? '' : ' · ' + nf(v, 0) + ' V'}</span></div>`;
+    }).join('');
+    return `<div class="eyebrow">Belastning per fas · säkring ${fuse} A</div><div class="phases">${rows}</div>`;
+  }
+  // Lås och garageportar
+  const COVER_L = { closed: 'Stängd', open: 'Öppen', opening: 'Öppnar …', closing: 'Stänger …', unavailable: 'Ej nåbar', unknown: 'Okänt' };
+  function accessCtl() {
+    const D = cfg.door; if (!D || !D.items) return '';
+    return `<div class="acc">${D.items.map(it => {
+      const s = st(it.entity), state = s ? s.state : 'unavailable', isCover = it.entity.startsWith('cover.');
+      let label, cls, btn = '', key;
+      if (isCover) {
+        label = COVER_L[state] || state; cls = state === 'closed' ? 'ok' : state === 'open' ? 'warn' : state === 'opening' || state === 'closing' ? 'mid' : 'off';
+        const cmd = state === 'opening' || state === 'closing' ? 'stop' : state === 'open' ? 'close' : state === 'closed' ? 'open' : null;
+        key = 'cov:' + it.entity + ':' + cmd;
+        if (cmd) btn = `<button class="abtn${isArmed(key) ? ' armed' : ''}" data-cover="${esc(it.entity)}" data-cmd="${cmd}">${isArmed(key) ? 'Tryck igen' : { open: 'Öppna', close: 'Stäng', stop: 'Stoppa' }[cmd]}</button>`;
+      } else {
+        label = LOCK_L[state] || state; cls = state === 'locked' ? 'ok' : state === 'unlocked' || state === 'open' || state === 'jammed' ? 'warn' : state === 'unavailable' || state === 'unknown' ? 'off' : 'mid';
+        const cmd = state === 'locked' ? (D.allow_unlock ? 'unlock' : null) : state === 'unlocked' || state === 'open' || state === 'jammed' ? 'lock' : null;
+        key = 'lock:' + it.entity + ':' + cmd;
+        if (cmd) btn = `<button class="abtn${isArmed(key) ? ' armed' : ''}" data-lockc="${esc(it.entity)}" data-cmd="${cmd}">${isArmed(key) ? 'Tryck igen' : cmd === 'lock' ? 'Lås' : 'Lås upp'}</button>`;
+      }
+      const icon = isCover ? '<svg viewBox="0 0 24 24"><path d="M3 21V9l9-5 9 5v12M7 21v-8h10v8M7 16h10"/></svg>' : (state === 'locked' ? LOCK_SVG.locked : LOCK_SVG.unlocked);
+      return `<div class="arow ${cls}"><span class="aic">${icon}</span><div class="atx"><b>${esc(it.name)}</b><small>${esc(label)}${it.sub ? ' · ' + esc(it.sub) : ''}${s && s.last_updated ? ' · ' + ago(s.last_updated) : ''}</small></div>${btn}</div>`;
+    }).join('')}</div><p class="dnote">Alla knappar kräver två tryck.</p>`;
+  }
+  // Robotdammsugaren
+  const VAC_L = { docked: 'I dockan', cleaning: 'Städar', returning: 'Åker hem', idle: 'Väntar', paused: 'Pausad', error: 'Fel', unavailable: 'Ej nåbar' };
+  function vacuumCtl() {
+    const V = cfg.vacuum; if (!V) return '';
+    const s = st(V.entity), state = s ? s.state : 'unavailable', bat = num(V.battery);
+    const on = V.rooms.filter(r => (st(r.entity) || {}).state === 'on');
+    const extra = [];
+    const room = st(V.room_now); if (state === 'cleaning' && room && !['unknown', 'unavailable'].includes(room.state)) extra.push('Nu: ' + room.state);
+    const prog = num(V.progress); if (state === 'cleaning' && prog != null) extra.push(nf(prog, 0) + ' %');
+    const err = st(V.error); if (err && !['no_error', 'unknown', 'unavailable'].includes(err.state)) extra.push('Fel: ' + err.state.replace(/_/g, ' '));
+    const head = `<div class="vhead ${state}"><div><b>${esc(VAC_L[state] || state)}</b><small>${bat != null ? 'Batteri ' + nf(bat, 0) + ' %' : ''}${extra.length ? ' · ' + esc(extra.join(' · ')) : ''}</small></div>
+      <div class="vcmds">${state === 'cleaning' ? '<button class="abtn" data-vaccmd="pause">Pausa</button>' : ''}${['cleaning', 'paused', 'idle', 'error'].includes(state) ? '<button class="abtn" data-vaccmd="return_to_base">Åk hem</button>' : ''}</div></div>`;
+    const rooms = `<div class="eyebrow">Välj rum · ${on.length ? on.length + ' valda' : 'inga valda'}</div><div class="vrooms">${V.rooms.map(r => {
+      const rs = st(r.entity), o = rs && rs.state === 'on';
+      return `<button class="vroom ${o ? 'on' : ''}" data-room="${esc(r.entity)}" data-on="${o}" ${rs ? '' : 'disabled'}>${esc(r.name)}</button>`;
+    }).join('')}</div>`;
+    const go = `<div class="vgo">${V.modes.map(m => { const k = 'vac:' + m.script; return `<button class="vstart${isArmed(k) ? ' armed' : ''}" data-vacgo="${esc(m.script)}" ${on.length ? '' : 'disabled'}>${isArmed(k) ? 'Tryck igen för att starta' : esc(m.name)}</button>`; }).join('')}</div>`;
+    return head + rooms + go + `<p class="dnote">${on.length ? 'Starta kräver två tryck.' : 'Välj minst ett rum först.'}</p>`;
+  }
+  // Hus-info: luft, dörrar, rörelse, vattenläckor, brandvarnare
+  function infoCtl() {
+    const I = cfg.info; if (!I) return '';
+    const sec = (title, sum, cls, tiles) => `<div class="isec"><div class="ihead"><span class="eyebrow">${esc(title)}</span>${pill(sum, cls)}</div><div class="igrid">${tiles}</div></div>`;
+    const tile = (name, val, cls, extra) => `<div class="itile ${cls || ''}"><span>${esc(name)}</span><b>${val}</b>${extra || ''}</div>`;
+    const dead = s => !s || s.state === 'unavailable' || s.state === 'unknown';
+    let worst = -1;
+    const air = (I.air || []).map(a => { const v = num(a.entity); const l = v == null ? -1 : v < a.t[0] ? 0 : v < a.t[1] ? 1 : v < a.t[2] ? 2 : 3; worst = Math.max(worst, l);
+      return tile(a.name, v == null ? '–' : nf(v, 0) + (a.unit ? `<small> ${esc(a.unit)}</small>` : ''), ['ok', '', 'mid', 'warn'][l] || 'off', `<i class="ibar"><em style="width:${v == null ? 0 : Math.min(100, v / a.max * 100)}%"></em></i>`); }).join('');
+    let open = 0; const doors = (I.doors || []).map(d => { const s = st(d.entity); const o = s && s.state === 'on'; if (o) open++;
+      return tile(d.name, dead(s) ? 'Offline' : o ? 'Öppen' : 'Stängd', dead(s) ? 'off' : o ? 'warn' : 'ok', o && s.last_updated ? `<small>${ago(s.last_updated)}</small>` : ''); }).join('');
+    let act = 0; const motion = (I.motion || []).map(d => { const s = st(d.entity); const o = s && s.state === 'on'; if (o) act++;
+      return tile(d.name, dead(s) ? 'Offline' : o ? (d.camera ? 'Person!' : 'Rörelse') : 'Lugnt', dead(s) ? 'off' : o ? (d.camera ? 'warn' : 'mid') : 'ok', !o && s && s.last_updated ? `<small>${ago(s.last_updated) === 'nyss' ? 'nyss' : ago(s.last_updated) + ' sedan'}</small>` : ''); }).join('');
+    let leak = 0, loff = 0; const leaks = (I.leaks || []).map(d => { const s = st(d.entity); const o = s && s.state === 'on'; if (o) leak++; if (dead(s)) loff++;
+      return tile(d.name, dead(s) ? 'Offline' : o ? 'LÄCKA!' : 'Torrt', dead(s) ? 'off' : o ? 'alarm' : 'ok'); }).join('');
+    let fire = 0, chk = 0; const smoke = (I.smoke || []).map(d => { const s = st(d.entity); const o = s && s.state === 'on';
+      const bat = (d.bat && (st(d.bat) || {}).state === 'on') || (d.batpct && num(d.batpct) != null && num(d.batpct) < 20), fault = d.fault && (st(d.fault) || {}).state === 'on', test = d.test && (st(d.test) || {}).state === 'on';
+      let v = 'OK', c = 'ok'; if (o) { v = 'RÖK!'; c = 'alarm'; fire++; } else if (test) { v = 'Test'; c = 'mid'; } else if (dead(s)) { v = 'Offline'; c = 'off'; chk++; } else if (fault) { v = 'Fel'; c = 'mid'; chk++; } else if (bat) { v = 'Batteri'; c = 'mid'; chk++; }
+      return tile(d.name, v, c); }).join('');
+    return sec('Luftkvalitet', worst < 0 ? '–' : ['Bra', 'Okej', 'Sämre', 'Dålig'][worst], ['ok', '', 'mid', 'warn'][worst] || '', air)
+      + sec('Dörrar', open ? open + (open === 1 ? ' öppen' : ' öppna') : 'Allt stängt', open ? 'warn' : 'ok', doors)
+      + sec('Rörelse', act ? act + ' aktiva' : 'Lugnt', act ? 'mid' : 'ok', motion)
+      + sec('Vattenläckor', leak ? 'LÄCKA' : loff ? loff + ' offline' : 'Torrt', leak ? 'alarm' : loff ? 'mid' : 'ok', leaks)
+      + sec('Brandvarnare', fire ? 'BRAND' : chk ? chk + ' behöver koll' : 'Inga larm', fire ? 'alarm' : chk ? 'mid' : 'ok', smoke);
+  }
+  // Media som spelar och tv som är på (visas överst i kiosken)
+  function mediaHtml() {
+    const M = cfg.media; if (!M) return '';
+    return M.players.map(p => {
+      const s = st(p.entity); if (!s) return '';
+      const show = p.tv ? !['off', 'unavailable', 'unknown', 'standby'].includes(s.state) : s.state === 'playing' || s.state === 'paused';
+      if (!show) return '';
+      const a = s.attributes || {}, title = a.media_title || a.app_name || a.source || (s.state === 'on' ? 'På' : ''), sub = [a.media_artist || a.media_series_title, a.media_title ? a.app_name : ''].filter(Boolean).join(' · ');
+      const play = s.state === 'playing';
+      const b = (cmd, svg, t) => `<button data-mcmd="${cmd}" data-ment="${esc(p.entity)}" aria-label="${t}"><svg viewBox="0 0 24 24">${svg}</svg></button>`;
+      return `<div class="kmp ${play ? 'play' : ''}"><span class="kmi"><svg viewBox="0 0 24 24">${p.tv ? '<rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 21h8M12 17v4"/>' : '<rect x="6" y="3" width="12" height="18" rx="2"/><circle cx="12" cy="14" r="3.5"/><circle cx="12" cy="7" r="1"/>'}</svg></span>
+        <div class="kmt"><b>${esc(p.name)}</b><small>${esc(title)}${sub ? ' · ' + esc(sub) : ''}</small></div>
+        <span class="kmb">${b('volume_down', '<path d="M5 12h14"/>', 'Sänk')}${b('media_play_pause', play ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>', play ? 'Paus' : 'Spela')}${b('volume_up', '<path d="M5 12h14M12 5v14"/>', 'Höj')}${p.tv ? b('turn_off', '<path d="M12 3v8M6.3 7.3a8 8 0 1 0 11.4 0"/>', 'Stäng av') : b('media_next_track', '<path d="M6 5l9 7-9 7zM18 5v14"/>', 'Nästa')}</span></div>`;
+    }).join('');
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-mcmd]'); if (!b) return;
+    e.stopPropagation();
+    if (b.dataset.mcmd === 'turn_off') { if (!isArmed('moff:' + b.dataset.ment)) { armed = { k: 'moff:' + b.dataset.ment, t: Date.now() }; return toast('Tryck igen för att stänga av tv:n.'); } armed = null; }
+    sendCtl({ action: 'media', entity: b.dataset.ment, value: b.dataset.mcmd }, true);
+  }, true);
   function lightsCtl() {
     const L = cfg.lights; if (!L) return '<p class="dnote">Inga lampor i config.</p>';
     const on = L.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on');
@@ -639,9 +746,23 @@
     return kids + lastTxt + `<div class="eyebrow">Vad har ${esc(kid.name)} gjort?</div><div class="cgrid">${list}</div><p class="dnote">Poängen läggs till när en förälder godkänner i mobilen.</p>`;
   }
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-light],[data-alloff],[data-kid],[data-chore]'); if (!t || !t.closest('#dctl')) return;
+    const t = e.target.closest('[data-light],[data-alloff],[data-kid],[data-chore],[data-cover],[data-lockc],[data-room],[data-vacgo],[data-vaccmd]'); if (!t || !t.closest('#dctl')) return;
     e.stopPropagation();
-    if (t.dataset.light) {
+    if (t.dataset.cover || t.dataset.lockc) {
+      const ent = t.dataset.cover || t.dataset.lockc, k = (t.dataset.cover ? 'cov:' : 'lock:') + ent + ':' + t.dataset.cmd;
+      if (!isArmed(k)) return arm(k);
+      armed = null; renderDrawerStats();
+      sendCtl(t.dataset.cover ? { action: 'cover', entity: ent, value: t.dataset.cmd } : { action: 'lock', entity: ent, value: t.dataset.cmd });
+    } else if (t.dataset.room) {
+      const on = t.dataset.on !== 'true', s = states[t.dataset.room];
+      if (s) { states[t.dataset.room] = Object.assign({}, s, { state: on ? 'on' : 'off' }); renderDrawerStats(); }
+      sendCtl({ action: 'toggle', entity: t.dataset.room, value: on }, true);
+    } else if (t.dataset.vacgo) {
+      const k = 'vac:' + t.dataset.vacgo;
+      if (!isArmed(k)) return arm(k);
+      armed = null; renderDrawerStats(); sendCtl({ action: 'script', entity: t.dataset.vacgo });
+    } else if (t.dataset.vaccmd) sendCtl({ action: 'vacuum', entity: cfg.vacuum.entity, value: t.dataset.vaccmd });
+    else if (t.dataset.light) {
       const on = t.dataset.on !== 'true';
       const s = states[t.dataset.light]; if (s) { states[t.dataset.light] = Object.assign({}, s, { state: on ? 'on' : 'off' }); renderDrawerStats(); } // visa direkt, strömmen rättar
       sendCtl({ action: 'toggle', entity: t.dataset.light, value: on }, true);

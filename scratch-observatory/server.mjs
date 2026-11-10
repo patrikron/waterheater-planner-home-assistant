@@ -280,15 +280,21 @@ async function readBody(req, max = 64 * 1024) {
 // ---------- Styrning (bara luftvärmepumpen, bara vitlistade åtgärder) ----------
 const HP = CONFIG.heatpump || {};
 const ctlLog = [];
-const LIGHTS = CONFIG.house && CONFIG.house.lights, CHORES = CONFIG.house && CONFIG.house.chores;
+const LIGHTS = CONFIG.house && CONFIG.house.lights, CHORES = CONFIG.house && CONFIG.house.chores, VAC = CONFIG.house && CONFIG.house.vacuum;
+const MEDIA = CONFIG.house && CONFIG.house.media && CONFIG.house.media.controls ? { controls: true, media: CONFIG.house.media.players.map(p => p.entity) } : null;
+const COVER_CMD = { open: 'open_cover', close: 'close_cover', stop: 'stop_cover' };
+const VAC_CMD = ['return_to_base', 'pause', 'stop', 'locate'];
+const MEDIA_CMD = ['media_play_pause', 'media_next_track', 'media_previous_track', 'volume_up', 'volume_down', 'turn_off'];
 async function control(body) {
   // Sidor med egen styrning (FTX, laddbox, bilen, spabad, varmvatten): bara entiteter som står i respektive vitlista
-  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa, CONFIG.water, CONFIG.house && CONFIG.house.door, CONFIG.house && CONFIG.house.lights].filter(x => x && x.controls);
+  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa, CONFIG.water, CONFIG.house && CONFIG.house.door, CONFIG.house && CONFIG.house.lights, CONFIG.house && CONFIG.house.vacuum, MEDIA].filter(x => x && x.controls);
   const allow = k => new Set(PAGES.flatMap(x => [...(x[k] || []), ...(k === 'numbers' && x.setpoint ? [x.setpoint] : [])]));
   const { action: act0, entity: ent0 } = body || {};
   const ftxOk = (act0 === 'toggle' && allow('toggles').has(ent0)) || (act0 === 'number' && allow('numbers').has(ent0)) || (act0 === 'select' && allow('selects').has(ent0))
     || (act0 === 'script' && allow('scripts').has(ent0)) || (act0 === 'lock' && allow('locks').has(ent0))
     || ((act0 === 'climate_mode' || act0 === 'climate_temp') && allow('climates').has(ent0))
+    || (act0 === 'cover' && allow('covers').has(ent0)) || (act0 === 'media' && allow('media').has(ent0))
+    || (act0 === 'vacuum' && !!(VAC && VAC.controls && VAC.entity === ent0))
     || (act0 === 'lights_off' && !!(LIGHTS && LIGHTS.controls && LIGHTS.all_off)) || (act0 === 'chore' && !!(CHORES && CHORES.controls && CHORES.script));
   const hpOk = !!(HP.controls && HP.climate);
   if (!ftxOk && !hpOk) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
@@ -342,6 +348,9 @@ async function control(body) {
       call = ['climate', 'set_temperature', entity, { temperature: value }];
     }
   }
+  else if (action === 'cover' && ftxOk && COVER_CMD[value]) call = ['cover', COVER_CMD[value], entity, {}];
+  else if (action === 'vacuum' && ftxOk && VAC_CMD.includes(value)) call = ['vacuum', value, entity, {}];
+  else if (action === 'media' && ftxOk && MEDIA_CMD.includes(value)) call = ['media_player', value, entity, {}];
   else if (action === 'lights_off' && ftxOk) {
     // släck alla: bara lamporna i house.lights.toggles
     call = ['light', 'turn_off', LIGHTS.toggles.filter(x => x.startsWith('light.')), {}];

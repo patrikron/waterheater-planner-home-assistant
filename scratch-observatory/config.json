@@ -364,6 +364,86 @@
       "min",
       "max",
       "step"
+    ],
+    "media_player.lg_webos_smart_tv": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.65_qled": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.kok_nest_hub": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.google_home": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.badrum": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.stammen_vinyl_black_2": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.googlehome6023": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.nestaudio0095": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
     ]
   },
   "house": {
@@ -439,7 +519,7 @@
         "lock.aqara_smart_lock_u200",
         "lock.front_door_lock"
       ],
-      "allow_unlock": false,
+      "allow_unlock": true,
       "markers": [
         {
           "entity": "lock.aqara_smart_lock_u200",
@@ -456,6 +536,30 @@
             82.8,
             51.5
           ]
+        }
+      ],
+      "covers": [
+        "cover.smart_garage_door_2303137232948861070248e1e9bdbf4e_garage_1",
+        "cover.smart_garage_door_2303137232948861070248e1e9bdbf4e_garage_2"
+      ],
+      "items": [
+        {
+          "entity": "cover.smart_garage_door_2303137232948861070248e1e9bdbf4e_garage_1",
+          "name": "Garageport 1",
+          "sub": "Vänster"
+        },
+        {
+          "entity": "cover.smart_garage_door_2303137232948861070248e1e9bdbf4e_garage_2",
+          "name": "Garageport 2",
+          "sub": "Höger"
+        },
+        {
+          "entity": "lock.aqara_smart_lock_u200",
+          "name": "Ytterdörren"
+        },
+        {
+          "entity": "lock.front_door_lock",
+          "name": "Garagedörren"
         }
       ]
     },
@@ -813,6 +917,288 @@
           "points": 3
         }
       ]
+    },
+    "vacuum": {
+      "controls": true,
+      "entity": "vacuum.l20_ultra",
+      "battery": "sensor.l20_ultra_battery_level",
+      "room_now": "sensor.l20_ultra_current_room",
+      "area": "sensor.l20_ultra_cleaned_area",
+      "progress": "sensor.l20_ultra_cleaning_progress",
+      "error": "sensor.l20_ultra_error",
+      "toggles": [
+        "input_boolean.vacuum_room_vardagsrum",
+        "input_boolean.vacuum_room_matplats",
+        "input_boolean.vacuum_room_kok",
+        "input_boolean.vacuum_room_hall",
+        "input_boolean.vacuum_room_garderob",
+        "input_boolean.vacuum_room_oliver",
+        "input_boolean.vacuum_room_ludvig"
+      ],
+      "rooms": [
+        {
+          "entity": "input_boolean.vacuum_room_vardagsrum",
+          "name": "Vardagsrum"
+        },
+        {
+          "entity": "input_boolean.vacuum_room_matplats",
+          "name": "Matplats"
+        },
+        {
+          "entity": "input_boolean.vacuum_room_kok",
+          "name": "Kök"
+        },
+        {
+          "entity": "input_boolean.vacuum_room_hall",
+          "name": "Hall"
+        },
+        {
+          "entity": "input_boolean.vacuum_room_garderob",
+          "name": "Garderob"
+        },
+        {
+          "entity": "input_boolean.vacuum_room_oliver",
+          "name": "Oliver"
+        },
+        {
+          "entity": "input_boolean.vacuum_room_ludvig",
+          "name": "Ludvig"
+        }
+      ],
+      "scripts": [
+        "script.dammsug_valda_rum",
+        "script.dammsug_och_moppa_valda_rum"
+      ],
+      "modes": [
+        {
+          "script": "script.dammsug_valda_rum",
+          "name": "Dammsug"
+        },
+        {
+          "script": "script.dammsug_och_moppa_valda_rum",
+          "name": "Dammsug och moppa"
+        }
+      ]
+    },
+    "media": {
+      "controls": true,
+      "players": [
+        {
+          "entity": "media_player.lg_webos_smart_tv",
+          "name": "TV vardagsrum",
+          "tv": true
+        },
+        {
+          "entity": "media_player.65_qled",
+          "name": "Sovrum QLED",
+          "tv": true
+        },
+        {
+          "entity": "media_player.kok_nest_hub",
+          "name": "Kök Nest Hub"
+        },
+        {
+          "entity": "media_player.google_home",
+          "name": "Köksbord"
+        },
+        {
+          "entity": "media_player.badrum",
+          "name": "Badrum"
+        },
+        {
+          "entity": "media_player.stammen_vinyl_black_2",
+          "name": "Olivers rum"
+        },
+        {
+          "entity": "media_player.googlehome6023",
+          "name": "Oliver mini"
+        },
+        {
+          "entity": "media_player.nestaudio0095",
+          "name": "Ludvigs rum"
+        }
+      ]
+    },
+    "info": {
+      "air": [
+        {
+          "entity": "sensor.netatmo_station_co2",
+          "name": "CO₂ kök",
+          "unit": "ppm",
+          "t": [
+            800,
+            1000,
+            1400
+          ],
+          "max": 2000
+        },
+        {
+          "entity": "sensor.netatmo_station_sovrum_co2",
+          "name": "CO₂ sovrum",
+          "unit": "ppm",
+          "t": [
+            800,
+            1000,
+            1400
+          ],
+          "max": 2000
+        },
+        {
+          "entity": "sensor.0xbc026efffe87b395_pm25",
+          "name": "PM2,5",
+          "unit": "µg/m³",
+          "t": [
+            10,
+            25,
+            50
+          ],
+          "max": 75
+        },
+        {
+          "entity": "sensor.0xbc026efffe87b395_vox_index",
+          "name": "VOC",
+          "unit": "",
+          "t": [
+            150,
+            250,
+            400
+          ],
+          "max": 500
+        }
+      ],
+      "doors": [
+        {
+          "entity": "binary_sensor.0x00158d0001b7b7d2_contact",
+          "name": "Ytterdörr"
+        },
+        {
+          "entity": "binary_sensor.0x00158d00041122be_contact",
+          "name": "Altan"
+        },
+        {
+          "entity": "binary_sensor.0x00158d00015b8ec1_contact",
+          "name": "Garage"
+        },
+        {
+          "entity": "binary_sensor.0x00158d0001873fc3_contact",
+          "name": "Tvätt"
+        },
+        {
+          "entity": "binary_sensor.0x00158d00015b9562_contact",
+          "name": "Sidogarage"
+        }
+      ],
+      "motion": [
+        {
+          "entity": "binary_sensor.0x00158d0001b1cc10_occupancy",
+          "name": "Hall"
+        },
+        {
+          "entity": "binary_sensor.0x00158d00018b5b80_occupancy",
+          "name": "Garderob"
+        },
+        {
+          "entity": "binary_sensor.0x00158d0004142513_occupancy",
+          "name": "Uterum"
+        },
+        {
+          "entity": "binary_sensor.garage_person_occupancy",
+          "name": "Garage",
+          "camera": true
+        },
+        {
+          "entity": "binary_sensor.framsida_grind_person_occupancy",
+          "name": "Grind",
+          "camera": true
+        }
+      ],
+      "leaks": [
+        {
+          "entity": "binary_sensor.0x00158d0001d52fe5_water_leak",
+          "name": "Badrum"
+        },
+        {
+          "entity": "binary_sensor.0x00158d00042f2146_water_leak",
+          "name": "Beredare"
+        },
+        {
+          "entity": "binary_sensor.0xec1bbdfffe87ce10_water_leak",
+          "name": "Diskmaskin"
+        },
+        {
+          "entity": "binary_sensor.0xec1bbdfffe87dd70_water_leak",
+          "name": "Tvättstuga"
+        },
+        {
+          "entity": "binary_sensor.0xec1bbdfffe91d313_water_leak",
+          "name": "Pumprum"
+        }
+      ],
+      "smoke": [
+        {
+          "entity": "binary_sensor.0x00158d0001538d81_smoke",
+          "name": "Kök",
+          "bat": "binary_sensor.0x00158d0001538d81_battery_low"
+        },
+        {
+          "entity": "binary_sensor.0x00158d0001539498_smoke",
+          "name": "Kontor",
+          "bat": "binary_sensor.0x00158d0001539498_battery_low"
+        },
+        {
+          "entity": "binary_sensor.0xa459bffffe958501_smoke",
+          "name": "Förråd",
+          "bat": "binary_sensor.0xa459bffffe958501_battery_low",
+          "test": "binary_sensor.0xa459bffffe958501_test"
+        },
+        {
+          "entity": "binary_sensor.0xa459bffffe9552be_smoke",
+          "name": "Tvättstuga",
+          "bat": "binary_sensor.0xa459bffffe9552be_battery_low",
+          "test": "binary_sensor.0xa459bffffe9552be_test"
+        },
+        {
+          "entity": "binary_sensor.0x00158d0001bbb099_smoke",
+          "name": "Vind",
+          "bat": "binary_sensor.0x00158d0001bbb099_battery_low"
+        },
+        {
+          "entity": "binary_sensor.0xa4c13823865a5880_smoke",
+          "name": "Oliver",
+          "fault": "binary_sensor.0xa4c13823865a5880_device_fault"
+        },
+        {
+          "entity": "binary_sensor.0xa4c138862f133c3f_smoke",
+          "name": "Garage"
+        },
+        {
+          "entity": "binary_sensor.shellyplussmoke_048308ee1ad4_rok",
+          "name": "Vardagsrum",
+          "batpct": "sensor.shellyplussmoke_048308ee1ad4_batteri"
+        }
+      ]
+    },
+    "phases": {
+      "fuse": 20,
+      "current": [
+        "sensor.tibber_strom_fas1",
+        "sensor.tibber_strom_fas2",
+        "sensor.tibber_strom_fas3"
+      ],
+      "power": [
+        "sensor.tibber_effekt_fas1",
+        "sensor.tibber_effekt_fas2",
+        "sensor.tibber_effekt_fas3"
+      ],
+      "voltage": [
+        "sensor.tibber_spanning_fas1",
+        "sensor.tibber_spanning_fas2",
+        "sensor.tibber_spanning_fas3"
+      ]
+    },
+    "school": {
+      "today": "input_text.skolmat_idag",
+      "tomorrow": "input_text.skolmat_imorgon"
     }
   },
   "water": {

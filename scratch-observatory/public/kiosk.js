@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.25.0';
+  const VERSION = '0.26.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -126,6 +126,19 @@
     const el = document.getElementById('know'), h = nowWx(); if (el && h !== lastWx) { el.innerHTML = h; lastWx = h; }
     const ed = document.getElementById('kwxd'), d = wxDetails(); if (ed && d !== lastWxd) { ed.innerHTML = d; lastWxd = d; }
   });
+  let lastSchool = '';
+  // Skolmat idag och imorgon (input_text i HA), bara vardagar
+  function schoolText() {
+    const H = window.ObsHouse, t = H && H.st && H.st('input_text.skolmat_idag'), m = H && H.st && H.st('input_text.skolmat_imorgon');
+    const ok = x => x && x.state && !['unknown', 'unavailable', ''].includes(x.state) ? x.state : '';
+    return JSON.stringify([ok(t), ok(m)]);
+  }
+  const SCHOOL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v8a2 2 0 0 0 2 2v8M9 3v8a2 2 0 0 1-2 2M7 3v6M17 21V3c-2 1-3 3.5-3 7s1 4 3 4"/></svg>';
+  function schoolHtml(i, day) {
+    const wd = day.getDay(); if (wd === 0 || wd === 6) return '';
+    const txt = JSON.parse(lastSchool || '["",""]')[i]; if (!txt) return '';
+    return `<div class="kschool">${SCHOOL_SVG}<div><span>Skolmat</span>${txt.split(/\s*•\s*/).map(x => `<b>${esc(x)}</b>`).join('')}</div></div>`;
+  }
   function renderCal() {
     if (!kcal) return;
     const now = new Date();
@@ -149,6 +162,7 @@
         const label = i === 0 ? 'Idag' : i === 1 ? 'Imorgon' : day.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' });
         const f = wx[dayKey(day)];
         html += `<div class="kday${i === 0 ? ' today' : ''}"><div class="kday-h"><div class="eyebrow">${esc(label)}</div>${f ? `<div class="kwx">${window.ObsIcons ? window.ObsIcons.wx(f.cond, 'kwxi') : ''}<b>${Math.round(f.hi)}°</b>${f.lo != null ? ' / ' + Math.round(f.lo) + '°' : ''}</div>` : ''}</div>`;
+        if (i < 2) html += schoolHtml(i, day);
         if (!today.length) html += '<div class="knone">Inget inplanerat</div>';
         for (const e of today) {
           const s = startOf(e), en = endOf(e);
@@ -183,6 +197,14 @@
     window.addEventListener('obs-render', () => {
       const n = window.ObsHouse && window.ObsHouse.lightsOn ? window.ObsHouse.lightsOn() : 0;
       cnt.textContent = n ? String(n) : ''; cnt.hidden = !n;
+      const H = window.ObsHouse;
+      const vac = document.getElementById('kmenu-vac'), vs = H && H.st && H.st('vacuum.l20_ultra');
+      if (vac) { const t = vs && vs.state === 'cleaning' ? 'städar' : vs && vs.state === 'error' ? 'fel' : ''; vac.textContent = t; vac.hidden = !t; }
+      const inf = document.getElementById('kmenu-info');
+      if (inf && H && H.alerts) { const a = H.alerts(); inf.textContent = a ? String(a) : ''; inf.hidden = !a; }
+      const km = document.getElementById('kmedia');
+      if (km && H && H.media) { const h = H.media(); if (h !== km._h) { km.innerHTML = h; km._h = h; } km.hidden = !h; }
+      const sk = schoolText(); if (sk !== lastSchool) { lastSchool = sk; renderCal(); }
     });
   }
 })();
