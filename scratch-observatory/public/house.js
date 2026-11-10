@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.23.2';
+  const VERSION = '0.24.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -369,12 +369,13 @@
     }).join('');
     if (wrap._h !== html) { wrap.innerHTML = html; wrap._h = html; placeLocks(); }
   }
+  const lockPos = m => m && ((layout.locks && layout.locks[m.entity]) || m.pos);
   function placeLocks(sr) {
     const wrap = $('locks'), D = cfg.door; if (!wrap || !D) return;
     const c = parseFloat(stage.style.getPropertyValue('--crop')) || 0;
     wrap.querySelectorAll('.lockm').forEach((el, i) => {
-      const m = D.markers[i]; if (!m || !m.pos) return;
-      el.style.left = ((m.pos[0] / 100 - c) / (1 - 2 * c) * 100) + '%'; el.style.top = m.pos[1] + '%';
+      const m = D.markers[i]; const pos = lockPos(m); if (!pos) return;
+      el.style.left = ((pos[0] / 100 - c) / (1 - 2 * c) * 100) + '%'; el.style.top = pos[1] + '%';
     });
   }
   stage.addEventListener('click', e => {
@@ -827,6 +828,10 @@
       if (!b.anchor) continue;
       dragHandle(mk('anchor', b.anchor, 'Punkt för ' + (BOX[id] ? BOX[id].title : id)), p => { b.anchor = p; drawWires(); });
     }
+    for (const m of (cfg.door && cfg.door.markers) || []) {
+      const p = lockPos(m); if (!p) continue;
+      dragHandle(mk('lockh', p, 'Låsikon ' + (m.name || m.entity)), q => { (layout.locks = layout.locks || {})[m.entity] = q; placeLocks(); });
+    }
     for (const [id, hs] of Object.entries(layout.hotspots)) {
       const poly = hot.querySelector(`polygon[data-id="${id}"]`);
       const sync = () => poly.setAttribute('points', hs.points.map(q => q.join(',')).join(' '));
@@ -853,8 +858,8 @@
     buildHandles();
   }
   $('edit-btn').addEventListener('click', () => setEditing(!editing));
-  $('edit-cancel').addEventListener('click', () => { layout = clone(saved); buildHot(); placeBoxes(); setEditing(false); drawWires(); });
-  $('edit-reset').addEventListener('click', () => { layout = clone(DEFAULT); delete layout.boxes.ev6.auto; buildHot(); placeBoxes(); buildHandles(); drawWires(); toast('Standardlayouten är tillbaka. Tryck Spara för att behålla den.'); });
+  $('edit-cancel').addEventListener('click', () => { layout = clone(saved); buildHot(); placeBoxes(); placeLocks(); setEditing(false); drawWires(); });
+  $('edit-reset').addEventListener('click', () => { layout = clone(DEFAULT); delete layout.boxes.ev6.auto; buildHot(); placeBoxes(); placeLocks(); buildHandles(); drawWires(); toast('Standardlayouten är tillbaka. Tryck Spara för att behålla den.'); });
   $('edit-save').addEventListener('click', async () => {
     try {
       const r = await fetch('api/layout', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(layout) });
@@ -905,6 +910,7 @@
       if (old && b.anchor && b.anchor[0] === old[0] && b.anchor[1] === old[1]) layout.boxes[id].anchor = def;
     }
     for (const [id, h] of Object.entries(l.hotspots || {})) if (layout.hotspots[id] && h.points) layout.hotspots[id].points = h.points;
+    if (l.locks && typeof l.locks === 'object') layout.locks = l.locks;
     buildBoxes(); buildHot(); refresh();
     loadMoney(); setInterval(loadMoney, 10 * 60 * 1000);
 

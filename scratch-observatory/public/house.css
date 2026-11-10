@@ -334,3 +334,6 @@ html.embed body{padding-top:0}
 .lockm.warn{color:var(--red);border-color:var(--red);background:color-mix(in srgb,var(--red) 22%,var(--bg))}
 .lockm.mid{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 60%,transparent)}
 @media (max-width:900px){.lockm{width:24px;height:24px}.lockm svg{width:13px;height:13px}}
+.handles .h.lockh{width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:rgba(255,255,255,.08);border:2px dashed #fff;box-shadow:0 0 0 3px rgba(0,0,0,.35);z-index:6}
+body.edit .locks{opacity:.55;z-index:4}
+body.edit .lockm{pointer-events:none}
