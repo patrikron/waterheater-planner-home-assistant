@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.27.0';
+  const VERSION = '0.28.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -113,13 +113,13 @@
 
   // ---------- Rutornas innehåll ----------
   const BOX = {
-    sol: { title: 'Solpaneler', drawer: 'solar', wire: 'sol', render() {
+    sol: { title: 'Solpaneler', cls: 'key', drawer: 'solar', wire: 'sol', render() {
       const w = num(cfg.solar), today = num(cfg.pv_today);
       const rem = num(cfg.fc_remaining), tom = num(cfg.fc_tomorrow);
       return { v: kw(w), u: 'kW', s: `${nf(today)} kWh idag`,
         flow: w > 20 ? { cls: 'sol', dir: 'out', w } : null };
     } },
-    hus: { title: 'Huset', drawer: 'house', render() {
+    hus: { title: 'Huset', cls: 'key', drawer: 'house', render() {
       const load = num(cfg.load), ch = num(cfg.charger);
       const house = load != null && ch != null && ch <= load ? load - ch : load;
       return { v: kw(house), u: 'kW', s: `Förbrukat ${nf(num(cfg.load_today))} kWh`, flow: house > 30 ? { cls: '', dir: 'in', w: house } : null };
@@ -129,7 +129,7 @@
       const heating = s && /heat|boost|comfort_floor|manual/.test(s.state);
       return { v: nf(t), u: '°C', s: s ? (HW[s.state] || s.state) : 'okänt', flow: heating ? { cls: 'warm', dir: 'in', w: 2000 } : null };
     } },
-    nat: { title: 'Elnät', drawer: 'grid', wire: 'grid', render() {
+    nat: { title: 'Elnät', cls: 'key', drawer: 'grid', wire: 'grid', render() {
       const g = num(cfg.grid);
       const lbl = g == null ? 'okänt' : g > 30 ? 'Köper från nätet' : g < -30 ? 'Säljer till nätet' : 'I balans';
       return { v: kw(g), u: 'kW', s: `Köpt idag ${nf(num(cfg.grid_in_today))} kWh`, s2: `Sålt idag ${nf(num(cfg.grid_out_today))} kWh`, title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
@@ -164,7 +164,7 @@
           <span>↑ Sol upp<b>${sun ? time(sun.attributes.next_rising) : '–'}</b></span>
           <span>↓ Sol ned<b>${sun ? time(sun.attributes.next_setting) : '–'}</b></span></div>` };
     } },
-    elpris: { title: 'Elpris idag', cls: 'wide', drawer: 'price', render() {
+    elpris: { title: 'Elpris idag', cls: 'wide price-box', drawer: 'price', render() {
       const p = num(cfg.price), s = st(cfg.price), a = s ? s.attributes : {};
       const list = v => Array.isArray(v) ? v.map(Number).filter(Number.isFinite) : [];
       const arr = list(a.today), tom = a.tomorrow_valid === false ? [] : list(a.tomorrow);
@@ -597,15 +597,7 @@
       extra: () => '<a class="btn primary-link" href="ftx.html">Öppna FTX-sidan →</a>' },
     veranda: { eyebrow: 'Uterummet', title: 'Uterummet', stats: () => [['Ute', nf(outdoorTemp()), '°C']], charts: () => [],
       note: 'Här finns inga sensorer kopplade ännu. Säg till vilka entiteter som hör till uterummet.' },
-    price: { eyebrow: 'Elpris / idag', title: 'Elpris', stats: () => {
-      const s = st(cfg.price); const arr = s && Array.isArray(s.attributes.today) ? s.attributes.today.map(Number) : [];
-      return [['Nu', nf(num(cfg.price), 2), 'kr/kWh'], ['Snitt', arr.length ? nf(arr.reduce((a, b) => a + b, 0) / arr.length, 2) : '–', 'kr/kWh'],
-        ['Lägst', arr.length ? nf(Math.min(...arr), 2) : '–', 'kr/kWh'], ['Högst', arr.length ? nf(Math.max(...arr), 2) : '–', 'kr/kWh']];
-    }, charts: () => [], extra: () => {
-      const s = st(cfg.price); const arr = s && Array.isArray(s.attributes.today) ? s.attributes.today.map(Number) : [];
-      const start = new Date(); start.setHours(0, 0, 0, 0);
-      return chartBlock('Elpris idag (kr/kWh)', arr.map((v, i) => [start.getTime() + i * 86400000 / arr.length, v]), TC('orange'), 1, 'kr', true).replace('<div class="dchart">', '<div class="dchart" id="price-chart">');
-    } },
+    price: { eyebrow: 'Elpris / idag och imorgon', title: 'Elpris', wide: true, rich: priceRich, stats: () => [], charts: () => [] },
   };
   let drawerOpen = null;
   // ---------- Styrning i detaljpanelen (värmepump, FTX, varmvatten) ----------
@@ -746,6 +738,44 @@
       return `<button class="cbtn${isArmed(k) ? ' armed' : ''}" data-chore="${esc(c.id)}"><span>${isArmed(k) ? 'Tryck igen' : esc(c.name)}</span><small>+${c.points} p</small></button>`;
     }).join('');
     return kids + lastTxt + `<div class="eyebrow">Vad har ${esc(kid.name)} gjort?</div><div class="cgrid">${list}</div><p class="dnote">Poängen läggs till när en förälder godkänner i mobilen.</p>`;
+  }
+  // ---------- Elpris-panelen: lägst/snitt/högst, imorgon och AI-sammanfattningen från HA ----------
+  function priceDays() {
+    const s = st(cfg.price), a = s ? s.attributes : {};
+    const list = v => Array.isArray(v) ? v.map(Number).filter(Number.isFinite) : [];
+    return { today: list(a.today), tom: a.tomorrow_valid === false ? [] : list(a.tomorrow) };
+  }
+  function dayStats(arr) {
+    if (!arr.length) return null;
+    const sorted = [...arr].sort((x, y) => x - y), n = arr.length, mid = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+    const lo = Math.min(...arr), hi = Math.max(...arr), slot = 1440 / n;
+    const at = i => { const m = Math.round(i * slot); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+    return { lo, hi, avg: arr.reduce((x, y) => x + y, 0) / n, mid, loAt: at(arr.indexOf(lo)), hiAt: at(arr.indexOf(hi)) };
+  }
+  const ptile = (k, v, sub, cls) => `<div class="ptile ${cls || ''}"><span>${k}</span><b>${v}<small> kr</small></b>${sub ? `<em>${sub}</em>` : ''}</div>`;
+  const pctTxt = (a, b) => { const p = Math.round((a / b - 1) * 100); return (p > 0 ? '+' : p < 0 ? '−' : '±') + Math.abs(p) + ' %'; };
+  function priceTiles(d, extra = '') {
+    if (!d) return '';
+    return `<div class="ptiles">${ptile('Lägst', nf(d.lo, 2), 'kl ' + d.loAt, 'lo')}${ptile('Snitt', nf(d.avg, 2), 'Mitt ' + nf(d.mid, 2) + ' kr')}${ptile('Högst', nf(d.hi, 2), 'kl ' + d.hiAt, 'hi')}${extra}</div>`;
+  }
+  function priceRich() {
+    const { today, tom } = priceDays(), dt = dayStats(today), dm = dayStats(tom);
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const pts = (arr, off) => arr.map((v, i) => [start.getTime() + off + i * 86400000 / arr.length, v]);
+    const tomTile = dm && dt ? ptile('Imorgon', nf(dm.avg, 2), pctTxt(dm.avg, dt.avg) + ' mot idag', dm.avg > dt.avg ? 'hi' : 'lo') : '';
+    let h = `<div class="eyebrow">Idag</div>${priceTiles(dt, tomTile)}` + (today.length ? chartBlock('Elpris idag (kr/kWh)', pts(today, 0), TC('orange'), 1, 'kr', true) : '');
+    h += `<div class="pday"><div class="eyebrow">Imorgon</div>` + (dm
+      ? priceTiles(dm, dt ? ptile('Mot idag', (dm.avg >= dt.avg ? '+' : '−') + nf(Math.abs(dm.avg - dt.avg), 2), pctTxt(dm.avg, dt.avg) + ' i snitt', dm.avg > dt.avg ? 'hi' : 'lo') : '') + chartBlock('Elpris imorgon (kr/kWh)', pts(tom, 86400000), TC('gold'), 1, 'kr', true)
+      : '<p class="dnote">Morgondagens priser kommer vid 13-tiden.</p>') + '</div>';
+    const A = cfg.ai;
+    if (A) {
+      const tx = id => { const s = st(id); return s && s.state && !['unknown', 'unavailable', ''].includes(s.state) ? s.state : ''; };
+      const s0 = st(A.elpris), when = s0 && s0.last_changed ? new Date(s0.last_changed).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) : '';
+      const part = (k, id, main) => tx(id) ? `<div class="aip${main ? ' main' : ''}"><span>${k}</span><p>${esc(tx(id))}</p></div>` : '';
+      const body = part('Elpris', A.elpris, true) + part('Förbrukning', A.sammanfattning) + part('Största förbrukare', A.storsta) + part('Solel', A.solel) + part('Jämförelse', A.jamforelse);
+      if (body) h = `<div class="aisum"><div class="aihead"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/></svg><b>${esc(tx(A.rubrik) || 'AI-sammanfattning')}</b>${when ? `<small>uppdaterad ${when}</small>` : ''}</div>${body}</div>` + h;
+    }
+    return h;
   }
   // ---------- Larm ----------
   const ALARM_L = { disarmed: 'Avlarmat', armed_home: 'Larmat hemma', armed_away: 'Larmat borta', armed_night: 'Larmat natt', armed_vacation: 'Larmat semester', armed_custom_bypass: 'Larmat (förbikoppling)', arming: 'Larmar på …', pending: 'Inpassering – avlarma!', triggered: 'LARMET HAR GÅTT', disarming: 'Avlarmar …', unavailable: 'Ej nåbart', unknown: 'Okänt' };
@@ -934,7 +964,6 @@
     if (d.ctl && $('dctl')) { const h = d.ctl(); if (h !== lastCtl) { $('dctl').innerHTML = h; lastCtl = h; } }
     if (d.rich) { $('drawer-stats').innerHTML = d.rich(); return; }
     $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>`;
-    if (d.extra && drawerOpen === 'price' && $('price-chart')) $('price-chart').outerHTML = d.extra();
   }
   function closeDrawer() {
     const wasFrame = drawerOpen && DRAWERS[drawerOpen] && DRAWERS[drawerOpen].frame;

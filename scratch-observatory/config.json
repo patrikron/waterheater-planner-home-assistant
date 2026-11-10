@@ -1218,6 +1218,14 @@
       ],
       "allow_disarm": true,
       "code_max_len": 12
+    },
+    "ai": {
+      "rubrik": "input_text.elforbrukning_rubrik",
+      "elpris": "input_text.elforbrukning_elpris",
+      "sammanfattning": "input_text.elforbrukning_sammanfattning",
+      "storsta": "input_text.elforbrukning_storsta_forbrukare",
+      "solel": "input_text.elforbrukning_solel",
+      "jamforelse": "input_text.elforbrukning_jamforelse"
     }
   },
   "water": {
