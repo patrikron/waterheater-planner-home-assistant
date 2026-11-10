@@ -315,3 +315,11 @@ body[data-page=oversikt] .nav-item[data-page=oversikt] svg,body[data-page=varmva
 .dctl .cnow b{font-weight:600;color:var(--text);background:color-mix(in srgb,var(--orange) 18%,var(--panel));border:1px solid color-mix(in srgb,var(--orange) 45%,transparent);border-radius:999px;padding:3px 10px}
 .dmoney{border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:14px}
 .dmoney .mrow{font-size:12.5px}.dmoney .mrow b{font-size:13px}.dmoney .myear{font-size:12px}.dmoney .myear b{font-size:17px}
+/* 0.21: laddbox/EV6-sidorna i en bredare panel på översikten */
+.drawer.framed{width:min(960px,100vw);display:flex;flex-direction:column;padding-bottom:0}
+.drawer.framed #drawer-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.drawer.framed #drawer-charts{flex:1;min-height:0;display:flex;margin:0 -22px}
+.drawer .dframe{flex:1;width:100%;min-height:70vh;border:0;background:var(--bg);display:block}
+html.embed nav.side,html.embed header.top{display:none!important}
+html.embed .content{margin-left:0!important}
+html.embed body{padding-top:0}

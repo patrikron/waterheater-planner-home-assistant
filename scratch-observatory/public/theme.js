@@ -4,6 +4,24 @@
   'use strict';
   var KEY = 'obs-theme', CACHE = 'obs-theme-cache';
   var root = document.documentElement;
+
+  // Inbäddad i översiktens panel (sida.html?embed=1): ingen meny eller rubrik, länkar öppnas i hela fönstret
+  // och tryck räknas som aktivitet i kiosken så att panelen inte stängs mitt i.
+  var EMBED = /[?&]embed(=|&|$)/.test(location.search) && window.parent !== window;
+  if (EMBED) {
+    root.classList.add('embed');
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a || a.target || a.getAttribute('href').charAt(0) === '#') return;
+      e.preventDefault();
+      // Länk till en annan sida som också finns som panel (t.ex. laddbox -> EV6) byter panel i stället
+      var file = a.getAttribute('href').split(/[?#]/)[0];
+      try { window.parent.postMessage({ obsOpen: file, href: a.href }, location.origin); } catch (x) { location.href = a.href; }
+    }, true);
+    ['pointerdown', 'wheel', 'keydown', 'touchmove'].forEach(function (t) {
+      document.addEventListener(t, function () { try { window.parent.postMessage('obs-activity', location.origin); } catch (x) {} }, { passive: true });
+    });
+  }
   var VARS = ['bg', 'panel', 'panel2', 'line', 'line2', 'text', 'muted', 'dim', 'sage', 'orange', 'gold', 'blue', 'red'];
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function set(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }

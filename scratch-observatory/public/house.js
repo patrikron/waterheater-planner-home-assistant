@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.19.0';
+  const VERSION = '0.21.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -20,7 +20,8 @@
       vv:      { x: 67.5, y: 3,  anchor: [47, 50.3] },
       vp:      { x: 84,   y: 3,  anchor: [55.2, 34.4] }, // värmepumpen sitter på baksidan
       vader:   { x: 1.5,  y: 27 },
-      ladd:    { x: 84,   y: 64, anchor: [81.5, 51] },
+      ladd:    { x: 84,   y: 60, anchor: [81.5, 51] },
+      ev6:     { x: 84,   y: 78, anchor: [84.5, 52] }, // strecket en bit till höger om laddboxens
       elpris:  { x: 1.5,  y: 64 },
       kostnad: { x: 54,   y: 72 },
     },
@@ -37,7 +38,8 @@
   // Ljusslingan i uterummet: en liten lampa per glödlampa i fotot
   const BULBS = [[24.15, 51.97], [24.79, 52.31], [25.6, 52.31], [26.44, 51.71], [28.83, 51.41], [29.53, 50.64], [29.79, 50.3]];
 
-  let cfg = {}, FX = {}, HPC = {}, WC = {}, states = {}, connected = false;
+  let cfg = {}, FX = {}, HPC = {}, WC = {}, CHC = {}, CARC = {}, states = {}, connected = false;
+  const CAR_STATE = { Idle: 'Ingen bil ansluten', Charging: 'Laddar', 'Wait for car': 'Väntar på bilen', Complete: 'Laddning klar', Error: 'Fel' };
   let layout = clone(DEFAULT), saved = clone(DEFAULT);
   let editing = false, lightMode = load('obs-light') || 'auto';
 
@@ -75,6 +77,7 @@
     ftx: svgI('<path d="M3 8h9a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>'),
     vv: svgI('<path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/>'),
     vp: svgI('<path d="M3 5h18v14H3z"/><circle cx="10" cy="12" r="3.5"/><path d="M10 8.5v7M6.5 12h7M17 9h1.5M17 12h1.5M17 15h1.5"/>'),
+    ev6: svgI('<path d="M3 15v-3l2-5h11l3 5h2v3h-2M7 15H3M17 15H9M5 12h14"/><circle cx="7" cy="16" r="2"/><circle cx="17" cy="16" r="2"/>'),
     ladd: svgI('<path d="M5 3h8v18H5zM9.5 7 8 11h3l-1.5 4M13 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-2-2"/>'),
     elpris: svgI('<path d="M3 17l5-6 4 3 5-7 4 4M3 21h18"/>'),
     kostnad: svgI('<path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l12-3v3M16 13.5h2"/>'),
@@ -134,10 +137,20 @@
       const w = num(cfg.heatpump), inne = num(cfg.indoor);
       return { v: w == null ? '–' : Math.round(w).toLocaleString('sv-SE'), u: 'W', s: `Inne ${nf(inne)} °C`, flow: w > 50 ? { cls: 'warm', dir: 'in', w } : null };
     } },
-    ladd: { title: 'Laddbox / EV6', drawer: 'garage', render() {
-      const w = num(cfg.charger), soc = num(cfg.ev_soc);
-      return { v: kw(w), u: 'kW', s: w > 50 ? 'Laddar' : 'Laddar inte', soc,
+    ladd: { title: 'Laddbox', drawer: 'charger', render() {
+      const w = num(cfg.charger), cs = st(CHC.car_state), kwh = num(CHC.session_kwh);
+      const lbl = cs ? (CAR_STATE[cs.state] || cs.state) : (w > 50 ? 'Laddar' : 'Laddar inte');
+      return { v: kw(w), u: 'kW', s: lbl, s2: kwh != null ? `Laddat ${nf(kwh)} kWh` : '',
         flow: w > 50 ? { cls: '', dir: 'in', w } : null };
+    } },
+    ev6: { title: 'EV6', drawer: 'car', render() {
+      const soc = num(CARC.soc || cfg.ev_soc), range = num(CARC.range), chg = st(CARC.charging), plug = st(CARC.plug);
+      // Laddboxen vet oftast före Kia-molnet om bilen laddar eller är ansluten
+      const cs = st(CHC.car_state) ? st(CHC.car_state).state : null;
+      const charging = (chg && chg.state === 'on') || cs === 'Charging';
+      const plugged = (plug && plug.state === 'on') || (cs && cs !== 'Idle');
+      return { v: soc == null ? '–' : Math.round(soc), u: '%', s: `${range == null ? '–' : Math.round(range)} km räckvidd`, s2: charging ? 'Laddar' : plugged ? 'Ansluten' : 'Inte ansluten', soc, socLabel: false,
+        flow: charging ? { cls: '', dir: 'in', w: num(cfg.charger) || 3000 } : null };
     } },
     vader: { title: 'Ute / nu', cls: 'weather', render() {
       const s = st(cfg.outdoor), sun = st(cfg.sun);
@@ -262,7 +275,7 @@
   // ---------- Rendera rutor ----------
   function buildBoxes() {
     boxesEl.innerHTML = '';
-    for (const id of ['nat', 'sol', 'hus', 'ftx', 'vv', 'vp', 'vader', 'ladd', 'elpris', 'kostnad']) {
+    for (const id of ['nat', 'sol', 'hus', 'ftx', 'vv', 'vp', 'vader', 'ladd', 'ev6', 'elpris', 'kostnad']) {
       const el = document.createElement('div');
       el.className = 'box ' + (BOX[id].cls || '');
       el.dataset.id = id;
@@ -298,7 +311,7 @@
       el._flow = r.flow || null;
       if (r.custom) el.innerHTML = r.custom;
       else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v">${r.v}<small>${r.u}</small></div><div class="s">${esc(r.s || '')}</div>${r.s2 ? `<div class="s s2">${esc(r.s2)}</div>` : ''}` +
-        (r.soc != null ? `<div class="soc"><span style="width:${Math.max(0, Math.min(100, r.soc))}%"></span></div><div class="s">EV6 ${Math.round(r.soc)} %</div>` : '');
+        (r.soc != null ? `<div class="soc"><span style="width:${Math.max(0, Math.min(100, r.soc))}%"></span></div>${r.socLabel === false ? '' : `<div class="s">EV6 ${Math.round(r.soc)} %</div>`}` : '');
       // Liten ikon framför rubriken; väderrutan får ikonen för aktuellt väder
       const k = el.querySelector('.k'), id = el.dataset.id;
       const ic = id === 'vader' ? (st(cfg.outdoor) ? wxIcon(st(cfg.outdoor).state, 'bi wx') : '') : BOX_ICON[id];
@@ -513,6 +526,9 @@
       return [['Temperatur', nf(num(cfg.hot_water, 'temperature')), '°C'], ['Mål', nf(num(cfg.hot_water, 'target_temperature'), 0), '°C'],
         ['Status', s ? (HW[s.state] || s.state) : '–', '']];
     }, charts: () => [], extra: () => '<a class="btn primary-link" href="varmvatten.html">Öppna varmvattensidan →</a>' },
+    // Laddbox och EV6 visar sina egna sidor i en bredare panel
+    charger: { eyebrow: 'Garage / laddbox', title: 'Laddbox', frame: 'laddbox.html' },
+    car: { eyebrow: 'Garage / bil', title: 'Kia EV6', frame: 'ev6.html' },
     money: { eyebrow: 'Idag / uppskattat', title: 'Kostnad och energi', stats: () => {
       const m = moneyCalc();
       return [['Elkostnad', kr(m.spent), 'kr'], ['Sparat med solel', kr(m.savedToday), 'kr'], ['Faktisk kostnad', kr(num(cfg.cost_today)), 'kr'],
@@ -617,6 +633,14 @@
     drawerOpen = id;
     $('drawer-eyebrow').textContent = d.eyebrow; $('drawer-title').textContent = d.title;
     $('drawer').classList.toggle('wide', !!d.wide);
+    $('drawer').classList.toggle('framed', !!d.frame);
+    if (d.frame) {
+      $('drawer-stats').innerHTML = '';
+      const cur = $('drawer-charts').querySelector('iframe');
+      if (!cur || cur.dataset.src !== d.frame) $('drawer-charts').innerHTML = `<iframe class="dframe" data-src="${d.frame}" src="${d.frame}?embed=1" title="${esc(d.title)}"></iframe>`;
+      $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false'); $('scrim').hidden = false;
+      return;
+    }
     renderDrawerStats();
     $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false'); $('scrim').hidden = false;
     const body = $('drawer-charts');
@@ -646,15 +670,24 @@
   function renderDrawerStats() {
     if (!drawerOpen) return;
     const d = DRAWERS[drawerOpen];
+    if (d.frame) return;
     if (d.ctl && $('dctl')) { const h = d.ctl(); if (h !== lastCtl) { $('dctl').innerHTML = h; lastCtl = h; } }
     if (d.rich) { $('drawer-stats').innerHTML = d.rich(); return; }
     $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>`;
     if (d.extra && drawerOpen === 'price' && $('price-chart')) $('price-chart').outerHTML = d.extra();
   }
   function closeDrawer() {
+    const wasFrame = drawerOpen && DRAWERS[drawerOpen] && DRAWERS[drawerOpen].frame;
     drawerOpen = null; $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden', 'true'); $('scrim').hidden = true;
+    // Sidan i panelen stängs så att dess liveström inte ligger kvar
+    if (wasFrame) setTimeout(() => { if (!drawerOpen) { $('drawer').classList.remove('framed'); $('drawer-charts').innerHTML = ''; } }, 320);
   }
   $('drawer-close').addEventListener('click', closeDrawer);
+  window.addEventListener('message', e => {
+    if (e.origin !== location.origin || !e.data || !e.data.obsOpen) return;
+    const id = Object.keys(DRAWERS).find(k => DRAWERS[k].frame === e.data.obsOpen);
+    if (id) openDrawer(id); else if (!document.body.classList.contains('kiosk')) location.href = e.data.href;
+  });
   $('scrim').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
@@ -813,7 +846,9 @@
       fetch('api/ftx', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       fetch('api/heatpump', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       fetch('api/water', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-    ]).then(([a, b, f, h, w]) => { FX = f || {}; HPC = h || {}; WC = w || {}; return [a, b]; });
+      fetch('api/charger', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch('api/car', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+    ]).then(([a, b, f, h, w, ch, car]) => { FX = f || {}; HPC = h || {}; WC = w || {}; CHC = ch || {}; CARC = car || {}; return [a, b]; });
     cfg = c;
     if (cfg.title) $('title').textContent = cfg.title;
     if (cfg.subtitle) $('subtitle').textContent = cfg.subtitle;

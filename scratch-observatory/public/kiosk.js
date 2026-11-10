@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.20.0';
+  const VERSION = '0.21.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -38,6 +38,7 @@
   }
   ['pointerdown', 'pointermove', 'keydown', 'wheel'].forEach(e => document.addEventListener(e, activity, { passive: true }));
   activity();
+  window.addEventListener('message', e => { if (e.origin === location.origin && e.data === 'obs-activity') activity(); });
 
   // Visa en liten markering när översikten väntar på data
   const badge = document.getElementById('badge');
