@@ -1418,17 +1418,17 @@
         "icon": "garage"
       },
       {
-        "name": "Lilla toa",
-        "temp": "sensor.0xa4c138bc6c5a4e64_temperature",
-        "hum": "sensor.0xa4c138bc6c5a4e64_humidity",
+        "name": "Badrum",
+        "temp": "sensor.0xec1bbdfffe326203_temperature",
+        "hum": "sensor.0xec1bbdfffe326203_humidity",
         "pos": [
           42,
           43
         ],
         "lo": 18,
         "hi": 24,
-        "short": "Toa",
-        "icon": "toilet"
+        "short": "Badrum",
+        "icon": "bath"
       },
       {
         "name": "Oliver",
