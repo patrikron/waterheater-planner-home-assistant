@@ -1320,7 +1320,26 @@
         "short": "Oliver",
         "icon": "kid"
       }
-    ]
+    ],
+    "stove": {
+      "temp": "sensor.0xa4c1380912d6ffff_temperature",
+      "burn": 40,
+      "full": 75,
+      "fans": [
+        {
+          "name": "Takfläkt",
+          "entity": "fan.takflakt_main_fan"
+        },
+        {
+          "name": "Kaminfläkt",
+          "entity": "switch.0xa4c1383432be041d"
+        },
+        {
+          "name": "Värmeförflyttare",
+          "entity": "switch.varmeforflyttare_sovrum"
+        }
+      ]
+    }
   },
   "water": {
     "title": "Varmvatten / beredaren.",

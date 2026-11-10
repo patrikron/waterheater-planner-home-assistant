@@ -1,6 +1,6 @@
 /* Kioskläge för surfplattan: bara husbilden med rutorna, utan meny, rubriker och knappar.
    Bilden skalas så att hela den får plats på skärmen och centreras. */
-html,body.kiosk{height:100%;overflow:hidden;overscroll-behavior:none;background:#000}
+html.kiosk,body.kiosk{height:100%;overflow:hidden;overscroll-behavior:none;background:#000}
 body.kiosk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 body.kiosk .content{position:relative;z-index:0;margin:0;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
@@ -19,14 +19,14 @@ body.kiosk .drawer a.btn{display:none}
 .kiosk-dot i{width:6px;height:6px;border-radius:50%;background:var(--gold)}
 /* Stående surfplatta: rutorna läggs i ett rutnät under bilden som på mobilen, och sidan får rulla */
 @media (max-width:900px){
-  html,body.kiosk{overflow:auto;height:auto}
+  html.kiosk,body.kiosk{overflow:auto;height:auto}
   body.kiosk .content{display:block;height:auto}
   body.kiosk main{width:100%}
   body.kiosk .kcal{width:auto;height:auto;border-left:0;border-top:1px solid var(--line)}
   body.kiosk .kcal .kdays{max-height:none}
   body.kiosk .kcal .kdays::after{display:none}
   body.kiosk .content::before{display:none}
-  html,body.kiosk{background:var(--bg)}
+  html.kiosk,body.kiosk{background:var(--bg)}
 }
 
 /* ---------- Kalenderkolumnen till höger ---------- */
@@ -127,3 +127,12 @@ body.lite .kmp{backdrop-filter:none}
 .kalarm[hidden]{display:none}
 @keyframes kalpulse{to{filter:brightness(1.3)}}
 .kmenu button{padding:0 16px;white-space:nowrap}
+/* 0.30.0 översikten: meny och kalender kan slås på med knappar uppe till höger */
+body:not(.kiosk) #kmenu,body:not(.kiosk) #kcal{display:none}
+body.ov-menu:not(.kiosk) #kmenu{display:flex;position:sticky;left:auto;transform:none;bottom:14px;margin:0 auto 22px;width:max-content;max-width:calc(100% - 28px);flex-wrap:wrap;justify-content:center}
+body.ov-cal:not(.kiosk) main{display:flex;gap:18px;align-items:flex-start}
+body.ov-cal:not(.kiosk) main .frame{flex:1;min-width:0}
+body.ov-cal:not(.kiosk) #kcal{display:flex;position:sticky;top:14px;width:clamp(260px,22vw,360px);height:auto;max-height:calc(100vh - 28px);padding:18px 16px 0;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
+.ovtog[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+@media (max-width:900px){body.ov-cal:not(.kiosk) main{display:block}body.ov-cal:not(.kiosk) #kcal{position:static;width:auto;max-height:none;margin-top:14px}}

@@ -2,11 +2,13 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.29.1';
+  const VERSION = '0.30.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
 
+  // Allt i det här blocket gäller bara kiosk.html. Översikten (index.html) använder bara kalendern och menyn nedan.
+  if (body.classList.contains('kiosk')) {
   // Lätt läge för svagare plattor: kiosk.html?lite (sparas på enheten), kiosk.html?lite=0 stänger av.
   // Tar bort suddig bakgrund, glöd och rörliga prickar på linjerna.
   (() => {
@@ -87,6 +89,22 @@
   // Skärmen hålls vaken där webbläsaren tillåter det (kräver oftast https)
   async function wake() { try { if ('wakeLock' in navigator && document.visibilityState === 'visible') await navigator.wakeLock.request('screen'); } catch (e) {} }
   document.addEventListener('visibilitychange', wake); wake();
+
+  }
+
+  // Översikten: knappar för att visa/dölja menyn och kalendern (valet sparas i webbläsaren)
+  if (!body.classList.contains('kiosk')) {
+    const btns = document.querySelector('.top .btns'), edit = document.getElementById('edit-btn');
+    const opt = (key, label, cls, def) => {
+      let on = def; try { const v = localStorage.getItem(key); if (v != null) on = v === '1'; } catch (e) {}
+      const b = document.createElement('button'); b.textContent = label; b.className = 'ovtog';
+      const set = v => { on = v; body.classList.toggle(cls, on); b.setAttribute('aria-pressed', String(on)); try { localStorage.setItem(key, on ? '1' : '0'); } catch (e) {} window.dispatchEvent(new Event('resize')); };
+      b.addEventListener('click', () => set(!on)); set(on);
+      if (btns) btns.insertBefore(b, edit);
+    };
+    opt('obs-ov-menu', 'Meny', 'ov-menu', false);
+    opt('obs-ov-cal', 'Kalender', 'ov-cal', false);
+  }
 
   // ---------- Kalenderkolumnen ----------
   const kcal = document.getElementById('kcal');

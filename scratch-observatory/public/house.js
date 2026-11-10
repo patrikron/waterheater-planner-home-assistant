@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.29.1';
+  const VERSION = '0.30.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -24,6 +24,7 @@
       ev6:     { x: 84,   y: 45, anchor: [87.5, 52], auto: true }, // ovanför laddboxen, strecket en bit till höger om laddboxens
       elpris:  { x: 1.5,  y: 64 },
       kostnad: { x: 54,   y: 72 },
+      kamin:   { x: 45,   y: 18, anchor: [41.3, 28.6] }, // skorstenen, röken stiger härifrån
     },
     hotspots: {
       solar:    { points: [[30.7, 33.2], [55, 33.6], [61.4, 40], [45.7, 44], [35.5, 40]] },
@@ -71,6 +72,7 @@
   // Linjeikoner för rutorna (färg från rubriken) och färgade väderikoner. Delas med kiosksidan via window.ObsIcons.
   const svgI = d => `<svg class="bi" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   const BOX_ICON = {
+    kamin: svgI('<path d="M12 3c1 3 4 4.5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1.5-5 0-8z"/><path d="M5 21h14"/>'),
     nat: svgI('<path d="M12 2 7 22M12 2l5 20M8.6 15h6.8M9.8 9.5h4.4M5 6h14M6 11h12"/>'),
     sol: svgI('<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>'),
     hus: svgI('<path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/>'),
@@ -190,6 +192,15 @@
         <div class="s">Återvinner ${nf(num(FX.efficiency), 0)} % · ${esc(lbl)}</div>`,
         flow: unitOn ? { cls: 'air', dir: 'in', w: 1200 } : null };
     } },
+    kamin: { title: 'Kamin', drawer: 'kamin', render() {
+      const K = cfg.stove; if (!K) return { hide: true, v: '', u: '' };
+      const t = num(K.temp), thr = K.burn || 40;
+      if (t != null) { if (t >= thr) stoveBurning = true; else if (t < thr - 2) stoveBurning = false; }
+      const warm = !stoveBurning && t != null && t >= thr - 12;
+      const on = (K.fans || []).filter(f => { const s = st(f.entity); return s && s.state === 'on'; }).map(f => f.name);
+      return { hide: !stoveBurning && !warm, v: nf(t, 0), u: '°C', s: stoveBurning ? 'Eldar' + (t >= (K.full || 75) ? ' för fullt' : '') : 'Avsvalnar',
+        s2: on.length > 1 ? on.length + ' fläktar på' : on.length ? on[0] + ' på' : 'Fläktar av', flow: stoveBurning ? { cls: 'warm', dir: 'out', w: 1500 } : null };
+    } },
     kostnad: { title: 'Idag / pengar', cls: 'wide money-box', drawer: 'money', render() { return { custom: moneyPage() }; } },
   };
 
@@ -274,7 +285,7 @@
   // ---------- Rendera rutor ----------
   function buildBoxes() {
     boxesEl.innerHTML = '';
-    for (const id of ['nat', 'sol', 'hus', 'ftx', 'vv', 'vp', 'vader', 'ladd', 'ev6', 'elpris', 'kostnad']) {
+    for (const id of ['nat', 'sol', 'hus', 'ftx', 'vv', 'vp', 'vader', 'ladd', 'ev6', 'elpris', 'kostnad', 'kamin']) {
       const el = document.createElement('div');
       el.className = 'box ' + (BOX[id].cls || '');
       el.dataset.id = id;
@@ -313,6 +324,7 @@
     for (const el of boxesEl.children) {
       const def = BOX[el.dataset.id], r = def.render();
       el._flow = r.flow || null;
+      el.hidden = !!r.hide && !editing;
       if (r.custom) el.innerHTML = r.custom;
       else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v">${r.v}<small>${r.u}</small></div><div class="s">${esc(r.s || '')}</div>${r.s2 ? `<div class="s s2">${esc(r.s2)}</div>` : ''}` +
         (r.soc != null ? `<div class="soc"><span style="width:${Math.max(0, Math.min(100, r.soc))}%"></span></div>${r.socLabel === false ? '' : `<div class="s">EV6 ${Math.round(r.soc)} %</div>`}` : '');
@@ -321,7 +333,7 @@
       const ic = id === 'vader' ? (st(cfg.outdoor) ? wxIcon(st(cfg.outdoor).state, 'bi wx') : '') : BOX_ICON[id];
       if (k && ic) k.insertAdjacentHTML('afterbegin', ic);
     }
-    fitBoxes(); drawWires(); renderLocks(); renderTemps();
+    fitBoxes(); drawWires(); renderLocks(); renderTemps(); renderSmoke();
     window.dispatchEvent(new CustomEvent('obs-render'));
   }
 
@@ -367,6 +379,19 @@
       return `<button class="lockm ${cls}" data-lock="${esc(m.entity)}" data-state="${esc(state)}" title="${esc(m.name || '')}: ${esc(LOCK_L[state] || state)}" aria-label="${esc(m.name || 'Lås')}: ${esc(LOCK_L[state] || state)}">${state === 'locked' ? LOCK_SVG.locked : LOCK_SVG.unlocked}</button>`;
     }).join('');
     if (wrap._h !== html) { wrap.innerHTML = html; wrap._h = html; placeLocks(); }
+  }
+  // Rök ur skorstenen när kaminen eldar (startpunkt = kaminrutans punkt, dras i Redigera layout)
+  let stoveBurning = false;
+  function renderSmoke() {
+    const K = cfg.stove; let el = $('smoke');
+    if (!K) return;
+    if (!el) { el = document.createElement('div'); el.id = 'smoke'; el.className = 'smoke'; el.setAttribute('aria-hidden', 'true'); el.innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i>'; stage.appendChild(el); }
+    const t = num(K.temp), thr = K.burn || 40, full = K.full || 75;
+    const lvl = stoveBurning && t != null ? Math.max(0.35, Math.min(1, (t - thr) / (full - thr) + 0.35)) : 0;
+    el.hidden = !lvl; el.style.setProperty('--lvl', lvl.toFixed(2));
+    const b = (layout.boxes.kamin || DEFAULT.boxes.kamin), p = b && b.anchor; if (!p) return;
+    const c = parseFloat(stage.style.getPropertyValue('--crop')) || 0;
+    el.style.left = ((p[0] / 100 - c) / (1 - 2 * c) * 100) + '%'; el.style.top = p[1] + '%';
   }
   // Temperaturbrickor på bilden (utvalda rum), tryck öppnar alla temperaturer
   const tempPos = m => m && ((layout.temps && layout.temps[m.temp]) || m.pos);
@@ -425,7 +450,7 @@
     let out = '';
     for (const el of boxesEl.children) {
       const b = layout.boxes[el.dataset.id];
-      if (!b || !b.anchor) continue;
+      if (!b || !b.anchor || el.hidden) continue;
       const r = el.getBoundingClientRect();
       const bx = r.left - sr.left, by = r.top - sr.top, bw = r.width, bh = r.height;
       // Beskuren bild (kioskens 10"-läge): punkterna ligger i fotots koordinater, rutorna i den synliga ytan
@@ -450,7 +475,7 @@
       out += `<circle class="dot" cx="${ax}" cy="${ay}" r="5"/><circle class="dotc" cx="${ax}" cy="${ay}" r="1.8"/>`;
     }
     wires.innerHTML = out;
-    placeLocks(sr); placeTemps();
+    placeLocks(sr); placeTemps(); renderSmoke();
   }
 
   // ---------- Dag / natt ----------
@@ -609,6 +634,11 @@
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl },
     info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
+    kamin: { eyebrow: 'Vardagsrum / kamin', title: 'Kaminen', stats: () => {
+      const K = cfg.stove || {}, t = num(K.temp);
+      return [['Utblås', nf(t, 0), '°C'], ['Läge', stoveBurning ? 'Eldar' : t != null && t >= (K.burn || 40) - 12 ? 'Avsvalnar' : 'Kall', ''],
+        ...(K.fans || []).map(f => { const s = st(f.entity); return [f.name, s ? (s.state === 'on' ? 'På' : s.state === 'off' ? 'Av' : s.state) : '–', '']; })];
+    }, charts: () => cfg.stove ? [[cfg.stove.temp, 'Temperatur vid utblåset', TC('orange'), 1, '°C']] : [] },
     temps: { eyebrow: 'Inomhus och byggnader', title: 'Temperaturer', wide: true, rich: () => '', stats: () => [], ctl: tempsCtl,
       charts: () => { const cols = ['orange', 'blue', 'sage', 'gold', 'red', 'text']; return (cfg.temp_pins || []).length ? [{ title: 'Utvalda rum', unit: '°C', div: 1, series: cfg.temp_pins.map((m, i) => [m.temp, m.name, TC(cols[i % cols.length])]) }] : []; } },
     alarm: { eyebrow: 'Säkerhet / larm', title: 'Larm', rich: () => '', stats: () => [], charts: () => [], ctl: alarmCtl },
