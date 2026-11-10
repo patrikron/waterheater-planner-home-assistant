@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.29.0';
+  const VERSION = '0.29.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -371,11 +371,19 @@
   // Temperaturbrickor på bilden (utvalda rum), tryck öppnar alla temperaturer
   const tempPos = m => m && ((layout.temps && layout.temps[m.temp]) || m.pos);
   const tempCls = (v, m) => v == null ? 'off' : v < (m.lo ?? 18) ? 'cold' : v > (m.hi ?? 24) ? 'warm' : 'ok';
+  const ROOM_IC = {
+    sofa: '<path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3"/><path d="M3 11a2 2 0 0 1 2 2v2h14v-2a2 2 0 1 1 2 2v3H3v-3a2 2 0 0 1 0-4z"/><path d="M5 18v2M19 18v2"/>',
+    bed: '<path d="M3 18V6M3 14h18v4M21 18v-5a3 3 0 0 0-3-3h-7v4"/><circle cx="7" cy="11" r="1.6"/>',
+    plant: '<path d="M7 15h10l-1.5 6h-7z"/><path d="M12 15V9M12 11c-3 0-5-2-5-5 3 0 5 2 5 5zM12 9c0-3 2-5 5-5 0 3-2 5-5 5z"/>',
+    garage: '<path d="M3 21V9l9-5 9 5v12"/><path d="M7 21v-8h10v8M7 16h10"/>',
+    toilet: '<path d="M6 3h5v7H6zM4 10h14a4 4 0 0 1-4 5l1 6H9l1-6a6 6 0 0 1-6-5z"/>',
+    kid: '<circle cx="12" cy="7" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3"/><path d="M9.5 6.5h.01M14.5 6.5h.01"/>',
+  };
   function renderTemps() {
     const P = cfg.temp_pins; if (!Array.isArray(P) || !P.length) return;
     let wrap = $('tpins');
     if (!wrap) { wrap = document.createElement('div'); wrap.id = 'tpins'; wrap.className = 'tpins'; stage.appendChild(wrap); }
-    const html = P.map(m => { const v = num(m.temp); return `<button class="tpin ${tempCls(v, m)}" data-tpin="${esc(m.temp)}" title="${esc(m.name)}" aria-label="${esc(m.name)}: ${v == null ? 'okänt' : nf(v) + ' grader'}"><i></i><b>${v == null ? '–' : nf(v)}°</b><span>${esc(m.short || m.name)}</span></button>`; }).join('');
+    const html = P.map(m => { const v = num(m.temp); return `<button class="tpin ${tempCls(v, m)}" data-tpin="${esc(m.temp)}" title="${esc(m.name)}" aria-label="${esc(m.name)}: ${v == null ? 'okänt' : nf(v) + ' grader'}">${ROOM_IC[m.icon] ? `<svg viewBox="0 0 24 24" aria-hidden="true">${ROOM_IC[m.icon]}</svg>` : '<i></i>'}<b>${v == null ? '–' : nf(v)}°</b></button>`; }).join('');
     if (wrap._h !== html) { wrap.innerHTML = html; wrap._h = html; placeTemps(); }
   }
   function placeTemps() {

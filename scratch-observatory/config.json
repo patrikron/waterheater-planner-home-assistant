@@ -1252,7 +1252,8 @@
         ],
         "lo": 19,
         "hi": 24,
-        "short": "Vardagsrum"
+        "short": "Vardagsrum",
+        "icon": "sofa"
       },
       {
         "name": "Sovrum/Kontor",
@@ -1264,7 +1265,8 @@
         ],
         "lo": 17,
         "hi": 23,
-        "short": "Sovrum"
+        "short": "Sovrum",
+        "icon": "bed"
       },
       {
         "name": "Uterum fram",
@@ -1276,7 +1278,8 @@
         ],
         "lo": 5,
         "hi": 28,
-        "short": "Uterum"
+        "short": "Uterum",
+        "icon": "plant"
       },
       {
         "name": "Garage",
@@ -1288,7 +1291,8 @@
         ],
         "lo": 4,
         "hi": 25,
-        "short": "Garage"
+        "short": "Garage",
+        "icon": "garage"
       },
       {
         "name": "Lilla toa",
@@ -1300,7 +1304,8 @@
         ],
         "lo": 18,
         "hi": 24,
-        "short": "Toa"
+        "short": "Toa",
+        "icon": "toilet"
       },
       {
         "name": "Oliver",
@@ -1312,7 +1317,8 @@
         ],
         "lo": 18,
         "hi": 23,
-        "short": "Oliver"
+        "short": "Oliver",
+        "icon": "kid"
       }
     ]
   },

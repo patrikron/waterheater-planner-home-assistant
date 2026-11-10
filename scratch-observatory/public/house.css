@@ -475,7 +475,9 @@ body.edit .lockm{pointer-events:none}
 .tpin{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;display:flex;align-items:center;gap:5px;padding:3px 9px 3px 7px;border-radius:999px;border:1px solid color-mix(in srgb,var(--text) 25%,transparent);background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:blur(4px);color:var(--text);font:inherit;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.35)}
 .tpin i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
 .tpin b{font-size:clamp(12px,1.05cqw,16px);font-weight:700}
-.tpin span{font-size:clamp(9px,.75cqw,11px);color:var(--muted)}
+.tpin{padding:3px 8px 3px 6px}
+.tpin svg{width:clamp(13px,1.1cqw,17px);height:clamp(13px,1.1cqw,17px);fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tpin.ok svg{stroke:var(--sage)}.tpin.cold svg{stroke:var(--blue)}.tpin.warm svg{stroke:var(--orange)}
 .tpin.ok i{background:var(--sage)}.tpin.cold i{background:var(--blue)}.tpin.warm i{background:var(--orange)}
 .tpin.cold b{color:var(--blue)}.tpin.warm b{color:var(--orange)}
 body.lite .tpin{backdrop-filter:none;background:var(--bg)}
