@@ -21,7 +21,7 @@
       vp:      { x: 84,   y: 3,  anchor: [55.2, 34.4] }, // värmepumpen sitter på baksidan
       vader:   { x: 1.5,  y: 27 },
       ladd:    { x: 84,   y: 60, anchor: [81.5, 51] },
-      ev6:     { x: 84,   y: 78, anchor: [84.5, 52] }, // strecket en bit till höger om laddboxens
+      ev6:     { x: 84,   y: 45, anchor: [87.5, 52], auto: true }, // ovanför laddboxen, strecket en bit till höger om laddboxens
       elpris:  { x: 1.5,  y: 64 },
       kostnad: { x: 54,   y: 72 },
     },
@@ -301,6 +301,11 @@
     const H = boxesEl.clientHeight; if (!H || editing) return;
     for (const el of boxesEl.children) {
       const b = layout.boxes[el.dataset.id] || DEFAULT.boxes[el.dataset.id];
+      // EV6-rutan utan sparad plats läggs direkt ovanför laddboxen, var den än står
+      if (b.auto && el.dataset.id === 'ev6') {
+        const ladd = boxesEl.querySelector('.box[data-id="ladd"]'), lb = layout.boxes.ladd;
+        if (ladd && lb) { const bottom = Math.min(Math.min(lb.y, ladd.offsetTop / H * 100) - 1.5, b.anchor[1] - 4); b.x = lb.x; b.y = Math.max(0, bottom - el.offsetHeight / H * 100); }
+      }
       const maxTop = (H - el.offsetHeight) / H * 100 - 1.5;
       el.style.top = Math.max(0, Math.min(b.y, maxTop)) + '%';
     }
@@ -804,12 +809,12 @@
     document.body.classList.toggle('edit', on);
     $('edit-bar').hidden = !on;
     $('edit-btn').textContent = on ? 'Redigerar …' : 'Redigera layout';
-    if (on) { saved = clone(layout); closeDrawer(); }
+    if (on) { delete layout.boxes.ev6.auto; saved = clone(layout); closeDrawer(); }
     buildHandles();
   }
   $('edit-btn').addEventListener('click', () => setEditing(!editing));
   $('edit-cancel').addEventListener('click', () => { layout = clone(saved); buildHot(); placeBoxes(); setEditing(false); drawWires(); });
-  $('edit-reset').addEventListener('click', () => { layout = clone(DEFAULT); buildHot(); placeBoxes(); buildHandles(); drawWires(); toast('Standardlayouten är tillbaka. Tryck Spara för att behålla den.'); });
+  $('edit-reset').addEventListener('click', () => { layout = clone(DEFAULT); delete layout.boxes.ev6.auto; buildHot(); placeBoxes(); buildHandles(); drawWires(); toast('Standardlayouten är tillbaka. Tryck Spara för att behålla den.'); });
   $('edit-save').addEventListener('click', async () => {
     try {
       const r = await fetch('api/layout', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(layout) });
@@ -853,7 +858,7 @@
     if (cfg.title) $('title').textContent = cfg.title;
     if (cfg.subtitle) $('subtitle').textContent = cfg.subtitle;
     // Sparad layout ovanpå standarden (nya rutor får standardläge)
-    for (const [id, b] of Object.entries(l.boxes || {})) if (layout.boxes[id]) Object.assign(layout.boxes[id], b);
+    for (const [id, b] of Object.entries(l.boxes || {})) if (layout.boxes[id]) { Object.assign(layout.boxes[id], b); if (!b.auto) delete layout.boxes[id].auto; }
     for (const [id, h] of Object.entries(l.hotspots || {})) if (layout.hotspots[id] && h.points) layout.hotspots[id].points = h.points;
     buildBoxes(); buildHot(); refresh();
     loadMoney(); setInterval(loadMoney, 10 * 60 * 1000);
