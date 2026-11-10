@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.23.0';
+  const VERSION = '0.23.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -20,7 +20,7 @@
       vv:      { x: 67.5, y: 3,  anchor: [47, 50.3] },
       vp:      { x: 84,   y: 3,  anchor: [55.2, 34.4] }, // värmepumpen sitter på baksidan
       vader:   { x: 1.5,  y: 27 },
-      ladd:    { x: 84,   y: 60, anchor: [81.5, 51] },
+      ladd:    { x: 84,   y: 60, anchor: [75, 50] }, // på fasaden, vänster om garagedörren
       ev6:     { x: 84,   y: 45, anchor: [87.5, 52], auto: true }, // ovanför laddboxen, strecket en bit till höger om laddboxens
       elpris:  { x: 1.5,  y: 64 },
       kostnad: { x: 54,   y: 72 },
@@ -898,7 +898,12 @@
     if (cfg.title) $('title').textContent = cfg.title;
     if (cfg.subtitle) $('subtitle').textContent = cfg.subtitle;
     // Sparad layout ovanpå standarden (nya rutor får standardläge)
-    for (const [id, b] of Object.entries(l.boxes || {})) if (layout.boxes[id]) { Object.assign(layout.boxes[id], b); if (!b.auto) delete layout.boxes[id].auto; }
+    const OLD_ANCHOR = { ladd: [81.5, 51] }; // gamla standardpunkter som flyttats, byts bara om de inte dragits för hand
+    for (const [id, b] of Object.entries(l.boxes || {})) if (layout.boxes[id]) {
+      const old = OLD_ANCHOR[id], def = layout.boxes[id].anchor;
+      Object.assign(layout.boxes[id], b); if (!b.auto) delete layout.boxes[id].auto;
+      if (old && b.anchor && b.anchor[0] === old[0] && b.anchor[1] === old[1]) layout.boxes[id].anchor = def;
+    }
     for (const [id, h] of Object.entries(l.hotspots || {})) if (layout.hotspots[id] && h.points) layout.hotspots[id].points = h.points;
     buildBoxes(); buildHot(); refresh();
     loadMoney(); setInterval(loadMoney, 10 * 60 * 1000);
