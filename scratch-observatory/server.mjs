@@ -28,7 +28,7 @@ if (!HA_URL || !HA_TOKEN) {
 const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 // Alla strängvärden (även i nästlade objekt) som ser ut som entitets-id i card, house och water.
 const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { if (typeof v === 'string') { if (ID_RE.test(v)) out.push(v); } else if (v && typeof v === 'object') collectIds(v, out); } return out; };
-const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger), ...collectIds(CONFIG.car), ...collectIds(CONFIG.temps), ...collectIds(CONFIG.spa)]);
+const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger), ...collectIds(CONFIG.car), ...collectIds(CONFIG.temps), ...collectIds(CONFIG.spa), ...collectIds(CONFIG.radiators)]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const THEME_DIR = join(DATA_DIR, 'themes'), THEME_DEFAULT = join(DATA_DIR, 'theme-default.json');
@@ -131,7 +131,7 @@ async function stats(hours) {
 
 // ---------- Historik för en entitet (detaljpanelen) ----------
 const histCache = new Map();
-const HIST_ATTRS = Object.assign({}, ...[CONFIG.spa].filter(Boolean).map(x => x.history_attrs || {}));
+const HIST_ATTRS = Object.assign({}, ...[CONFIG.spa, CONFIG.radiators].filter(Boolean).map(x => x.history_attrs || {}));
 async function history(id, hours, attr) {
   if (!ALLOWED.has(id)) throw Object.assign(new Error('Entiteten är inte tillåten'), { code: 403 });
   if (attr) return attrHistory(id, hours, attr);
@@ -295,7 +295,7 @@ const VAC_CMD = ['return_to_base', 'pause', 'stop', 'locate'];
 const MEDIA_CMD = ['media_play_pause', 'media_next_track', 'media_previous_track', 'volume_up', 'volume_down', 'turn_off'];
 async function control(body) {
   // Sidor med egen styrning (FTX, laddbox, bilen, spabad, varmvatten): bara entiteter som står i respektive vitlista
-  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa, CONFIG.water, CONFIG.house && CONFIG.house.door, CONFIG.house && CONFIG.house.lights, CONFIG.house && CONFIG.house.vacuum, MEDIA].filter(x => x && x.controls);
+  const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa, CONFIG.water, CONFIG.radiators, CONFIG.house && CONFIG.house.door, CONFIG.house && CONFIG.house.lights, CONFIG.house && CONFIG.house.vacuum, MEDIA].filter(x => x && x.controls);
   const allow = k => new Set(PAGES.flatMap(x => [...(x[k] || []), ...(k === 'numbers' && x.setpoint ? [x.setpoint] : [])]));
   const { action: act0, entity: ent0 } = body || {};
   const ftxOk = (act0 === 'toggle' && allow('toggles').has(ent0)) || (act0 === 'number' && allow('numbers').has(ent0)) || (act0 === 'select' && allow('selects').has(ent0))
@@ -571,6 +571,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/car') return json(res, 200, CONFIG.car || {});
     if (url.pathname === '/api/temps') return json(res, 200, CONFIG.temps || {});
     if (url.pathname === '/api/spa') return json(res, 200, CONFIG.spa || {});
+    if (url.pathname === '/api/radiators') return json(res, 200, CONFIG.radiators || {});
     if (url.pathname === '/api/themes') return json(res, 200, await listThemes());
     if (url.pathname === '/api/calendar') return json(res, 200, await calendar());
     if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));

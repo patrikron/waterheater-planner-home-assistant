@@ -451,6 +451,129 @@
       "changed_by",
       "next_state",
       "previous_state"
+    ],
+    "climate.smart_thermostat_2208029980925760120148e1e99ccc3e": [
+      "current_temperature",
+      "temperature",
+      "hvac_action",
+      "hvac_modes",
+      "min_temp",
+      "max_temp",
+      "target_temp_step",
+      "preset_mode"
+    ],
+    "climate.0x3fff0004000002e4": [
+      "current_temperature",
+      "temperature",
+      "hvac_action",
+      "hvac_modes",
+      "min_temp",
+      "max_temp",
+      "target_temp_step",
+      "preset_mode"
+    ],
+    "timer.0x3fff0004000002e4": [
+      "finishes_at",
+      "remaining",
+      "duration"
+    ],
+    "climate.0x3fff000400000652": [
+      "current_temperature",
+      "temperature",
+      "hvac_action",
+      "hvac_modes",
+      "min_temp",
+      "max_temp",
+      "target_temp_step",
+      "preset_mode"
+    ],
+    "timer.0x3fff000400000652": [
+      "finishes_at",
+      "remaining",
+      "duration"
+    ],
+    "climate.0x3fff000700000067": [
+      "current_temperature",
+      "temperature",
+      "hvac_action",
+      "hvac_modes",
+      "min_temp",
+      "max_temp",
+      "target_temp_step",
+      "preset_mode"
+    ],
+    "timer.0x3fff000700000067": [
+      "finishes_at",
+      "remaining",
+      "duration"
+    ],
+    "climate.0x3fff000400000602": [
+      "current_temperature",
+      "temperature",
+      "hvac_action",
+      "hvac_modes",
+      "min_temp",
+      "max_temp",
+      "target_temp_step",
+      "preset_mode"
+    ],
+    "timer.0x3fff000400000602": [
+      "finishes_at",
+      "remaining",
+      "duration"
+    ],
+    "climate.0x3fff000700000681": [
+      "current_temperature",
+      "temperature",
+      "hvac_action",
+      "hvac_modes",
+      "min_temp",
+      "max_temp",
+      "target_temp_step",
+      "preset_mode"
+    ],
+    "timer.0x3fff000700000681": [
+      "finishes_at",
+      "remaining",
+      "duration"
+    ],
+    "climate.0x3fff0004000002be": [
+      "current_temperature",
+      "temperature",
+      "hvac_action",
+      "hvac_modes",
+      "min_temp",
+      "max_temp",
+      "target_temp_step",
+      "preset_mode"
+    ],
+    "timer.0x3fff0004000002be": [
+      "finishes_at",
+      "remaining",
+      "duration"
+    ],
+    "timer.element_av": [
+      "finishes_at",
+      "remaining",
+      "duration"
+    ],
+    "timer.uppvarmning_av": [
+      "finishes_at",
+      "remaining",
+      "duration"
+    ],
+    "input_number.element_set_temp_node_red": [
+      "min",
+      "max",
+      "step"
+    ],
+    "input_number.golvvarme_badrum_offset": [
+      "min",
+      "max",
+      "step"
+    ],
+    "group.element_lastbalansering": [
+      "entity_id"
     ]
   },
   "house": {
@@ -2138,5 +2261,198 @@
         "color": "gold"
       }
     ]
+  },
+  "radiators": {
+    "title": "Element och golvvärme.",
+    "subtitle": "Alla element och badrummets golvvärme: rumstemperatur, börvärde, effekt och energi – live från Home Assistant.",
+    "controls": true,
+    "price_control": "input_boolean.element_node_red_elpris_aktiverat",
+    "time_control": "input_boolean.element_node_red_tid_aktiverat",
+    "set_temp": "input_number.element_set_temp_node_red",
+    "load_balancing": "group.element_lastbalansering",
+    "load_members": [
+      "input_boolean.element_tvattmaskin_balansering",
+      "input_boolean.element_laddning_balansering",
+      "input_boolean.element_diskmaskin_balansering"
+    ],
+    "buttons": [
+      {
+        "name": "Stäng av element 1 h",
+        "entity": "script.uppvarmning_temp_stang_av_element",
+        "timer": "timer.element_av"
+      },
+      {
+        "name": "Stäng av all värme",
+        "entity": "script.uppvarmning_temp_stang_av_all_uppvarmning",
+        "timer": "timer.uppvarmning_av"
+      }
+    ],
+    "price": "sensor.nordpool_kwh_se3_sek_3_10_025",
+    "radiators": [
+      {
+        "name": "Badrum golvvärme",
+        "short": "Badrum",
+        "floor": true,
+        "climate": "climate.smart_thermostat_2208029980925760120148e1e99ccc3e",
+        "room_temperature": "sensor.0xec1bbdfffe326203_temperature",
+        "power": "sensor.shelly1pm_3494547892f1_power",
+        "heating": "binary_sensor.badrum_thermostat_heating",
+        "energy_today": "sensor.shelly1pm_3494547892f1_energy_daily",
+        "energy_month": "sensor.shelly1pm_3494547892f1_energy_monthly",
+        "energy_total": "sensor.shelly1pm_3494547892f1_energy",
+        "offset": "input_number.golvvarme_badrum_offset",
+        "node_red": "sensor.node_red_golvvarme_2"
+      },
+      {
+        "name": "Olivers rum",
+        "short": "Oliver",
+        "climate": "climate.0x3fff0004000002e4",
+        "room_temperature": "sensor.0xa4c13888b4afcaa3_temperature",
+        "power": "sensor.0x3fff0004000002e4_power",
+        "energy_today": "sensor.0x3fff0004000002e4_energy_daily",
+        "energy_month": "sensor.0x3fff0004000002e4_energy_monthly",
+        "energy_total": "sensor.0x3fff0004000002e4_energy",
+        "manual": "input_boolean.0x3fff0004000002e4_manual",
+        "manual_temp": "input_boolean.0x3fff0004000002e4_manual_temp",
+        "timer": "timer.0x3fff0004000002e4"
+      },
+      {
+        "name": "Ludvigs rum",
+        "short": "Ludvig",
+        "climate": "climate.0x3fff000400000652",
+        "room_temperature": "sensor.0xa4c138fc9c1dac94_temperature",
+        "power": "sensor.0x3fff000400000652_power",
+        "energy_today": "sensor.0x3fff000400000652_energy_daily",
+        "energy_month": "sensor.0x3fff000400000652_energy_monthly",
+        "energy_total": "sensor.0x3fff000400000652_energy",
+        "manual": "input_boolean.0x3fff000400000652_manual",
+        "manual_temp": "input_boolean.0x3fff000400000652_manual_temp",
+        "timer": "timer.0x3fff000400000652"
+      },
+      {
+        "name": "Kontor lilla",
+        "short": "Kontor lilla",
+        "climate": "climate.0x3fff000700000067",
+        "room_temperature": "sensor.netatmo_station_sovrum_temperature",
+        "power": "sensor.0x3fff000700000067_power",
+        "energy_today": "sensor.0x3fff000700000067_energy_daily",
+        "energy_month": "sensor.0x3fff000700000067_energy_monthly",
+        "energy_total": "sensor.0x3fff000700000067_energy",
+        "manual": "input_boolean.0x3fff000700000067_manual",
+        "manual_temp": "input_boolean.0x3fff000700000067_manual_temp",
+        "timer": "timer.0x3fff000700000067",
+        "heating": "binary_sensor.0x3fff000700000067_varmer",
+        "fuse_block": "input_boolean.0x3fff000700000067_sakringssparr"
+      },
+      {
+        "name": "Kontor stora",
+        "short": "Kontor stora",
+        "climate": "climate.0x3fff000400000602",
+        "room_temperature": "sensor.netatmo_station_sovrum_temperature",
+        "power": "sensor.0x3fff000400000602_power",
+        "energy_today": "sensor.0x3fff000400000602_energy_daily",
+        "energy_month": "sensor.0x3fff000400000602_energy_monthly",
+        "energy_total": "sensor.0x3fff000400000602_energy",
+        "manual": "input_boolean.0x3fff000400000602_manual",
+        "manual_temp": "input_boolean.0x3fff000400000602_manual_temp",
+        "timer": "timer.0x3fff000400000602",
+        "heating": "binary_sensor.0x3fff000400000602_varmer",
+        "fuse_block": "input_boolean.0x3fff000400000602_sakringssparr"
+      },
+      {
+        "name": "Lilla toa",
+        "short": "Toa",
+        "climate": "climate.0x3fff000700000681",
+        "room_temperature": "sensor.0xa4c138bc6c5a4e64_temperature",
+        "power": "sensor.0x3fff000700000681_power",
+        "energy_today": "sensor.0x3fff000700000681_energy_daily",
+        "energy_month": "sensor.0x3fff000700000681_energy_monthly",
+        "energy_total": "sensor.0x3fff000700000681_energy",
+        "manual": "input_boolean.0x3fff000700000681_manual",
+        "manual_temp": "input_boolean.0x3fff000700000681_manual_temp",
+        "timer": "timer.0x3fff000700000681"
+      },
+      {
+        "name": "Tvättstuga",
+        "short": "Tvättstuga",
+        "climate": "climate.0x3fff0004000002be",
+        "room_temperature": "sensor.0xa4c138342a15f664_temperature",
+        "power": "sensor.0x3fff0004000002be_power",
+        "energy_today": "sensor.0x3fff0004000002be_energy_daily",
+        "energy_month": "sensor.0x3fff0004000002be_energy_monthly",
+        "energy_total": "sensor.0x3fff0004000002be_energy",
+        "manual": "input_boolean.0x3fff0004000002be_manual",
+        "manual_temp": "input_boolean.0x3fff0004000002be_manual_temp",
+        "timer": "timer.0x3fff0004000002be",
+        "heating": "binary_sensor.0x3fff0004000002be_varmer",
+        "fuse_block": "input_boolean.0x3fff0004000002be_sakringssparr"
+      }
+    ],
+    "climates": [
+      "climate.smart_thermostat_2208029980925760120148e1e99ccc3e",
+      "climate.0x3fff0004000002e4",
+      "climate.0x3fff000400000652",
+      "climate.0x3fff000700000067",
+      "climate.0x3fff000400000602",
+      "climate.0x3fff000700000681",
+      "climate.0x3fff0004000002be"
+    ],
+    "toggles": [
+      "input_boolean.0x3fff0004000002e4_manual",
+      "input_boolean.0x3fff000400000652_manual",
+      "input_boolean.0x3fff000700000067_manual",
+      "input_boolean.0x3fff000400000602_manual",
+      "input_boolean.0x3fff000700000681_manual",
+      "input_boolean.0x3fff0004000002be_manual",
+      "input_boolean.element_node_red_elpris_aktiverat",
+      "input_boolean.element_node_red_tid_aktiverat"
+    ],
+    "scripts": [
+      "script.uppvarmning_temp_stang_av_element",
+      "script.uppvarmning_temp_stang_av_all_uppvarmning"
+    ],
+    "numbers": [
+      "input_number.element_set_temp_node_red",
+      "input_number.golvvarme_badrum_offset"
+    ],
+    "fuse": {
+      "name": "Säkring 10 A",
+      "max": 2,
+      "members": [
+        "climate.0x3fff000700000067",
+        "climate.0x3fff000400000602",
+        "climate.0x3fff0004000002be"
+      ]
+    },
+    "history_attrs": {
+      "climate.smart_thermostat_2208029980925760120148e1e99ccc3e": [
+        "temperature",
+        "current_temperature"
+      ],
+      "climate.0x3fff0004000002e4": [
+        "temperature",
+        "current_temperature"
+      ],
+      "climate.0x3fff000400000652": [
+        "temperature",
+        "current_temperature"
+      ],
+      "climate.0x3fff000700000067": [
+        "temperature",
+        "current_temperature"
+      ],
+      "climate.0x3fff000400000602": [
+        "temperature",
+        "current_temperature"
+      ],
+      "climate.0x3fff000700000681": [
+        "temperature",
+        "current_temperature"
+      ],
+      "climate.0x3fff0004000002be": [
+        "temperature",
+        "current_temperature"
+      ]
+    }
   }
 }
