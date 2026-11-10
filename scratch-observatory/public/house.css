@@ -413,3 +413,7 @@ body.edit .lockm{pointer-events:none}
 .itile.alarm{border-color:var(--red);background:color-mix(in srgb,var(--red) 22%,var(--panel))}.itile.alarm b{color:var(--red)}
 .ibar{display:block;height:3px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}.ibar em{display:block;height:100%;background:currentColor;color:var(--sage)}
 .itile.mid .ibar em{color:var(--gold)}.itile.warn .ibar em{color:var(--red)}
+.kmlist{display:grid;gap:8px}
+.kmlist .kmp{max-width:none;border-radius:8px;justify-content:space-between}
+.kmlist .kmt{flex:1}
+.kmlist .kmt small{max-width:none;white-space:normal}

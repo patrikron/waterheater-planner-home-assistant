@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.26.0';
+  const VERSION = '0.26.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -579,6 +579,7 @@
     // Laddbox och EV6 visar sina egna sidor i en bredare panel
     charger: { eyebrow: 'Garage / laddbox', title: 'Laddbox', frame: 'laddbox.html' },
     car: { eyebrow: 'Garage / bil', title: 'Kia EV6', frame: 'ev6.html' },
+    media: { eyebrow: 'Media / spelar nu', title: 'Media', rich: () => '', stats: () => [], charts: () => [], ctl: () => { const h = mediaHtml(); return h ? `<div class="kmlist">${h}</div>` : '<p class="dnote">Inget spelar just nu.</p>'; } },
     access: { eyebrow: 'Säkerhet / lås och portar', title: 'Lås och garageportar', rich: () => '', stats: () => [], charts: () => [], ctl: accessCtl },
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl },
     info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
@@ -698,7 +699,9 @@
   // Media som spelar och tv som är på (visas överst i kiosken)
   function mediaHtml() {
     const M = cfg.media; if (!M) return '';
-    return M.players.map(p => {
+    // de som spelar först, sedan tv som bara är på och pausade
+    const rank = p => { const s = st(p.entity); return s && s.state === 'playing' ? 0 : 1; };
+    return [...M.players].sort((a, b) => rank(a) - rank(b)).map(p => {
       const s = st(p.entity); if (!s) return '';
       const show = p.tv ? !['off', 'unavailable', 'unknown', 'standby'].includes(s.state) : s.state === 'playing' || s.state === 'paused';
       if (!show) return '';

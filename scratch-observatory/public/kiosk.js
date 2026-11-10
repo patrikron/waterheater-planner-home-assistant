@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.26.0';
+  const VERSION = '0.26.1';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -189,6 +189,19 @@
   }
 
   console.info('observatory kiosk', VERSION);
+  // Media överst: alltid en rad. Får inte alla plats döljs de sista och en "+N"-knapp öppnar panelen med alla.
+  function fitMedia() {
+    const km = document.getElementById('kmedia'); if (!km || km.hidden) return;
+    const old = km.querySelector('.kmmore'); if (old) old.remove();
+    const items = [...km.querySelectorAll('.kmp')]; items.forEach(x => { x.hidden = false; });
+    if (km.scrollWidth <= km.clientWidth + 1) return;
+    const more = document.createElement('button'); more.className = 'kmmore'; km.appendChild(more);
+    let hid = 0;
+    for (let i = items.length - 1; i > 0 && km.scrollWidth > km.clientWidth + 1; i--) { items[i].hidden = true; hid++; more.textContent = '+' + hid; }
+    if (!hid) more.remove();
+  }
+  window.addEventListener('resize', fitMedia);
+  document.addEventListener('click', e => { if (e.target.closest('.kmmore') && window.ObsHouse) window.ObsHouse.open('media'); });
   // Meny längst ner: Lampor och barnens poäng öppnas i panelen från höger
   const kmenu = document.getElementById('kmenu');
   if (kmenu) {
@@ -203,7 +216,7 @@
       const inf = document.getElementById('kmenu-info');
       if (inf && H && H.alerts) { const a = H.alerts(); inf.textContent = a ? String(a) : ''; inf.hidden = !a; }
       const km = document.getElementById('kmedia');
-      if (km && H && H.media) { const h = H.media(); if (h !== km._h) { km.innerHTML = h; km._h = h; } km.hidden = !h; }
+      if (km && H && H.media) { const h = H.media(); km.hidden = !h; if (h !== km._h) { km.innerHTML = h; km._h = h; fitMedia(); } }
       const sk = schoolText(); if (sk !== lastSchool) { lastSchool = sk; renderCal(); }
     });
   }
