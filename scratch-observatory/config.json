@@ -444,6 +444,13 @@
       "volume_level",
       "is_volume_muted",
       "media_content_type"
+    ],
+    "alarm_control_panel.ha_alarm": [
+      "code_format",
+      "code_arm_required",
+      "changed_by",
+      "next_state",
+      "previous_state"
     ]
   },
   "house": {
@@ -1199,6 +1206,18 @@
     "school": {
       "today": "input_text.skolmat_idag",
       "tomorrow": "input_text.skolmat_imorgon"
+    },
+    "alarm": {
+      "controls": true,
+      "entity": "alarm_control_panel.ha_alarm",
+      "name": "Larm",
+      "modes": [
+        "arm_home",
+        "arm_away",
+        "arm_night"
+      ],
+      "allow_disarm": true,
+      "code_max_len": 12
     }
   },
   "water": {

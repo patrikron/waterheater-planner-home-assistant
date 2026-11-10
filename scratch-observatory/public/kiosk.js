@@ -2,7 +2,7 @@
 // och laddar om sidan en gång per natt så att nya versioner och minne rensas.
 (() => {
   'use strict';
-  const VERSION = '0.26.1';
+  const VERSION = '0.27.0';
   const IDLE_CLOSE = 90 * 1000;     // detaljpanelen stängs efter 1,5 min utan tryck
   const RELOAD_HOUR = 3;            // omladdning kl 03 varje natt
   const body = document.body;
@@ -201,7 +201,7 @@
     if (!hid) more.remove();
   }
   window.addEventListener('resize', fitMedia);
-  document.addEventListener('click', e => { if (e.target.closest('.kmmore') && window.ObsHouse) window.ObsHouse.open('media'); });
+  document.addEventListener('click', e => { if (e.target.closest('.kmmore') && window.ObsHouse) window.ObsHouse.open('media'); if (e.target.closest('#kalarm') && window.ObsHouse) window.ObsHouse.open('alarm'); });
   // Meny längst ner: Lampor och barnens poäng öppnas i panelen från höger
   const kmenu = document.getElementById('kmenu');
   if (kmenu) {
@@ -215,6 +215,15 @@
       if (vac) { const t = vs && vs.state === 'cleaning' ? 'städar' : vs && vs.state === 'error' ? 'fel' : ''; vac.textContent = t; vac.hidden = !t; }
       const inf = document.getElementById('kmenu-info');
       if (inf && H && H.alerts) { const a = H.alerts(); inf.textContent = a ? String(a) : ''; inf.hidden = !a; }
+      const al = H && H.alarm ? H.alarm() : null, ab = document.getElementById('kmenu-alarmbtn'), ai = document.getElementById('kmenu-alarm'), ban = document.getElementById('kalarm');
+      if (ab) {
+        ab.hidden = !al;
+        if (al) {
+          const short = { disarmed: 'Av', armed_home: 'Hemma', armed_away: 'Borta', armed_night: 'Natt', armed_vacation: 'Semester', arming: '…', disarming: '…', pending: '!', triggered: 'LARM' }[al.state] || '?';
+          ai.textContent = short; ai.className = 'al-' + al.cls; ab.className = 'al-' + al.cls;
+        }
+      }
+      if (ban) { const on = !!al && (al.state === 'triggered' || al.state === 'pending'); ban.hidden = !on; if (on) ban.textContent = al.label + ' – tryck för att avlarma'; }
       const km = document.getElementById('kmedia');
       if (km && H && H.media) { const h = H.media(); km.hidden = !h; if (h !== km._h) { km.innerHTML = h; km._h = h; fitMedia(); } }
       const sk = schoolText(); if (sk !== lastSchool) { lastSchool = sk; renderCal(); }

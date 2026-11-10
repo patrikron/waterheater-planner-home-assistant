@@ -417,3 +417,29 @@ body.edit .lockm{pointer-events:none}
 .kmlist .kmp{max-width:none;border-radius:8px;justify-content:space-between}
 .kmlist .kmt{flex:1}
 .kmlist .kmt small{max-width:none;white-space:normal}
+/* 0.27.0 kostnadsrutan: faktisk kostnad överst och störst */
+.money-top{margin-top:4px}
+.money-top .ml{font-size:11.5px;color:var(--text);opacity:.85}
+.money-top .v{font-size:clamp(22px,2.3cqw,34px)}
+.money-top .v.money{color:var(--orange)}
+.money-sub.three{grid-template-columns:repeat(3,auto);justify-content:space-between;gap:0 10px}
+.money-sub.three b{font-size:13px}
+/* 0.27.0 larm */
+.alhead{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--text) 6%,transparent);border:1px solid var(--line)}
+.alhead .alic svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.alhead b{display:block;font-size:18px}.alhead small{color:var(--muted);font-size:11.5px}
+.alhead.ok{color:var(--sage)}.alhead.on{color:var(--blue)}.alhead.mid{color:var(--gold)}.alhead.off{color:var(--muted)}
+.alhead.alarm{color:#fff;background:var(--red);border-color:var(--red);animation:alpulse 1s ease-in-out infinite alternate}
+.alhead b{color:inherit}.alhead.alarm small{color:#fff}
+@keyframes alpulse{to{filter:brightness(1.35)}}
+.alcode{margin:14px 0 8px;text-align:center;font-size:22px;letter-spacing:6px;min-height:32px}
+.alcode span{font-size:13px;letter-spacing:1px;color:var(--muted)}
+.alkeys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:300px;margin:0 auto}
+.alkeys button{height:52px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:20px;font-weight:600}
+.alkeys button.aux{font-size:16px;color:var(--muted)}
+.alkeys button:active{background:color-mix(in srgb,var(--blue) 30%,var(--panel2))}
+.almodes{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.amode{flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:6px;height:48px;border-radius:12px;border:1px solid var(--blue);background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--text);font-weight:600;font-size:14px}
+.amode svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+.amode.off{border-color:var(--sage);background:color-mix(in srgb,var(--sage) 20%,transparent)}
+.amode:disabled{opacity:.4}

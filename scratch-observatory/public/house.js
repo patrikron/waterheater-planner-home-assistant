@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.26.1';
+  const VERSION = '0.27.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -103,7 +103,7 @@
   const wxIcon = (cond, cls = 'wxi') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${WX_SVG[cond] || WX_SVG.cloudy}</svg>`;
   window.ObsIcons = { box: BOX_ICON, wx: wxIcon, label: c => WX[c] || c };
   // Aktuellt väder för kiosksidans klocka
-  window.ObsHouse = { open: id => openDrawer(id), media: () => mediaHtml(), st: id => st(id), alerts: () => { const I = cfg.info; if (!I) return 0; const on = id => (st(id) || {}).state === 'on';
+  window.ObsHouse = { open: id => openDrawer(id), media: () => mediaHtml(), alarm: () => { const A = cfg.alarm, s = A && st(A.entity); return s ? { state: s.state, label: ALARM_L[s.state] || s.state, cls: alarmCls(s.state) } : null; }, st: id => st(id), alerts: () => { const I = cfg.info; if (!I) return 0; const on = id => (st(id) || {}).state === 'on';
       return (I.doors || []).filter(d => on(d.entity)).length + (I.leaks || []).filter(d => on(d.entity)).length + (I.smoke || []).filter(d => on(d.entity)).length; }, lightsOn: () => cfg.lights ? cfg.lights.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on').length : 0, weather: () => {
     const s = st(cfg.outdoor), sun = st(cfg.sun); if (!s) return null;
     const a = s.attributes || {};
@@ -220,14 +220,12 @@
   }
   function moneyPage() {
     const m = moneyCalc();
-    return `<div class="k">Idag / uppskattat</div>
-      <div class="money-sum">
-        <div><div class="ml">Elkostnad</div><div class="v money">${kr(m.spent)}<small>kr</small></div></div>
-        <div><div class="ml">Sparat med solel</div><div class="v saved">${kr(m.savedToday)}<small>kr</small></div></div>
-      </div>
-      <div class="money-sub">
-        <div><span>Faktisk kostnad</span><b class="money">${kr(num(cfg.cost_today))} <small>kr</small></b></div>
-        <div><span>Egen sol använd</span><b class="saved">${nf(m.self)} <small>kWh</small></b></div>
+    return `<div class="k">Idag</div>
+      <div class="money-top"><div class="ml">Faktisk kostnad</div><div class="v money">${kr(num(cfg.cost_today))}<small>kr</small></div></div>
+      <div class="money-sub three">
+        <div><span>Uppskattad</span><b class="money">${kr(m.spent)} <small>kr</small></b></div>
+        <div><span>Sparat sol</span><b class="saved">${kr(m.savedToday)} <small>kr</small></b></div>
+        <div><span>Egen sol</span><b class="saved">${nf(m.self)} <small>kWh</small></b></div>
       </div>`;
   }
   function detailPage() {
@@ -584,10 +582,11 @@
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl },
     info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
+    alarm: { eyebrow: 'Säkerhet / larm', title: 'Larm', rich: () => '', stats: () => [], charts: () => [], ctl: alarmCtl },
     chores: { eyebrow: 'Barnen / sysslor', title: 'Poäng', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: choresCtl },
-    money: { eyebrow: 'Idag / uppskattat', title: 'Kostnad och energi', stats: () => {
+    money: { eyebrow: 'Idag', title: 'Kostnad och energi', stats: () => {
       const m = moneyCalc();
-      return [['Elkostnad', kr(m.spent), 'kr'], ['Sparat med solel', kr(m.savedToday), 'kr'], ['Faktisk kostnad', kr(num(cfg.cost_today)), 'kr'],
+      return [['Faktisk kostnad', kr(num(cfg.cost_today)), 'kr'], ['Uppskattad elkostnad', kr(m.spent), 'kr'], ['Sparat med solel', kr(m.savedToday), 'kr'],
         ['Förbrukat', nf(num(cfg.load_today)), 'kWh'], ['Sol', nf(num(cfg.pv_today)), 'kWh'], ['Egen sol använd', nf(m.self), 'kWh'],
         ['Köpt', nf(num(cfg.grid_in_today)), 'kWh'], ['Sålt', nf(num(cfg.grid_out_today)), 'kWh']];
     }, extra: () => `<div class="dmoney">${detailPage()}</div>`, charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']] },
@@ -748,6 +747,41 @@
     }).join('');
     return kids + lastTxt + `<div class="eyebrow">Vad har ${esc(kid.name)} gjort?</div><div class="cgrid">${list}</div><p class="dnote">Poängen läggs till när en förälder godkänner i mobilen.</p>`;
   }
+  // ---------- Larm ----------
+  const ALARM_L = { disarmed: 'Avlarmat', armed_home: 'Larmat hemma', armed_away: 'Larmat borta', armed_night: 'Larmat natt', armed_vacation: 'Larmat semester', armed_custom_bypass: 'Larmat (förbikoppling)', arming: 'Larmar på …', pending: 'Inpassering – avlarma!', triggered: 'LARMET HAR GÅTT', disarming: 'Avlarmar …', unavailable: 'Ej nåbart', unknown: 'Okänt' };
+  const ALARM_M = { arm_home: 'Hemma', arm_away: 'Borta', arm_night: 'Natt', arm_vacation: 'Semester' };
+  const alarmCls = state => state === 'triggered' || state === 'pending' ? 'alarm' : state === 'arming' || state === 'disarming' ? 'mid' : state && state.startsWith('armed') ? 'on' : state === 'disarmed' ? 'ok' : 'off';
+  let alarmCode = '', alarmT = null, alarmBusy = false;
+  const clearCode = () => { alarmCode = ''; clearTimeout(alarmT); };
+  const SHIELD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.6-3.4 8.1-8 9-4.6-.9-8-4.4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
+  function alarmCtl() {
+    const A = cfg.alarm; if (!A) return '';
+    const s = st(A.entity), state = s ? s.state : 'unavailable', at = (s && s.attributes) || {}, cls = alarmCls(state);
+    const isArmedState = state.startsWith('armed') || state === 'arming' || state === 'pending' || state === 'triggered';
+    const needCode = isArmedState || at.code_arm_required !== false, ok = !needCode || alarmCode.length >= 4;
+    const dots = alarmCode ? '●'.repeat(alarmCode.length) : '<span>Ange kod</span>';
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map(k => `<button data-akey="${k}"${k === 'C' || k === '⌫' ? ' class="aux"' : ''}>${k}</button>`).join('');
+    const modes = isArmedState
+      ? (A.allow_disarm ? `<button class="amode off" data-amode="disarm" ${ok && !alarmBusy ? '' : 'disabled'}>Avlarma</button>` : '<p class="dnote">Avlarmning från kiosken är avstängd.</p>')
+      : (A.modes || []).map(m => `<button class="amode" data-amode="${m}" ${ok && !alarmBusy && state === 'disarmed' ? '' : 'disabled'}>${SHIELD}${esc(ALARM_M[m] || m)}</button>`).join('');
+    const who = at.changed_by ? ' · ' + esc(at.changed_by) : '';
+    return `<div class="alhead ${cls}"><span class="alic">${SHIELD}</span><div><b>${esc(ALARM_L[state] || state)}</b><small>${s && s.last_changed ? 'sedan ' + ago(s.last_changed) : ''}${who}</small></div></div>
+      ${at.code_format === 'text' ? '<p class="dnote">Larmet använder textkod, det går inte att skriva här.</p>' : `<div class="alcode">${dots}</div><div class="alkeys">${keys}</div>`}
+      <div class="almodes">${modes}</div><p class="dnote">Koden skickas direkt till Home Assistant och sparas inte. Tre fel koder spärrar i fem minuter.</p>`;
+  }
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-akey],[data-amode]'); if (!t || !t.closest('#dctl')) return;
+    e.stopPropagation();
+    clearTimeout(alarmT); alarmT = setTimeout(() => { clearCode(); renderDrawerStats(); }, 30000);
+    if (t.dataset.akey) {
+      const k = t.dataset.akey;
+      alarmCode = k === 'C' ? '' : k === '⌫' ? alarmCode.slice(0, -1) : alarmCode.length < 12 ? alarmCode + k : alarmCode;
+      return renderDrawerStats();
+    }
+    const code = alarmCode; clearCode(); alarmBusy = true; renderDrawerStats();
+    sendCtl({ action: 'alarm', entity: cfg.alarm.entity, value: { mode: t.dataset.amode, code } }, true)
+      .then(ok => { alarmBusy = false; renderDrawerStats(); if (ok) toast(t.dataset.amode === 'disarm' ? 'Avlarmar.' : 'Larmar på: ' + (ALARM_M[t.dataset.amode] || '')); });
+  }, true);
   document.addEventListener('click', e => {
     const t = e.target.closest('[data-light],[data-alloff],[data-kid],[data-chore],[data-cover],[data-lockc],[data-room],[data-vacgo],[data-vaccmd]'); if (!t || !t.closest('#dctl')) return;
     e.stopPropagation();
@@ -904,6 +938,7 @@
   }
   function closeDrawer() {
     const wasFrame = drawerOpen && DRAWERS[drawerOpen] && DRAWERS[drawerOpen].frame;
+    if (drawerOpen === 'alarm') clearCode();
     drawerOpen = null; $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden', 'true'); $('scrim').hidden = true;
     // Sidan i panelen stängs så att dess liveström inte ligger kvar
     if (wasFrame) setTimeout(() => { if (!drawerOpen) { $('drawer').classList.remove('framed'); $('drawer-charts').innerHTML = ''; } }, 320);

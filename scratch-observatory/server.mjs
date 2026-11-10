@@ -281,6 +281,10 @@ async function readBody(req, max = 64 * 1024) {
 const HP = CONFIG.heatpump || {};
 const ctlLog = [];
 const LIGHTS = CONFIG.house && CONFIG.house.lights, CHORES = CONFIG.house && CONFIG.house.chores, VAC = CONFIG.house && CONFIG.house.vacuum;
+const ALARM = CONFIG.house && CONFIG.house.alarm && CONFIG.house.alarm.controls ? CONFIG.house.alarm : null;
+const ALARM_MODES = ['arm_home', 'arm_away', 'arm_night', 'arm_vacation'];
+// fel kod: efter 3 fel inom 10 min spärras larmet från kiosken i 5 min (koden loggas aldrig)
+const alarmFails = []; let alarmLockUntil = 0;
 const MEDIA = CONFIG.house && CONFIG.house.media && CONFIG.house.media.controls ? { controls: true, media: CONFIG.house.media.players.map(p => p.entity) } : null;
 const COVER_CMD = { open: 'open_cover', close: 'close_cover', stop: 'stop_cover' };
 const VAC_CMD = ['return_to_base', 'pause', 'stop', 'locate'];
@@ -295,7 +299,8 @@ async function control(body) {
     || ((act0 === 'climate_mode' || act0 === 'climate_temp') && allow('climates').has(ent0))
     || (act0 === 'cover' && allow('covers').has(ent0)) || (act0 === 'media' && allow('media').has(ent0))
     || (act0 === 'vacuum' && !!(VAC && VAC.controls && VAC.entity === ent0))
-    || (act0 === 'lights_off' && !!(LIGHTS && LIGHTS.controls && LIGHTS.all_off)) || (act0 === 'chore' && !!(CHORES && CHORES.controls && CHORES.script));
+    || (act0 === 'lights_off' && !!(LIGHTS && LIGHTS.controls && LIGHTS.all_off)) || (act0 === 'chore' && !!(CHORES && CHORES.controls && CHORES.script))
+    || (act0 === 'alarm' && !!(ALARM && ALARM.entity === ent0));
   const hpOk = !!(HP.controls && HP.climate);
   if (!ftxOk && !hpOk) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
   const now = Date.now();
@@ -359,10 +364,30 @@ async function control(body) {
     const v = value || {}, kid = (CHORES.kids || []).find(k => k.id === v.barn), ch = (CHORES.chores || []).find(c => c.id === v.syssla);
     if (!kid || !ch) throw Object.assign(new Error('Okänd syssla'), { code: 400 });
     call = ['script', 'turn_on', CHORES.script, { variables: { barn: kid.id, syssla: ch.id } }];
+  } else if (action === 'alarm' && ftxOk) {
+    // larm: läget måste stå i config, koden skickas vidare till HA som kontrollerar den
+    if (now < alarmLockUntil) throw Object.assign(new Error('För många fel koder, vänta några minuter'), { code: 429 });
+    const v = value || {}, mode = v.mode, code = v.code == null ? '' : String(v.code);
+    const okMode = (mode === 'disarm' && ALARM.allow_disarm === true) || (ALARM_MODES.includes(mode) && (ALARM.modes || []).includes(mode));
+    if (!okMode) throw Object.assign(new Error('Läget är inte tillåtet'), { code: 403 });
+    if ((code && !/^\d+$/.test(code)) || code.length > (ALARM.code_max_len || 12)) throw Object.assign(new Error('Ogiltig kod'), { code: 400 });
+    call = ['alarm_control_panel', 'alarm_' + mode, entity, code ? { code } : {}];
   }
   if (!call) throw Object.assign(new Error('Åtgärden är inte tillåten'), { code: 400 });
   ctlLog.push(now);
   const [domain, service, entity_id, service_data] = call;
+  if (domain === 'alarm_control_panel') {
+    try { await haCall({ type: 'call_service', domain, service, service_data, target: { entity_id } }); }
+    catch (e) {
+      while (alarmFails.length && now - alarmFails[0] > 600000) alarmFails.shift();
+      alarmFails.push(now); if (alarmFails.length >= 3) { alarmLockUntil = now + 300000; alarmFails.length = 0; }
+      console.log(`Styrning: ${domain}.${service} ${entity_id} misslyckades`);
+      throw Object.assign(new Error(/code/i.test(e.message) ? 'Fel kod' : e.message), { code: 400 });
+    }
+    alarmFails.length = 0;
+    console.log(`Styrning: ${domain}.${service} ${entity_id}`);
+    return { ok: true };
+  }
   await haCall({ type: 'call_service', domain, service, service_data, target: { entity_id } });
   console.log(`Styrning: ${domain}.${service} ${entity_id} ${JSON.stringify(service_data)}`);
   return { ok: true };

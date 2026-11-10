@@ -114,3 +114,16 @@ body.lite .kmp{backdrop-filter:none}
 .kschool svg{flex:none;width:16px;height:16px;margin-top:1px;fill:none;stroke:var(--gold);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .kschool span{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:1px}
 .kschool b{display:block;font-weight:400;font-size:13px;line-height:1.3}
+/* 0.27.0 larm i menyn + röd banderoll när larmet går */
+.kmenu i.al-ok{background:var(--sage);color:var(--bg)}
+.kmenu i.al-on{background:var(--blue);color:#fff}
+.kmenu i.al-mid{background:var(--gold);color:var(--bg)}
+.kmenu i.al-off{background:var(--muted);color:var(--bg)}
+.kmenu i.al-alarm{background:var(--red);color:#fff}
+.kmenu button.al-on{border-color:var(--blue)}.kmenu button.al-on svg{stroke:var(--blue)}
+.kmenu button.al-ok svg{stroke:var(--sage)}
+.kmenu button.al-alarm{border-color:var(--red);background:color-mix(in srgb,var(--red) 30%,var(--panel))}.kmenu button.al-alarm svg{stroke:#fff}
+.kalarm{position:fixed;z-index:30;top:0;left:0;right:0;display:block;width:100%;padding:18px;border:0;background:var(--red);color:#fff;font:inherit;font-size:22px;font-weight:700;letter-spacing:.5px;text-align:center;animation:kalpulse 1s ease-in-out infinite alternate;cursor:pointer}
+.kalarm[hidden]{display:none}
+@keyframes kalpulse{to{filter:brightness(1.3)}}
+.kmenu button{padding:0 16px;white-space:nowrap}
