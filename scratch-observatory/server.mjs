@@ -275,6 +275,14 @@ function validLayout(l) {
   }
   return true;
 }
+// Planritningen: markörer {entitet: [x, y]} i procent, bara entiteter som sajten redan får visa
+const PLAN_FILE = join(DATA_DIR, 'plan.json');
+function validPlan(p) {
+  if (!p || typeof p !== 'object' || !p.markers || typeof p.markers !== 'object' || Array.isArray(p.markers)) return false;
+  const e = Object.entries(p.markers); if (e.length > 300) return false;
+  const ok = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
+  return e.every(([k, v]) => /^(light|switch|sensor|binary_sensor|climate)\.[a-z0-9_]+$/.test(k) && ALLOWED.has(k) && Array.isArray(v) && v.length === 2 && v.every(ok));
+}
 async function readBody(req, max = 64 * 1024) {
   let size = 0; const chunks = [];
   for await (const c of req) { size += c.length; if (size > max) throw Object.assign(new Error('För stor'), { code: 413 }); chunks.push(c); }
@@ -533,6 +541,23 @@ const server = http.createServer(async (req, res) => {
   if (!authOk(req)) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Observatory"' }); return res.end('Inloggning krävs'); }
   const url = new URL(req.url, 'http://x');
   try {
+    if (url.pathname === '/api/plan' && req.method === 'PUT') {
+      if (!(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'JSON krävs' });
+      const origin = req.headers.origin;
+      let sameOrigin = true; if (origin) { try { sameOrigin = new URL(origin).host === req.headers.host; } catch { sameOrigin = false; } }
+      if (!sameOrigin) return json(res, 403, { error: 'Fel ursprung' });
+      const plan = JSON.parse(await readBody(req, 32 * 1024));
+      if (!validPlan(plan)) return json(res, 400, { error: 'Ogiltig planritning' });
+      await mkdir(DATA_DIR, { recursive: true });
+      const tmp = PLAN_FILE + '.tmp';
+      await writeFile(tmp, JSON.stringify({ markers: plan.markers, saved: new Date().toISOString() }, null, 1));
+      await rename(tmp, PLAN_FILE);
+      return json(res, 200, { ok: true });
+    }
+    if (url.pathname === '/api/plan') {
+      try { return json(res, 200, JSON.parse(await readFile(PLAN_FILE, 'utf8'))); }
+      catch { return json(res, 200, {}); }
+    }
     if (url.pathname === '/api/layout' && req.method === 'PUT') {
       if (!(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'JSON krävs' });
       const layout = JSON.parse(await readBody(req));
