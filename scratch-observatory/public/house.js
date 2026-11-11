@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.33.0';
+  const VERSION = '0.34.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -28,9 +28,8 @@
     },
     hotspots: {
       solar:    { points: [[30.7, 33.2], [55, 33.6], [61.4, 40], [45.7, 44], [35.5, 40]] },
-      house:    { points: [[29.8, 33.3], [56, 33.3], [64.8, 41.5], [64, 56.5], [47, 59], [44, 63.5], [36, 64], [35.5, 46.5], [25.3, 41]] },
-      veranda:  { points: [[14.5, 43.3], [25, 41.4], [35, 46.7], [35.2, 63], [19.3, 69], [15, 61.7]] },
-      garage:   { points: [[61.8, 39.4], [72.1, 35.8], [90, 39.4], [85.4, 42.9], [85, 58.7], [78.6, 58.4], [64.3, 54.3], [64.6, 41.5]] },
+      // Hus, uterum och garage är en enda yta som öppnar planritningen
+      house:    { points: [[14.5, 43.3], [25, 41.4], [29.8, 33.3], [56, 33.3], [61.8, 39.4], [72.1, 35.8], [90, 39.4], [85.4, 42.9], [85, 58.7], [78.6, 58.4], [64.3, 54.3], [64, 56.5], [47, 59], [44, 63.5], [36, 64], [35.2, 63], [19.3, 69], [15, 61.7]] },
     },
   };
   // Fönster som lyser på natten (procent)
@@ -338,7 +337,7 @@
   }
 
   // ---------- Klickytor ----------
-  const HOT_TITLES = { solar: 'Solpaneler', house: 'Huset', veranda: 'Uterummet', garage: 'Garage / laddbox', heatpump: 'Värmepump' };
+  const HOT_TITLES = { solar: 'Solpaneler', house: 'Huset – planritning', veranda: 'Uterummet', garage: 'Garage / laddbox', heatpump: 'Värmepump' };
   function buildHot() {
     hot.innerHTML = '';
     // Stora ytor först, så att mindre ytor (t.ex. solpanelerna på taket) hamnar överst och går att klicka på
@@ -1263,7 +1262,9 @@
       Object.assign(layout.boxes[id], b); if (!b.auto) delete layout.boxes[id].auto;
       if (old && b.anchor && b.anchor[0] === old[0] && b.anchor[1] === old[1]) layout.boxes[id].anchor = def;
     }
-    for (const [id, h] of Object.entries(l.hotspots || {})) if (layout.hotspots[id] && h.points) layout.hotspots[id].points = h.points;
+    // Sparade ytor från före 0.34 hade hus, uterum och garage var för sig: då gäller den nya sammanslagna husytan
+    const oldHot = l.hotspots && (l.hotspots.veranda || l.hotspots.garage);
+    for (const [id, h] of Object.entries(l.hotspots || {})) if (layout.hotspots[id] && h.points && !(oldHot && id === 'house')) layout.hotspots[id].points = h.points;
     if (l.locks && typeof l.locks === 'object') layout.locks = l.locks;
     if (l.temps && typeof l.temps === 'object') layout.temps = l.temps;
     buildBoxes(); buildHot(); refresh();
