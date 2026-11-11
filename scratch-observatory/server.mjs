@@ -280,8 +280,9 @@ const PLAN_FILE = join(DATA_DIR, 'plan.json');
 function validPlan(p) {
   if (!p || typeof p !== 'object' || !p.markers || typeof p.markers !== 'object' || Array.isArray(p.markers)) return false;
   const e = Object.entries(p.markers); if (e.length > 300) return false;
+  if (p.v !== undefined && !(Number.isInteger(p.v) && p.v >= 1 && p.v <= 99)) return false;
   const ok = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
-  return e.every(([k, v]) => /^(light|switch|sensor|binary_sensor|climate)\.[a-z0-9_]+$/.test(k) && ALLOWED.has(k) && Array.isArray(v) && v.length === 2 && v.every(ok));
+  return e.every(([k, v]) => /^(light|switch|sensor|binary_sensor|climate|fan|lock)\.[a-z0-9_]+$/.test(k) && ALLOWED.has(k) && Array.isArray(v) && v.length === 2 && v.every(ok));
 }
 async function readBody(req, max = 64 * 1024) {
   let size = 0; const chunks = [];
@@ -550,7 +551,7 @@ const server = http.createServer(async (req, res) => {
       if (!validPlan(plan)) return json(res, 400, { error: 'Ogiltig planritning' });
       await mkdir(DATA_DIR, { recursive: true });
       const tmp = PLAN_FILE + '.tmp';
-      await writeFile(tmp, JSON.stringify({ markers: plan.markers, saved: new Date().toISOString() }, null, 1));
+      await writeFile(tmp, JSON.stringify({ markers: plan.markers, v: plan.v || 1, saved: new Date().toISOString() }, null, 1));
       await rename(tmp, PLAN_FILE);
       return json(res, 200, { ok: true });
     }

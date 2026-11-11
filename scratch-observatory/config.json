@@ -1462,6 +1462,23 @@
           "entity": "switch.varmeforflyttare_sovrum"
         }
       ]
+    },
+    "plan": {
+      "washer": {
+        "name": "Tvättmaskin",
+        "state": "sensor.tvattmaskin_state",
+        "remaining": "sensor.tvattmaskin_tid_kvar",
+        "power": "sensor.0xa4c1389e35055ae0_power"
+      },
+      "fan": {
+        "name": "Takfläkt",
+        "entity": "fan.takflakt_main_fan",
+        "power": "sensor.shellypmminig3_84fce63c597c_effekt"
+      },
+      "hot_water": {
+        "name": "Varmvattenberedare",
+        "entity": "sensor.varmvattenberedare_status"
+      }
     }
   },
   "water": {

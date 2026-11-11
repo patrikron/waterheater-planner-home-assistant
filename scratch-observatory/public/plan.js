@@ -3,7 +3,8 @@
 // redigeringsläget. Placeringen sparas på servern (data/plan.json) och delas av alla skärmar.
 (() => {
   'use strict';
-  const VERSION = '0.32.0';
+  const VERSION = '0.33.0';
+  const PLAN_V = 2; // version 2: nya fasta punkter (tvättmaskin, takfläkt, varmvattenberedare, lås, sidogaragedörr, förråd)
   const H = () => window.ObsHouse || {};
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const nf = (v, d = 1) => v == null || !Number.isFinite(+v) ? '–' : (+v).toLocaleString('sv-SE', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -28,7 +29,7 @@
     { id: 'klad', name: 'Garderob', small: true, r: [872, 478, 995, 518], l: [933, 498] },
     { id: 'sovrum_s', name: 'Olivers rum', sub: '15,6 m²', r: [838, 518, 995, 672], l: [918, 600] },
     { id: 'entre_g', name: '', r: [995, 678, 1100, 725], l: [1048, 700] },
-    { id: 'forrad', name: 'Förråd', r: [1100, 678, 1230, 725], l: [1165, 702] },
+    { id: 'forrad', name: 'Förråd', r: [1100, 678, 1230, 725], l: [1133, 707] },
     { id: 'garage', name: 'Garage', big: true, r: [995, 725, 1230, 902], l: [1112, 815] },
     { id: 'verkstad', name: 'Verkstad', label: true, l: [1095, 757] },
     { id: 'pumprum', name: 'Pumprum', small: true, r: [1150, 735, 1228, 778], l: [1189, 757] },
@@ -39,7 +40,7 @@
     [565, 312, 615, 312], [745, 312, 795, 312], [882, 312, 935, 312], [995, 570, 995, 615], [690, 672, 800, 672],
     [343, 498, 343, 560], [343, 585, 343, 640], [360, 662, 500, 662], [1020, 902, 1205, 902]];
   // Dörrar: [x1, y1, x2, y2] öppningar i väggen
-  const DOORS = [[590, 672, 640, 672], [532, 112, 562, 112], [1010, 678, 1040, 678]];
+  const DOORS = [[590, 672, 640, 672], [532, 112, 562, 112], [1010, 678, 1040, 678], [995, 846, 995, 880]];
   // Innerdörrar med dörrblad: tvättstugedörren och altandörren ut till uterummet på baksidan
   const IDOORS = [{ x: 512, y: 168, len: 32, dir: 'v' }, { x: 540, y: 312, len: 32, dir: 'h' }];
   const P = (x, y) => [((x - VB[0]) / VB[2] * 100), ((y - VB[1]) / VB[3] * 100)];
@@ -61,15 +62,19 @@
     const idoors = IDOORS.map(d => d.dir === 'v'
       ? `<line class="door" x1="${d.x}" y1="${d.y}" x2="${d.x}" y2="${d.y + d.len}"/><path class="dsw" d="M${d.x} ${d.y} l${d.len} 0 a${d.len} ${d.len} 0 0 1 ${-d.len} ${d.len}"/>`
       : `<line class="door" x1="${d.x}" y1="${d.y}" x2="${d.x + d.len}" y2="${d.y}"/><path class="dsw" d="M${d.x} ${d.y} l0 ${-d.len} a${d.len} ${d.len} 0 0 1 ${d.len} ${d.len}"/>`).join('');
-    // Luftvärmepumpens inomhusdel på matplatsens vägg och kaminen
-    const units = `<rect class="unit" x="728" y="316" width="46" height="11" rx="3"/><line class="unitl" x1="733" y1="323" x2="769" y2="323"/>
+    // Luftvärmepumpens inomhusdel på väggen mot Ludvigs rum (blåser mot matplatsen), kaminen, takfläkten,
+    // tvättmaskinen och varmvattenberedaren
+    const units = `<rect class="unit" x="825" y="334" width="11" height="48" rx="3"/><line class="unitl" x1="829" y1="339" x2="829" y2="377"/>
+      <g class="fan"><circle cx="778" cy="436" r="17"/><path d="M778 436l0-14M778 436l12 7M778 436l-12 7"/><circle class="hub" cx="778" cy="436" r="3"/></g>
+      <rect class="appl" x="481" y="116" width="27" height="27" rx="3"/><circle class="appl" cx="494.5" cy="130" r="8"/>
+      <circle class="tank" cx="664" cy="644" r="10"/><line class="tankl" x1="658" y1="644" x2="670" y2="644"/>
       <rect class="stove" x="702" y="438" width="34" height="32" rx="3"/><path class="flame" d="M719 464c-6 0-8-5-5-10 1 3 3 3 3 1 0-4 3-6 5-9 0 4 4 6 4 11 0 4-3 7-7 7z"/>`;
     return `<svg class="plansvg" viewBox="${VB.join(' ')}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${rooms}${furn}${out}${win}${doors}${idoors}${units}${steps}${labels}</svg>`;
   }
 
   // ---------- Vad som går att placera ----------
   let catalog = null, TEMPS = null, RAD = null, HP = null;
-  const KIND_L = { light: 'Lampor', temp: 'Temperatur', door: 'Dörrar', motion: 'Rörelse', leak: 'Vattenläckage', smoke: 'Brandvarnare', air: 'Luft', rad: 'Element', hp: 'Värmepump', stove: 'Kamin' };
+  const KIND_L = { light: 'Lampor', temp: 'Temperatur', door: 'Dörrar', motion: 'Rörelse', leak: 'Vattenläckage', smoke: 'Brandvarnare', air: 'Luft', rad: 'Element', hp: 'Värmepump', stove: 'Kamin', fan: 'Takfläkt', vvb: 'Varmvatten', washer: 'Tvättmaskin', lock: 'Lås' };
   function buildCatalog() {
     const cfg = H().cfg ? H().cfg() : {}, I = cfg.info || {}, list = [];
     for (const g of ((cfg.lights || {}).groups || [])) for (const l of g.lights) list.push({ kind: 'light', entity: l.entity, name: l.name, group: g.name });
@@ -78,6 +83,11 @@
     for (const r of ((RAD || {}).radiators || [])) list.push({ kind: 'rad', entity: r.climate, name: r.name, power: r.power, heating: r.heating });
     if (HP && HP.climate) list.push({ kind: 'hp', entity: HP.climate, name: 'Luftvärmepump', power: HP.power });
     if (cfg.stove && cfg.stove.temp) list.push({ kind: 'stove', entity: cfg.stove.temp, name: 'Kaminen', burn: cfg.stove.burn || 40 });
+    const PL = cfg.plan || {};
+    if (PL.washer && PL.washer.state) list.push({ kind: 'washer', entity: PL.washer.state, name: PL.washer.name || 'Tvättmaskin', remaining: PL.washer.remaining, power: PL.washer.power });
+    if (PL.fan && PL.fan.entity) list.push({ kind: 'fan', entity: PL.fan.entity, name: PL.fan.name || 'Takfläkt', power: PL.fan.power });
+    if (PL.hot_water && PL.hot_water.entity) list.push({ kind: 'vvb', entity: PL.hot_water.entity, name: PL.hot_water.name || 'Varmvattenberedare' });
+    for (const m of ((cfg.door || {}).markers || [])) list.push({ kind: 'lock', entity: m.entity, name: m.name });
     const seen = new Set();
     catalog = list.filter(x => x.entity && !seen.has(x.entity) && seen.add(x.entity));
   }
@@ -96,12 +106,30 @@
       out[x.entity] = [+(cx + ((i % 3) - 1) * 5.2).toFixed(2), +(cy + 4.2 + Math.floor(i / 3) * 4.6).toFixed(2)];
     }
     // Fasta platser: dörrarna sitter i sina öppningar, värmepumpen på väggen och kaminen vid sin symbol
-    const FIXED = { door: { 'Ytterdörr': [615, 662], 'Altan': [556, 300], 'Tvätt': [524, 184] } };
+    return Object.assign(out, fixedSpots());
+  }
+  // Fasta platser: dörrarna sitter i sina öppningar, låsen vid sina dörrar och apparaterna vid sina symboler
+  const FIXED = { door: { 'Ytterdörr': [615, 662], 'Altan': [556, 300], 'Tvätt': [524, 184], 'Sidogarage': [1016, 836] }, temp: { 'Förråd': [1208, 702] },
+    lock: { 'lock.aqara_smart_lock_u200': [636, 634], 'lock.front_door_lock': [1016, 866] } };
+  const KIND_SPOT = { hp: [800, 346], stove: [719, 488], fan: [792, 470], washer: [494, 154], vvb: [664, 604] };
+  const NEW_V2 = ['fan', 'washer', 'vvb', 'lock'];
+  function fixedSpots() {
+    const out = {};
     for (const x of catalog || []) {
-      const f = (FIXED[x.kind] || {})[x.name];
+      const f = (FIXED[x.kind] || {})[x.kind === 'lock' ? x.entity : x.name] || KIND_SPOT[x.kind];
       if (f) out[x.entity] = P(...f).map(v => +v.toFixed(2));
-      if (x.kind === 'hp') out[x.entity] = P(751, 340).map(v => +v.toFixed(2));
-      if (x.kind === 'stove') out[x.entity] = P(719, 488).map(v => +v.toFixed(2));
+    }
+    return out;
+  }
+  // En sparad ritning från 0.32 får de nya punkterna, och värmepumpen flyttas om den står kvar på sin gamla plats
+  function migrate(m, v) {
+    if (v >= PLAN_V) return m;
+    const out = { ...m }, fx = fixedSpots(), old = P(751, 340);
+    for (const x of catalog || []) {
+      const f = fx[x.entity]; if (!f) continue;
+      const isNew = NEW_V2.includes(x.kind) || (x.kind === 'door' && x.name === 'Sidogarage') || (x.kind === 'temp' && x.name === 'Förråd');
+      if (isNew && !out[x.entity]) out[x.entity] = f;
+      if (x.kind === 'hp' && out[x.entity] && Math.abs(out[x.entity][0] - old[0]) < 1 && Math.abs(out[x.entity][1] - old[1]) < 1) out[x.entity] = f;
     }
     return out;
   }
@@ -118,6 +146,10 @@
     rad: '<path d="M6 6v12M10 6v12M14 6v12M18 6v12M4 9h16M4 15h16"/>',
     hp: '<rect x="3" y="6" width="18" height="8" rx="2"/><path d="M6 11h12M8 17c0 1.5 1 2 1 3M12 17c0 1.5 1 2 1 3M16 17c0 1.5 1 2 1 3"/>',
     stove: '<path d="M12 21c-4 0-6-3-5-7 1 2 2.5 2 2.5.5 0-3 2-5 3.5-7.5.3 3 4 5 4 9 0 3-2 5-5 5z"/>',
+    fan: '<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-7 4-7s2 4-2 7M14 12.5c3.5 2 5.5 4.5 4 7s-4.5-.5-5-5M10 12.5c-3.5 2-6.5 2.5-7.5 0s3-3.5 7-2"/>',
+    washer: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M7 6.5h3"/>',
+    vvb: '<rect x="7" y="3" width="10" height="18" rx="5"/><path d="M12 8v6M10 12l2 2 2-2"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   };
   function status(x) {
     const s = st(x.entity), na = bad(s);
@@ -138,6 +170,20 @@
         const L = { heat: 'värme', cool: 'kyla', fan_only: 'fläkt', dry: 'torka', auto: 'auto', heat_cool: 'auto', off: 'av' };
         return { cls: na ? 'na' : s.state === 'off' ? '' : act === 'cooling' || s.state === 'cool' ? 'pulse' : 'heat', val: na || s.state === 'off' ? '' : nf(a.temperature, 0) + '°', tip: na ? 'ej nåbar' : `${L[s.state] || s.state}${a.temperature != null && s.state !== 'off' ? ', ' + nf(a.temperature) + ' °C' : ''}${w != null ? ' · ' + Math.round(w) + ' W' : ''}` };
       }
+      case 'fan': {
+        const w = num(x.power), on = !na && s.state === 'on';
+        return { cls: na ? 'na' : on ? 'spin' : '', val: '', tip: na ? 'ej nåbar' : (on ? 'snurrar' : 'av') + (w != null && w >= 1 ? ` · ${Math.round(w)} W` : '') };
+      }
+      case 'washer': {
+        const w = num(x.power), left = x.remaining ? st(x.remaining) : null, run = (w || 0) > 5;
+        const tl = left && !bad(left) ? left.state : '';
+        return { cls: na && w == null ? 'na' : run ? 'heat' : '', val: run && tl ? tl : '', tip: run ? `tvättar${tl ? ', ' + tl + ' kvar' : ''}${w != null ? ' · ' + Math.round(w) + ' W' : ''}` : (na ? 'av' : s.state) };
+      }
+      case 'vvb': {
+        const a = (s && s.attributes) || {}, heat = !!a.heater_on;
+        return { cls: na ? 'na' : heat ? 'heat' : '', val: a.temperature == null ? '–' : nf(a.temperature, 0) + '°', tip: na ? 'ej nåbar' : `${nf(a.temperature, 0)} °C${a.target_temperature != null ? ' (mål ' + nf(a.target_temperature, 0) + ')' : ''}${heat ? ' · värmer' + (a.power_w ? ' ' + Math.round(a.power_w) + ' W' : '') : ''}` };
+      }
+      case 'lock': return { cls: na ? 'na' : s.state === 'locked' ? '' : 'alert', val: '', tip: na ? 'ej nåbar' : s.state === 'locked' ? 'låst' : s.state === 'unlocked' ? 'olåst' : s.state };
       case 'stove': { const v = num(x.entity); return { cls: v == null ? 'na' : v >= x.burn ? 'heat' : '', val: v == null ? '–' : nf(v, 0) + '°', tip: v == null ? 'okänt' : v >= x.burn ? `eldar, ${nf(v, 0)} °C` : `${nf(v, 0)} °C, eldar inte` }; }
     }
     return { cls: '', val: '', tip: '' };
@@ -172,7 +218,7 @@
     TEMPS = t || { groups: [] }; RAD = r || {}; HP = h || {};
     buildCatalog();
     saved = p && p.markers ? p : null;
-    marks = saved ? { ...saved.markers } : defaults();
+    marks = saved ? migrate(saved.markers, saved.v || 1) : defaults();
   }
   async function open() {
     if (!root) build();
@@ -209,10 +255,11 @@
     const open = placed.filter(x => x.kind === 'door' && (st(x.entity) || {}).state === 'on').map(x => x.name);
     const motion = placed.filter(x => x.kind === 'motion' && (st(x.entity) || {}).state === 'on').map(x => x.name);
     const alarms = placed.filter(x => (x.kind === 'leak' || x.kind === 'smoke') && (st(x.entity) || {}).state === 'on').map(x => x.name);
+    const unlocked = placed.filter(x => x.kind === 'lock' && (st(x.entity) || {}).state === 'unlocked').map(x => x.name);
     root.querySelector('.plan-foot').innerHTML = editing
       ? `<span>${placing && !marks[placing] ? `Tryck på ritningen där <b>${esc(item(placing).name)}</b> ska sitta.` : 'Dra symbolerna dit de ska. Välj i listan för att lägga till, × tar bort.'}</span><span class="pf-btns"><button class="pbtn" data-pa="cancel">Avbryt</button><button class="pbtn pri" data-pa="save">Spara</button></span>`
       : placed.length
-        ? `<span><b>${lightsOn}</b> lampor tända</span>${open.length ? `<span class="alert">Öppen: ${esc(open.join(', '))}</span>` : '<span>Alla dörrar stängda</span>'}${motion.length ? `<span>Rörelse: ${esc(motion.join(', '))}</span>` : ''}${alarms.length ? `<span class="alarm">Larm: ${esc(alarms.join(', '))}</span>` : ''}<span class="dim">Tryck på en lampa för att tända eller släcka</span>`
+        ? `<span><b>${lightsOn}</b> lampor tända</span>${open.length ? `<span class="alert">Öppen: ${esc(open.join(', '))}</span>` : '<span>Alla dörrar stängda</span>'}${unlocked.length ? `<span class="alert">Olåst: ${esc(unlocked.join(', '))}</span>` : ''}${motion.length ? `<span>Rörelse: ${esc(motion.join(', '))}</span>` : ''}${alarms.length ? `<span class="alarm">Larm: ${esc(alarms.join(', '))}</span>` : ''}<span class="dim">Tryck på en lampa för att tända eller släcka</span>`
         : '<span>Inget är placerat än. Tryck på <b>Placera</b> för att lägga ut lampor och sensorer.</span>';
     if (editing) renderSide();
   }
@@ -231,9 +278,9 @@
   function endEdit() { editing = false; placing = null; root.querySelector('.plan-side').hidden = true; root.querySelector('[data-pa="edit"]').hidden = false; render(); }
   async function save() {
     try {
-      const r = await fetch('api/plan', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markers: marks }) });
+      const r = await fetch('api/plan', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markers: marks, v: PLAN_V }) });
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
-      saved = { markers: { ...marks } }; endEdit(); toast('Planritningen är sparad.');
+      saved = { markers: { ...marks }, v: PLAN_V }; endEdit(); toast('Planritningen är sparad.');
     } catch (e) { toast('Kunde inte spara: ' + e.message); }
   }
   function toast(m) { const t = document.getElementById('toast'); if (!t) return; t.textContent = m; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 3200); }
