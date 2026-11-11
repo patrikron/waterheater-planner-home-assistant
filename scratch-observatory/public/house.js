@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.35.0';
+  const VERSION = '0.36.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -113,17 +113,31 @@
   } };
 
   // ---------- Rutornas innehåll ----------
+  // Inställningar från inställningssidan (gäller alla skärmar), hämtas vid start och varje minut
+  let SET = { value_colors: true, solar_shimmer: true, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5 };
+  async function loadSettings() {
+    try { const r = await fetch('api/settings', { cache: 'no-store' }); if (r.ok) { SET = { ...SET, ...(await r.json()) }; refresh(); } } catch {}
+  }
+  // Färg på värdet: sol = gul när panelerna producerar, huset och nätet efter hur mycket det är
+  const level = (kwv, low, high, max) => kwv == null ? '' : kwv < low ? 'c-low' : kwv < high ? '' : kwv < max ? 'c-warn' : 'c-high';
+  const vcol = (id, w) => {
+    if (!SET.value_colors || w == null) return '';
+    if (id === 'sol') return w > 50 ? 'c-sun' : '';
+    if (id === 'hus') return level(w / 1000, SET.house_low_kw, SET.house_high_kw, SET.house_max_kw);
+    if (id === 'nat') return w < -30 ? 'c-low' : level(w / 1000, -Infinity, SET.import_high_kw, SET.import_max_kw);
+    return '';
+  };
   const BOX = {
     sol: { title: 'Solpaneler', cls: 'key', drawer: 'solar', wire: 'sol', render() {
       const w = num(cfg.solar), today = num(cfg.pv_today);
       const rem = num(cfg.fc_remaining), tom = num(cfg.fc_tomorrow);
-      return { v: kw(w), u: 'kW', s: `${nf(today)} kWh idag`,
+      return { v: kw(w), u: 'kW', s: `${nf(today)} kWh idag`, vc: vcol('sol', w),
         flow: w > 20 ? { cls: 'sol', dir: 'out', w } : null };
     } },
     hus: { title: 'Huset', cls: 'key', drawer: 'house', render() {
       const load = num(cfg.load), ch = num(cfg.charger);
       const house = load != null && ch != null && ch <= load ? load - ch : load;
-      return { v: kw(house), u: 'kW', s: `Förbrukat ${nf(num(cfg.load_today))} kWh`, flow: house > 30 ? { cls: '', dir: 'in', w: house } : null };
+      return { v: kw(house), u: 'kW', vc: vcol('hus', house), s: `Förbrukat ${nf(num(cfg.load_today))} kWh`, flow: house > 30 ? { cls: '', dir: 'in', w: house } : null };
     } },
     vv: { title: 'Varmvatten', drawer: 'hotwater', render() {
       const t = num(cfg.hot_water, 'temperature'), s = st(cfg.hot_water);
@@ -133,7 +147,7 @@
     nat: { title: 'Elnät', cls: 'key', drawer: 'grid', wire: 'grid', render() {
       const g = num(cfg.grid);
       const lbl = g == null ? 'okänt' : g > 30 ? 'Köper från nätet' : g < -30 ? 'Säljer till nätet' : 'I balans';
-      return { v: kw(g), u: 'kW', s: `Köpt idag ${nf(num(cfg.grid_in_today))} kWh`, s2: `Sålt idag ${nf(num(cfg.grid_out_today))} kWh`, title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
+      return { v: kw(g), u: 'kW', vc: vcol('nat', g), s: `Köpt idag ${nf(num(cfg.grid_in_today))} kWh`, s2: `Sålt idag ${nf(num(cfg.grid_out_today))} kWh`, title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
     } },
     vp: { title: 'Värmepump', drawer: 'heatpump', render() {
       const w = num(cfg.heatpump), inne = num(cfg.indoor);
@@ -325,7 +339,7 @@
       el._flow = r.flow || null;
       el.hidden = !!r.hide && !editing;
       if (r.custom) el.innerHTML = r.custom;
-      else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v">${r.v}<small>${r.u}</small></div><div class="s">${esc(r.s || '')}</div>${r.s2 ? `<div class="s s2">${esc(r.s2)}</div>` : ''}` +
+      else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v${r.vc ? ' ' + r.vc : ''}">${r.v}<small>${r.u}</small></div><div class="s">${esc(r.s || '')}</div>${r.s2 ? `<div class="s s2">${esc(r.s2)}</div>` : ''}` +
         (r.soc != null ? `<div class="soc"><span style="width:${Math.max(0, Math.min(100, r.soc))}%"></span></div>${r.socLabel === false ? '' : `<div class="s">EV6 ${Math.round(r.soc)} %</div>`}` : '');
       // Liten ikon framför rubriken; väderrutan får ikonen för aktuellt väder
       const k = el.querySelector('.k'), id = el.dataset.id;
@@ -352,7 +366,7 @@
   }
   function pvFx() {
     const g = hot.querySelector('.pvfx'); if (!g) return;
-    const w = num(cfg.solar), kwp = (+cfg.solar_kwp || 14) * 1000, f = w == null || w < 50 ? 0 : Math.min(1, w / kwp);
+    const w = num(cfg.solar), kwp = (+cfg.solar_kwp || 14) * 1000, f = !SET.solar_shimmer || w == null || w < 50 ? 0 : Math.min(1, w / kwp);
     g.style.opacity = f ? (0.3 + 0.7 * Math.sqrt(f)).toFixed(2) : '0';
     g.style.setProperty('--pv', f.toFixed(2));
   }
@@ -1287,6 +1301,8 @@
     if (l.temps && typeof l.temps === 'object') layout.temps = l.temps;
     buildBoxes(); buildHot(); refresh();
     loadMoney(); setInterval(loadMoney, 10 * 60 * 1000);
+    loadSettings(); setInterval(loadSettings, 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadSettings(); });
 
     const es = new EventSource('api/stream');
     es.addEventListener('snapshot', e => { const d = JSON.parse(e.data); states = d.states; connected = d.connected; refresh(); });

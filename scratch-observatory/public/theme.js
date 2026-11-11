@@ -127,5 +127,13 @@
     a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="14.5" cy="7" r="1"/></svg><span>Teman</span>';
     var minor = side.querySelector('.nav-item.minor');
     side.insertBefore(a, minor || null);
+    // Inställningar ligger under Teman
+    if (!side.querySelector('[data-page=installningar]')) {
+      var b = document.createElement('a');
+      b.className = 'nav-item'; b.href = 'installningar.html'; b.setAttribute('data-page', 'installningar'); b.title = 'Inställningar';
+      if (document.body.getAttribute('data-page') === 'installningar') b.setAttribute('aria-current', 'page');
+      b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Inställningar</span>';
+      side.insertBefore(b, minor || null);
+    }
   });
 })();

@@ -284,6 +284,26 @@ function validPlan(p) {
   const ok = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
   return e.every(([k, v]) => /^(light|switch|sensor|binary_sensor|climate|fan|lock)\.[a-z0-9_]+$/.test(k) && ALLOWED.has(k) && Array.isArray(v) && v.length === 2 && v.every(ok));
 }
+// Inställningar som gäller alla skärmar (data/settings.json). Bara kända nycklar med giltiga värden sparas.
+const SETTINGS_FILE = join(DATA_DIR, 'settings.json');
+const SETTINGS_DEF = {
+  value_colors: { type: 'bool', def: true }, solar_shimmer: { type: 'bool', def: true },
+  house_low_kw: { type: 'num', def: 1, min: 0, max: 50 }, house_high_kw: { type: 'num', def: 3, min: 0, max: 50 }, house_max_kw: { type: 'num', def: 6, min: 0, max: 50 },
+  import_high_kw: { type: 'num', def: 2, min: 0, max: 50 }, import_max_kw: { type: 'num', def: 5, min: 0, max: 50 },
+};
+function cleanSettings(o) {
+  const out = {};
+  for (const [k, d] of Object.entries(SETTINGS_DEF)) {
+    const v = o && o[k];
+    if (d.type === 'bool' && typeof v === 'boolean') out[k] = v;
+    if (d.type === 'num' && typeof v === 'number' && Number.isFinite(v) && v >= d.min && v <= d.max) out[k] = Math.round(v * 10) / 10;
+  }
+  return out;
+}
+async function readSettings() {
+  const def = Object.fromEntries(Object.entries(SETTINGS_DEF).map(([k, d]) => [k, d.def]));
+  try { return { ...def, ...cleanSettings(JSON.parse(await readFile(SETTINGS_FILE, 'utf8'))) }; } catch { return def; }
+}
 async function readBody(req, max = 64 * 1024) {
   let size = 0; const chunks = [];
   for await (const c of req) { size += c.length; if (size > max) throw Object.assign(new Error('För stor'), { code: 413 }); chunks.push(c); }
@@ -542,6 +562,19 @@ const server = http.createServer(async (req, res) => {
   if (!authOk(req)) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Observatory"' }); return res.end('Inloggning krävs'); }
   const url = new URL(req.url, 'http://x');
   try {
+    if (url.pathname === '/api/settings' && req.method === 'PUT') {
+      if (!(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'JSON krävs' });
+      const origin = req.headers.origin;
+      let sameOrigin = true; if (origin) { try { sameOrigin = new URL(origin).host === req.headers.host; } catch { sameOrigin = false; } }
+      if (!sameOrigin) return json(res, 403, { error: 'Fel ursprung' });
+      const next = { ...(await readSettings()), ...cleanSettings(JSON.parse(await readBody(req, 4096))) };
+      await mkdir(DATA_DIR, { recursive: true });
+      const tmp = SETTINGS_FILE + '.tmp';
+      await writeFile(tmp, JSON.stringify({ ...next, saved: new Date().toISOString() }, null, 1));
+      await rename(tmp, SETTINGS_FILE);
+      return json(res, 200, next);
+    }
+    if (url.pathname === '/api/settings') return json(res, 200, await readSettings());
     if (url.pathname === '/api/plan' && req.method === 'PUT') {
       if (!(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'JSON krävs' });
       const origin = req.headers.origin;

@@ -1,0 +1,29 @@
+/* Inställningssidan */
+.srows{display:flex;flex-direction:column;margin-top:12px;border-top:1px solid var(--line)}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 2px;border-bottom:1px solid var(--line)}
+.srow b{display:block;font-size:14.5px;font-weight:600}
+.srow small{display:block;font-size:12px;color:var(--muted);margin-top:3px;max-width:62ch}
+.srow .tgl{flex:none;padding:7px 12px;font-size:12px}
+.tgl{display:inline-flex;align-items:center;gap:7px}
+.tgl i{width:28px;height:15px;border-radius:8px;background:var(--c-2a3328);position:relative;flex:none}
+.tgl i::after{content:"";position:absolute;left:2px;top:2px;width:11px;height:11px;border-radius:50%;background:var(--c-7b8873);transition:left .15s}
+.tgl.on{border-color:var(--c-4a603b);color:var(--c-cfe0b4)}.tgl.on i{background:var(--c-3e5a33)}.tgl.on i::after{left:15px;background:var(--sage)}
+.sgap{margin-top:22px}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:10px;transition:opacity .2s}
+.lgrid.off{opacity:.45}
+.lcard{border:1px solid var(--line);border-radius:6px;padding:14px;background:color-mix(in srgb,var(--panel) 70%,var(--bg))}
+.lcard h4{margin:0 0 10px;font-size:14px;font-weight:600}
+.lfl{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.fld{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted)}
+.nin{display:flex;align-items:center;gap:6px}
+.nin input{width:100%;min-width:0;font:inherit;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--line2);border-radius:4px;padding:8px 10px}
+.nin em{font-style:normal;font-size:11px;color:var(--dim)}
+.lscale{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:14px}
+.ls{border:1px solid var(--line);border-radius:4px;padding:8px}
+.ls b{display:block;font-size:15px;font-weight:600}
+.ls small{display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
+.ls .v.c-low{color:var(--sage)}.ls .v.c-warn{color:var(--orange)}.ls .v.c-high{color:var(--red)}
+.serr{margin-top:12px;color:var(--orange);font-size:13px}
+.snote{margin:16px 0 0;font-size:12px;color:var(--dim)}
+@media (max-width:520px){.lscale{grid-template-columns:1fr 1fr}.lgrid{grid-template-columns:1fr}}
+#set .btns button:disabled{opacity:.45;cursor:default}
