@@ -14,19 +14,19 @@
   // ---------- Ritningen (koordinater från originalritningen, px) ----------
   const VB = [330, 85, 920, 840]; // x, y, bredd, höjd
   const ROOMS = [
-    { id: 'tvatt', name: 'Förråd / tvätt', r: [343, 112, 512, 272], l: [430, 190] },
-    { id: 'uterum_n', name: 'Uterum', r: [512, 112, 720, 312], l: [622, 175] },
+    { id: 'tvatt', name: 'Tvättstuga', r: [343, 112, 512, 272], l: [430, 190] },
+    { id: 'uterum_n', name: 'Uterum baksida', r: [512, 112, 720, 312], l: [622, 175] },
     { id: 'kontor', name: 'Kontor', r: [343, 272, 512, 360], l: [427, 318] },
     { id: 'sovrum_v', name: 'Sovrum', r: [343, 360, 512, 472], l: [427, 414] },
-    { id: 'uterum_s', name: 'Uterum', sub: '17,5 m²', r: [343, 472, 512, 662], l: [427, 548] },
+    { id: 'uterum_s', name: 'Uterum framsida', sub: '17,5 m²', r: [343, 472, 512, 662], l: [427, 548] },
     { id: 'kok', name: 'Kök', r: [512, 312, 838, 472], l: [622, 383], poly: [[512, 312], [838, 312], [838, 472], [650, 472], [650, 472], [512, 472]] },
     { id: 'matplats', name: 'Matplats', label: true, l: [766, 383] },
     { id: 'hall', name: 'Hall', r: [512, 472, 650, 672], l: [584, 522] },
     { id: 'bad', name: 'Bad', sub: '4,5 m²', r: [512, 558, 582, 668], l: [547, 612] },
     { id: 'vardagsrum', name: 'Vardagsrum', r: [650, 472, 838, 672], l: [755, 588] },
-    { id: 'sovrum_n', name: 'Sovrum', sub: '16,4 m²', r: [838, 312, 995, 472], l: [918, 380] },
-    { id: 'klad', name: 'Klädkammare', small: true, r: [872, 478, 995, 518], l: [933, 498] },
-    { id: 'sovrum_s', name: 'Sovrum', sub: '15,6 m²', r: [838, 518, 995, 672], l: [918, 600] },
+    { id: 'sovrum_n', name: 'Ludvigs rum', sub: '16,4 m²', r: [838, 312, 995, 472], l: [918, 380] },
+    { id: 'klad', name: 'Garderob', small: true, r: [872, 478, 995, 518], l: [933, 498] },
+    { id: 'sovrum_s', name: 'Olivers rum', sub: '15,6 m²', r: [838, 518, 995, 672], l: [918, 600] },
     { id: 'entre_g', name: '', r: [995, 678, 1100, 725], l: [1048, 700] },
     { id: 'forrad', name: 'Förråd', r: [1100, 678, 1230, 725], l: [1165, 702] },
     { id: 'garage', name: 'Garage', big: true, r: [995, 725, 1230, 902], l: [1112, 815] },
@@ -40,43 +40,52 @@
     [343, 498, 343, 560], [343, 585, 343, 640], [360, 662, 500, 662], [1020, 902, 1205, 902]];
   // Dörrar: [x1, y1, x2, y2] öppningar i väggen
   const DOORS = [[590, 672, 640, 672], [532, 112, 562, 112], [1010, 678, 1040, 678]];
+  // Innerdörrar med dörrblad: tvättstugedörren och altandörren ut till uterummet på baksidan
+  const IDOORS = [{ x: 512, y: 168, len: 32, dir: 'v' }, { x: 540, y: 312, len: 32, dir: 'h' }];
   const P = (x, y) => [((x - VB[0]) / VB[2] * 100), ((y - VB[1]) / VB[3] * 100)];
   const roomCenter = id => { const r = ROOMS.find(q => q.id === id); return r ? P(...r.l) : [50, 50]; };
 
   function planSvg() {
     const rect = r => `x="${r[0]}" y="${r[1]}" width="${r[2] - r[0]}" height="${r[3] - r[1]}"`;
     const rooms = ROOMS.filter(r => r.r).map(r => `<rect class="room${r.id === 'garage' || r.id === 'entre_g' || r.id === 'forrad' || r.id === 'pumprum' ? ' cold' : ''}" data-room="${r.id}" ${rect(r.r)}/>`).join('');
-    const labels = ROOMS.filter(r => r.name).map(r => `<text class="rl${r.small ? ' sm' : ''}${r.big ? ' big' : ''}" x="${r.l[0]}" y="${r.l[1]}" text-anchor="middle">${esc(r.name.toUpperCase())}</text>${r.sub ? `<text class="rs" x="${r.l[0]}" y="${r.l[1] + 16}" text-anchor="middle">${r.sub}</text>` : ''}`).join('');
+    const labels = ROOMS.filter(r => r.name).map(r => `<text class="rl${r.small ? ' sm' : r.name.length > 11 ? ' md' : ''}${r.big ? ' big' : ''}" x="${r.l[0]}" y="${r.l[1]}" text-anchor="middle">${esc(r.name.toUpperCase())}</text>${r.sub ? `<text class="rs" x="${r.l[0]}" y="${r.l[1] + 16}" text-anchor="middle">${r.sub}</text>` : ''}`).join('');
     const out = `<polygon class="outline" points="${OUTLINE.map(p => p.join(',')).join(' ')}"/><rect class="outline" x="995" y="678" width="235" height="224"/>`;
     const win = WINDOWS.map(w => `<line class="winbg" x1="${w[0]}" y1="${w[1]}" x2="${w[2]}" y2="${w[3]}"/><line class="win" x1="${w[0]}" y1="${w[1]}" x2="${w[2]}" y2="${w[3]}"/>`).join('');
     const doors = DOORS.map(w => `<line class="door" x1="${w[0]}" y1="${w[1]}" x2="${w[2]}" y2="${w[3]}"/>`).join('');
     const steps = `<rect class="steps" x="586" y="676" width="58" height="56"/><line class="stepl" x1="586" y1="694" x2="644" y2="694"/><line class="stepl" x1="586" y1="712" x2="644" y2="712"/>`;
     // Inredning som hjälper till att känna igen rummen
     const furn = `<rect class="fx" x="540" y="444" width="48" height="26" rx="2"/><circle class="fx" cx="552" cy="457" r="4"/><circle class="fx" cx="568" cy="457" r="4"/>
-      <rect class="fx" x="700" y="438" width="36" height="32" rx="2"/><circle class="fx" cx="718" cy="454" r="7"/>
       <rect class="fx" x="652" y="548" width="24" height="116" rx="2"/><rect class="fx" x="840" y="560" width="22" height="106" rx="2"/>
       <path class="fx" d="M518 566 a26 26 0 0 1 26 26 h-26z"/><rect class="fx" x="522" y="640" width="18" height="22" rx="8"/>
       <rect class="fx" x="530" y="242" width="74" height="62"/><line class="fx" x1="530" y1="262" x2="604" y2="262"/><line class="fx" x1="530" y1="282" x2="604" y2="282"/>`;
-    return `<svg class="plansvg" viewBox="${VB.join(' ')}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${rooms}${furn}${out}${win}${doors}${steps}${labels}</svg>`;
+    const idoors = IDOORS.map(d => d.dir === 'v'
+      ? `<line class="door" x1="${d.x}" y1="${d.y}" x2="${d.x}" y2="${d.y + d.len}"/><path class="dsw" d="M${d.x} ${d.y} l${d.len} 0 a${d.len} ${d.len} 0 0 1 ${-d.len} ${d.len}"/>`
+      : `<line class="door" x1="${d.x}" y1="${d.y}" x2="${d.x + d.len}" y2="${d.y}"/><path class="dsw" d="M${d.x} ${d.y} l0 ${-d.len} a${d.len} ${d.len} 0 0 1 ${d.len} ${d.len}"/>`).join('');
+    // Luftvärmepumpens inomhusdel på matplatsens vägg och kaminen
+    const units = `<rect class="unit" x="728" y="316" width="46" height="11" rx="3"/><line class="unitl" x1="733" y1="323" x2="769" y2="323"/>
+      <rect class="stove" x="702" y="438" width="34" height="32" rx="3"/><path class="flame" d="M719 464c-6 0-8-5-5-10 1 3 3 3 3 1 0-4 3-6 5-9 0 4 4 6 4 11 0 4-3 7-7 7z"/>`;
+    return `<svg class="plansvg" viewBox="${VB.join(' ')}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${rooms}${furn}${out}${win}${doors}${idoors}${units}${steps}${labels}</svg>`;
   }
 
   // ---------- Vad som går att placera ----------
-  let catalog = null, TEMPS = null, RAD = null;
-  const KIND_L = { light: 'Lampor', temp: 'Temperatur', door: 'Dörrar', motion: 'Rörelse', leak: 'Vattenläckage', smoke: 'Brandvarnare', air: 'Luft', rad: 'Element' };
+  let catalog = null, TEMPS = null, RAD = null, HP = null;
+  const KIND_L = { light: 'Lampor', temp: 'Temperatur', door: 'Dörrar', motion: 'Rörelse', leak: 'Vattenläckage', smoke: 'Brandvarnare', air: 'Luft', rad: 'Element', hp: 'Värmepump', stove: 'Kamin' };
   function buildCatalog() {
     const cfg = H().cfg ? H().cfg() : {}, I = cfg.info || {}, list = [];
     for (const g of ((cfg.lights || {}).groups || [])) for (const l of g.lights) list.push({ kind: 'light', entity: l.entity, name: l.name, group: g.name });
     for (const g of ((TEMPS || {}).groups || [])) for (const t of g.sensors) list.push({ kind: 'temp', entity: t.temp, name: t.name, hum: t.hum, group: g.title });
     for (const [k, kind] of [['doors', 'door'], ['motion', 'motion'], ['leaks', 'leak'], ['smoke', 'smoke'], ['air', 'air']]) for (const x of (I[k] || [])) list.push({ kind, entity: x.entity, name: x.name, unit: x.unit, t: x.t });
     for (const r of ((RAD || {}).radiators || [])) list.push({ kind: 'rad', entity: r.climate, name: r.name, power: r.power, heating: r.heating });
+    if (HP && HP.climate) list.push({ kind: 'hp', entity: HP.climate, name: 'Luftvärmepump', power: HP.power });
+    if (cfg.stove && cfg.stove.temp) list.push({ kind: 'stove', entity: cfg.stove.temp, name: 'Kaminen', burn: cfg.stove.burn || 40 });
     const seen = new Set();
     catalog = list.filter(x => x.entity && !seen.has(x.entity) && seen.add(x.entity));
   }
   const item = id => (catalog || []).find(x => x.entity === id);
 
   // Förslag innan något har sparats: bara rum som är entydiga
-  const GROUP_ROOM = { 'Kök': 'kok', 'Vardagsrum': 'vardagsrum', 'Hall': 'hall', 'Kontor': 'kontor', 'Garage': 'garage' };
-  const NAME_ROOM = { smoke: { 'Kök': 'kok', 'Kontor': 'kontor' }, leak: { 'Badrum': 'bad', 'Pumprum': 'pumprum', 'Tvättstuga': 'tvatt' }, motion: { 'Hall': 'hall' }, door: { 'Ytterdörr': 'hall' }, temp: { 'Vardagsrum': 'vardagsrum', 'Badrum': 'bad', 'Garage': 'garage', 'Verkstad': 'garage', 'Pumprum': 'pumprum' } };
+  const GROUP_ROOM = { 'Kök': 'kok', 'Vardagsrum': 'vardagsrum', 'Hall': 'hall', 'Kontor': 'kontor', 'Garage': 'garage', 'Sovrum': 'sovrum_v', 'Olivers rum': 'sovrum_s', 'Ludvigs rum': 'sovrum_n' };
+  const NAME_ROOM = { smoke: { 'Kök': 'kok', 'Kontor': 'kontor' }, leak: { 'Badrum': 'bad', 'Pumprum': 'pumprum', 'Tvättstuga': 'tvatt' }, motion: { 'Hall': 'hall', 'Garderob': 'klad' }, temp: { 'Vardagsrum': 'vardagsrum', 'Kök': 'kok', 'Hall': 'hall', 'Badrum': 'bad', 'Sovrum/Kontor': 'sovrum_v', 'Ludvig': 'sovrum_n', 'Oliver': 'sovrum_s', 'Tvättstuga': 'tvatt', 'Uterum bak': 'uterum_n', 'Uterum fram': 'uterum_s', 'Uterum fram 2': 'uterum_s', 'Garage': 'garage', 'Verkstad': 'garage', 'Pumprum': 'pumprum' } };
   function defaults() {
     const out = {}, perRoom = {};
     for (const x of catalog || []) {
@@ -84,9 +93,16 @@
       if (!room) continue;
       // i rader om tre under rumsnamnet
       const n = perRoom[room] = (perRoom[room] || 0) + 1, [cx, cy] = roomCenter(room), i = n - 1;
-      out[x.entity] = [+(cx + ((i % 3) - 1) * 4.4).toFixed(2), +(cy + 4.2 + Math.floor(i / 3) * 4.6).toFixed(2)];
+      out[x.entity] = [+(cx + ((i % 3) - 1) * 5.2).toFixed(2), +(cy + 4.2 + Math.floor(i / 3) * 4.6).toFixed(2)];
     }
-    if (out['binary_sensor.0x00158d0001b7b7d2_contact']) out['binary_sensor.0x00158d0001b7b7d2_contact'] = P(615, 666);
+    // Fasta platser: dörrarna sitter i sina öppningar, värmepumpen på väggen och kaminen vid sin symbol
+    const FIXED = { door: { 'Ytterdörr': [615, 662], 'Altan': [556, 300], 'Tvätt': [524, 184] } };
+    for (const x of catalog || []) {
+      const f = (FIXED[x.kind] || {})[x.name];
+      if (f) out[x.entity] = P(...f).map(v => +v.toFixed(2));
+      if (x.kind === 'hp') out[x.entity] = P(751, 340).map(v => +v.toFixed(2));
+      if (x.kind === 'stove') out[x.entity] = P(719, 488).map(v => +v.toFixed(2));
+    }
     return out;
   }
 
@@ -100,6 +116,8 @@
     smoke: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/>',
     air: '<path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>',
     rad: '<path d="M6 6v12M10 6v12M14 6v12M18 6v12M4 9h16M4 15h16"/>',
+    hp: '<rect x="3" y="6" width="18" height="8" rx="2"/><path d="M6 11h12M8 17c0 1.5 1 2 1 3M12 17c0 1.5 1 2 1 3M16 17c0 1.5 1 2 1 3"/>',
+    stove: '<path d="M12 21c-4 0-6-3-5-7 1 2 2.5 2 2.5.5 0-3 2-5 3.5-7.5.3 3 4 5 4 9 0 3-2 5-5 5z"/>',
   };
   function status(x) {
     const s = st(x.entity), na = bad(s);
@@ -115,6 +133,12 @@
         const sp = s && s.attributes ? s.attributes.temperature : null;
         return { cls: na ? 'na' : heat ? 'heat' : s.state === 'heat' ? 'onm' : '', val: '', tip: na ? 'ej nåbar' : heat ? `värmer${num(x.power) != null ? ' · ' + Math.round(num(x.power)) + ' W' : ''}` : s.state === 'heat' ? `på, ${nf(sp)} °C` : 'av' };
       }
+      case 'hp': {
+        const a = (s && s.attributes) || {}, act = a.hvac_action, w = num(x.power);
+        const L = { heat: 'värme', cool: 'kyla', fan_only: 'fläkt', dry: 'torka', auto: 'auto', heat_cool: 'auto', off: 'av' };
+        return { cls: na ? 'na' : s.state === 'off' ? '' : act === 'cooling' || s.state === 'cool' ? 'pulse' : 'heat', val: na || s.state === 'off' ? '' : nf(a.temperature, 0) + '°', tip: na ? 'ej nåbar' : `${L[s.state] || s.state}${a.temperature != null && s.state !== 'off' ? ', ' + nf(a.temperature) + ' °C' : ''}${w != null ? ' · ' + Math.round(w) + ' W' : ''}` };
+      }
+      case 'stove': { const v = num(x.entity); return { cls: v == null ? 'na' : v >= x.burn ? 'heat' : '', val: v == null ? '–' : nf(v, 0) + '°', tip: v == null ? 'okänt' : v >= x.burn ? `eldar, ${nf(v, 0)} °C` : `${nf(v, 0)} °C, eldar inte` }; }
     }
     return { cls: '', val: '', tip: '' };
   }
@@ -144,8 +168,8 @@
   }
   async function load() {
     const get = u => fetch(u, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
-    const [t, r, p] = await Promise.all([TEMPS ? TEMPS : get('api/temps'), RAD ? RAD : get('api/radiators'), get('api/plan')]);
-    TEMPS = t || { groups: [] }; RAD = r || {};
+    const [t, r, h, p] = await Promise.all([TEMPS ? TEMPS : get('api/temps'), RAD ? RAD : get('api/radiators'), HP ? HP : get('api/heatpump'), get('api/plan')]);
+    TEMPS = t || { groups: [] }; RAD = r || {}; HP = h || {};
     buildCatalog();
     saved = p && p.markers ? p : null;
     marks = saved ? { ...saved.markers } : defaults();

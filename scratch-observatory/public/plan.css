@@ -21,10 +21,16 @@ body.plan-open{overflow:hidden}
 .plansvg .winbg{stroke:var(--bg);stroke-width:8}
 .plansvg .win{stroke:color-mix(in srgb,var(--blue) 70%,var(--muted));stroke-width:2.5}
 .plansvg .door{stroke:color-mix(in srgb,var(--panel2) 70%,var(--bg));stroke-width:9}
+.plansvg .dsw{fill:none;stroke:var(--line2);stroke-width:1.5;stroke-dasharray:3 3}
+.plansvg .unit{fill:color-mix(in srgb,var(--blue) 18%,var(--panel));stroke:color-mix(in srgb,var(--blue) 60%,var(--muted));stroke-width:1.5}
+.plansvg .unitl{stroke:color-mix(in srgb,var(--blue) 60%,var(--muted));stroke-width:1}
+.plansvg .stove{fill:color-mix(in srgb,var(--orange) 14%,var(--panel));stroke:color-mix(in srgb,var(--orange) 55%,var(--muted));stroke-width:1.5}
+.plansvg .flame{fill:color-mix(in srgb,var(--orange) 55%,transparent)}
 .plansvg .steps{fill:none;stroke:var(--line2);stroke-width:2}
 .plansvg .stepl{stroke:var(--line2);stroke-width:1.5}
 .plansvg .fx{fill:none;stroke:color-mix(in srgb,var(--line2) 80%,transparent);stroke-width:1.5}
 .plansvg .rl{font:600 15px var(--mono);letter-spacing:.12em;fill:var(--dim)}
+.plansvg .rl.md{font-size:12px;letter-spacing:.08em}
 .plansvg .rl.sm{font-size:10px;letter-spacing:.06em}
 .plansvg .rl.big{font-size:20px}
 .plansvg .rs{font:11px var(--mono);fill:color-mix(in srgb,var(--dim) 70%,transparent)}
