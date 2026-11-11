@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.34.0';
+  const VERSION = '0.35.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -338,8 +338,26 @@
 
   // ---------- Klickytor ----------
   const HOT_TITLES = { solar: 'Solpaneler', house: 'Huset – planritning', veranda: 'Uterummet', garage: 'Garage / laddbox', heatpump: 'Värmepump' };
+  // Skimmer över solpanelerna när de producerar: ett varmt sken och en ljusstrimma som sveper över taket.
+  // Styrkan följer effekten i förhållande till anläggningens toppeffekt (solar_kwp, standard 14 kW).
+  function pvFxSvg() {
+    const h = layout.hotspots.solar; if (!h) return '';
+    const pts = h.points.map(q => q.join(',')).join(' ');
+    const xs = h.points.map(q => q[0]), ys = h.points.map(q => q[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), w = x1 - x0 + 14;
+    return `<defs><clipPath id="pvclip"><polygon points="${pts}"/></clipPath>
+      <linearGradient id="pvband" x1="0" x2="1"><stop offset="0" stop-color="#fff3d6" stop-opacity="0"/><stop offset=".5" stop-color="#fff6e0" stop-opacity=".75"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/></linearGradient></defs>
+      <g class="pvfx" clip-path="url(#pvclip)" aria-hidden="true"><polygon class="pvglow" points="${pts}"/>
+      <polygon class="pvband" fill="url(#pvband)" points="${x0 - 9},${y0} ${x0 - 2},${y0} ${x0 - 5},${y1} ${x0 - 12},${y1}"><animateTransform attributeName="transform" type="translate" values="0 0;${w} 0;${w} 0" keyTimes="0;.55;1" dur="7s" repeatCount="indefinite"/></polygon></g>`;
+  }
+  function pvFx() {
+    const g = hot.querySelector('.pvfx'); if (!g) return;
+    const w = num(cfg.solar), kwp = (+cfg.solar_kwp || 14) * 1000, f = w == null || w < 50 ? 0 : Math.min(1, w / kwp);
+    g.style.opacity = f ? (0.3 + 0.7 * Math.sqrt(f)).toFixed(2) : '0';
+    g.style.setProperty('--pv', f.toFixed(2));
+  }
   function buildHot() {
-    hot.innerHTML = '';
+    hot.innerHTML = pvFxSvg();
     // Stora ytor först, så att mindre ytor (t.ex. solpanelerna på taket) hamnar överst och går att klicka på
     const area = pts => Math.abs(pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
     const entries = Object.entries(layout.hotspots).sort((a, b) => area(b[1].points) - area(a[1].points));
@@ -1236,7 +1254,7 @@
       const live = connected && [cfg.solar, cfg.load, cfg.grid].every(id => states[id] && !['unknown', 'unavailable'].includes(states[id].state));
       $('badge').className = 'badge ' + (live ? 'live' : 'stale');
       $('badge').lastElementChild.textContent = live ? 'Live · Home Assistant' : 'Väntar på data';
-      renderBoxes(); applyLight();
+      renderBoxes(); applyLight(); pvFx();
       if (drawerOpen) renderDrawerStats();
     });
   }
