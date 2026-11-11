@@ -1451,17 +1451,25 @@
       "fans": [
         {
           "name": "Takfläkt",
-          "entity": "fan.takflakt_main_fan"
+          "entity": "fan.takflakt_main_fan",
+          "energy": "sensor.shellypmminig3_84fce63c597c_energi"
         },
         {
           "name": "Kaminfläkt",
-          "entity": "switch.0xa4c1383432be041d"
+          "entity": "switch.0xa4c1383432be041d",
+          "energy": "sensor.kaminflakt_energy"
         },
         {
           "name": "Värmeförflyttare",
           "entity": "switch.varmeforflyttare_sovrum"
         }
-      ]
+      ],
+      "heat_kw": 6,
+      "max_kw": 9,
+      "full_temp": 90,
+      "efficiency": 0.8,
+      "room": "sensor.vardagsrum_temperature",
+      "room_name": "Vardagsrum"
     },
     "plan": {
       "washer": {

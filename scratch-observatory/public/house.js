@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.37.0';
+  const VERSION = '0.38.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -216,6 +216,79 @@
     } },
     kostnad: { title: 'Idag / pengar', cls: 'wide money-box', drawer: 'money', render() { return { custom: moneyPage() }; } },
   };
+
+  // ---------- Kaminen: samma uträkning som kamin-kortet ----------
+  // Eldar = utblåset når burn (slutar 2 °C under, så att det inte fladdrar). Värmen är en GROV uppskattning:
+  // heat_kw vid full_temp, linjärt efter hur mycket varmare utblåset är än rummet, högst max_kw.
+  const KHYST = 2;
+  let KAM = { pts: null, at: 0, loading: false, fanKwh: {} };
+  async function loadKamin(force) {
+    const K = cfg.stove; if (!K || !K.temp || KAM.loading || (!force && Date.now() - KAM.at < 120000)) return;
+    KAM.loading = true;
+    try {
+      const r = await fetch(`api/history?entity=${encodeURIComponent(K.temp)}&hours=36`, { cache: 'no-store' });
+      if (r.ok) KAM.pts = ((await r.json()).points || []).map(([t, v]) => ({ t: typeof t === 'string' ? Date.parse(t) : +t, v: +v })).filter(p => Number.isFinite(p.t) && Number.isFinite(p.v)).sort((a, b) => a.t - b.t);
+      for (const f of K.fans || []) if (f.energy) {
+        const d = await fetch(`api/daily?entity=${encodeURIComponent(f.energy)}&days=1`, { cache: 'no-store' }).then(x => x.ok ? x.json() : null).catch(() => null);
+        const p = d && d.points && d.points[d.points.length - 1]; if (p) KAM.fanKwh[f.energy] = p[1];
+      }
+    } catch {}
+    KAM.loading = false; KAM.at = Date.now();
+    if (drawerOpen === 'kamin') renderDrawerStats();
+  }
+  function kaminAnalyze() {
+    const K = cfg.stove || {}, thr = K.burn || 40, now = Date.now();
+    const pts = (KAM.pts || []).slice(), cur0 = num(K.temp);
+    if (cur0 != null) pts.push({ t: now, v: cur0 });
+    const cold = pts.map(p => p.v).filter(v => v < thr - KHYST).sort((a, b) => a - b);
+    const base = Math.min(cold.length ? cold[Math.floor(cold.length / 2)] : 22, thr - 5);
+    const heatKw = v => Math.min((K.heat_kw || 6) * Math.max(0, (v - base) / Math.max(5, (K.full_temp || 90) - base)), K.max_kw || Infinity);
+    const mid = new Date(); mid.setHours(0, 0, 0, 0); const m0 = mid.getTime(), gap = 10 * 60000;
+    const fires = []; let cur = null, todaySec = 0, todayKwh = 0, todayMax = null, todayMaxAt = null;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i], next = pts[i + 1], nextT = next ? next.t : now;
+      const on = cur ? p.v >= thr - KHYST : p.v >= thr;
+      const bridge = on && next && next.t - p.t > gap && next.v >= thr - KHYST;
+      const end = bridge ? nextT : Math.min(nextT, p.t + gap), vSeg = bridge ? (p.v + next.v) / 2 : p.v;
+      if (p.t >= m0 && (todayMax === null || p.v > todayMax)) { todayMax = p.v; todayMaxAt = p.t; }
+      if (on && !cur) cur = { start: p.t, end: null, kwh: 0, max: p.v };
+      if (!on && cur) { cur.end = p.t; fires.push(cur); cur = null; }
+      if (cur) {
+        const kw = heatKw(vSeg); cur.kwh += kw * (end - p.t) / 3600000; cur.max = Math.max(cur.max, p.v);
+        const a = Math.max(p.t, m0); if (end > a) { todaySec += (end - a) / 1000; todayKwh += kw * (end - a) / 3600000; }
+        if (end < nextT) { cur.end = end; fires.push(cur); cur = null; }
+      }
+    }
+    if (cur) fires.push(cur);
+    const live = fires.length && fires[fires.length - 1].end === null ? fires[fires.length - 1] : null;
+    const recent = pts.filter(p => p.t >= now - 1200000).map(p => p.v);
+    const cooling = cur0 != null && recent.length ? Math.max(...recent) - cur0 > 3 : false;
+    return { fires, live, base, todaySec, todayKwh, todayMax, todayMaxAt, cooling, kwNow: cur0 != null && live ? heatKw(cur0) : 0, today: fires.filter(f => (f.end ?? now) > m0) };
+  }
+  const durTxt = sec => { const m = Math.round(sec / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`; };
+  const hm = t => new Date(t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  const dayLbl = t => { const d = new Date(t), m = new Date(); m.setHours(0, 0, 0, 0); return d >= m ? 'idag' : d >= m - 86400000 ? 'igår' : d.toLocaleDateString('sv-SE', { weekday: 'short' }); };
+  function kaminRich() {
+    const K = cfg.stove || {}; loadKamin();
+    const t = num(K.temp), room = K.room ? num(K.room) : null, loaded = !!KAM.pts, a = kaminAnalyze();
+    const stat = (k, v, u, sub) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u || '')}</small></b>${sub ? `<em>${esc(sub)}</em>` : ''}</div>`;
+    const status = a.live ? (a.cooling ? 'Brinner ner' : 'Eldar') : t != null && t >= (K.burn || 40) - 12 ? 'Avsvalnar' : 'Kall';
+    const wood = a.todayKwh >= 0.5 ? `≈ ${nf(a.todayKwh / (4.2 * (K.efficiency || 0.8)), 1)} kg ved` : '';
+    const fires = a.fires.slice(-6).reverse();
+    const fans = (K.fans || []).map(f => { const s = st(f.entity), e = f.energy != null ? KAM.fanKwh[f.energy] : undefined;
+      return `<div class="kfan"><span>${esc(f.name)}</span><b class="${s && s.state === 'on' ? 'on' : ''}">${s ? (s.state === 'on' ? 'På' : s.state === 'off' ? 'Av' : esc(s.state)) : '–'}</b>${e != null ? `<small>${nf(e, e < 1 ? 2 : 1)} kWh idag</small>` : ''}</div>`; }).join('');
+    return `<section class="sx hero kam"><div><div class="sk">${esc(status)}</div><div class="sbig">${nf(t, 0)}<small>°C</small></div>
+        <div class="ss">${a.live ? `Sedan ${hm(a.live.start)} · ${durTxt((Date.now() - a.live.start) / 1000)}` : a.fires.length ? `Senast eldat ${dayLbl(a.fires[a.fires.length - 1].start)} ${hm(a.fires[a.fires.length - 1].start)}` : 'Inte eldat det senaste dygnet'}</div></div>
+        <div class="hr"><div class="sk">Värme nu</div><div class="smid">${a.live ? '≈ ' + nf(a.kwNow, 1) : '0'}<small>kW</small></div>
+        <div class="ss">${room != null ? `${esc(K.room_name || 'Rummet')} ${nf(room)} °C` : ''}</div></div></section>
+      <section class="sx"><div class="sh">Idag</div><div class="dstats k3">
+        ${stat('Eldat', loaded ? (a.todaySec >= 60 ? (a.todaySec < 3600 ? Math.round(a.todaySec / 60) : `${Math.floor(a.todaySec / 3600)}:${String(Math.round(a.todaySec % 3600 / 60)).padStart(2, '0')}`) : '–') : '…', a.todaySec >= 3600 ? 'h' : a.todaySec >= 60 ? 'min' : '', a.today.length ? `${a.today.length} ${a.today.length === 1 ? 'eldning' : 'eldningar'}` : 'Inte eldat idag')}
+        ${stat('Värme', loaded ? '≈ ' + nf(a.todayKwh, a.todayKwh < 10 ? 1 : 0) : '…', 'kWh', wood)}
+        ${stat('Högst', a.todayMax != null ? nf(a.todayMax, 0) : '–', '°C', a.todayMaxAt ? 'kl ' + hm(a.todayMaxAt) : '')}</div></section>
+      <section class="sx"><div class="sh">Eldningar senaste 36 h</div>${!loaded ? '<div class="empty">Hämtar historik …</div>' : fires.length ? `<div class="kfires">${fires.map(f => `<div class="kfire${f.end === null ? ' live' : ''}"><span>${dayLbl(f.start)} ${hm(f.start)}–${f.end === null ? 'nu' : hm(f.end)}</span><span>${durTxt(((f.end ?? Date.now()) - f.start) / 1000)}</span><span>≈ ${nf(f.kwh, f.kwh < 10 ? 1 : 0)} kWh</span><span>max ${nf(f.max, 0)}°</span></div>`).join('')}</div>` : '<div class="dnote">Inga eldningar.</div>'}</section>
+      <section class="sx"><div class="sh">Fläktar</div><div class="kfans">${fans}</div></section>
+      <p class="dnote">Värmen är en grov uppskattning: ${nf(K.heat_kw || 6, 0)} kW vid ${nf(K.full_temp || 90, 0)} °C i utblåset, linjärt ner mot rumstemperaturen (≈ ${nf(a.base, 0)} °C), högst ${nf(K.max_kw || 9, 0)} kW. Eldar räknas från ${nf(K.burn || 40, 0)} °C.</p>`;
+  }
 
   // Sida 1: elkostnad och sparat med solel idag. Sida 2: kostnaden i detalj + solen i år. Sida 3: energi idag.
   let moneyData = null;
@@ -666,11 +739,7 @@
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl },
     info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
-    kamin: { eyebrow: 'Vardagsrum / kamin', title: 'Kaminen', stats: () => {
-      const K = cfg.stove || {}, t = num(K.temp);
-      return [['Utblås', nf(t, 0), '°C'], ['Läge', stoveBurning ? 'Eldar' : t != null && t >= (K.burn || 40) - 12 ? 'Avsvalnar' : 'Kall', ''],
-        ...(K.fans || []).map(f => { const s = st(f.entity); return [f.name, s ? (s.state === 'on' ? 'På' : s.state === 'off' ? 'Av' : s.state) : '–', '']; })];
-    }, charts: () => cfg.stove ? [[cfg.stove.temp, 'Temperatur vid utblåset', TC('orange'), 1, '°C']] : [] },
+    kamin: { eyebrow: 'Vardagsrum / kamin', title: 'Kaminen', stats: () => [], rich: kaminRich, charts: () => cfg.stove ? [[cfg.stove.temp, 'Temperatur vid utblåset', TC('orange'), 1, '°C']] : [] },
     temps: { eyebrow: 'Inomhus och byggnader', title: 'Temperaturer', wide: true, rich: () => '', stats: () => [], ctl: tempsCtl,
       charts: () => { const cols = ['orange', 'blue', 'sage', 'gold', 'red', 'text']; return (cfg.temp_pins || []).length ? [{ title: 'Utvalda rum', unit: '°C', div: 1, series: cfg.temp_pins.map((m, i) => [m.temp, m.name, TC(cols[i % cols.length])]) }] : []; } },
     radiators: { eyebrow: 'Värme / element', title: 'Element och golvvärme', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: radsCtl, extra: () => '<a class="btn primary-link" href="element.html">Öppna elementsidan →</a>' },
