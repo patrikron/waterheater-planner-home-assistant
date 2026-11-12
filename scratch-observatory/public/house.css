@@ -554,3 +554,19 @@ body.lite .smoke i:nth-child(n+4){display:none}
 .kfan small{display:block;font-size:10.5px;color:var(--dim);margin-top:2px}
 @media (max-width:420px){.dstats.k3{grid-template-columns:1fr 1fr}}
 .drawer .sx~.dnote{margin:0 0 14px}
+/* 0.40: energi per period och största förbrukarna */
+.drawer .ebars{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;height:74px;margin-top:14px;align-items:end}
+.drawer .ebar{display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:3px}
+.drawer .ebar i{display:block;width:100%;min-height:2px;background:color-mix(in srgb,var(--orange) 55%,transparent);border-radius:2px 2px 0 0}
+.drawer .ebar.now i{background:var(--orange)}
+.drawer .ebar span{font:500 9.5px/1 var(--mono,monospace);color:var(--dim)}
+.drawer .enote{font-size:12px;color:var(--muted);margin-top:6px}
+.drawer .clist{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.drawer .crow{display:grid;grid-template-columns:minmax(0,1.3fr) auto minmax(60px,1fr) 38px;gap:10px;align-items:center;font-size:13.5px}
+.drawer .crow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.drawer .crow b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.drawer .crow i{display:block;height:6px;background:color-mix(in srgb,var(--text) 8%,transparent);border-radius:3px;overflow:hidden}
+.drawer .crow i em{display:block;height:100%;background:var(--gold);border-radius:3px}
+.drawer .crow small{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.drawer .crow.rest span,.drawer .crow.rest b{color:var(--muted)}
+.drawer .crow.rest i em{background:var(--dim)}

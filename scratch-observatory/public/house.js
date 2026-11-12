@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.39.0';
+  const VERSION = '0.40.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -268,6 +268,65 @@
   const durTxt = sec => { const m = Math.round(sec / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`; };
   const hm = t => new Date(t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
   const dayLbl = t => { const d = new Date(t), m = new Date(); m.setHours(0, 0, 0, 0); return d >= m ? 'idag' : d >= m - 86400000 ? 'igår' : d.toLocaleDateString('sv-SE', { weekday: 'short' }); };
+  // Energi per period (idag, igår, vecka, månad, år) från HA:s långtidsstatistik
+  const ENR = {};
+  async function loadEnergy(id) {
+    const E = ENR[id] || (ENR[id] = { at: 0, loading: false, d: null, m: null });
+    if (E.loading || Date.now() - E.at < 300000) return;
+    E.loading = true;
+    try {
+      const get = u => fetch(u, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+      const [d, m] = await Promise.all([get(`api/daily?entity=${encodeURIComponent(id)}&days=40`), get(`api/monthly?entity=${encodeURIComponent(id)}&months=13`)]);
+      const pts = x => ((x && x.points) || []).map(([t, v]) => ({ t: typeof t === 'string' ? Date.parse(t) : +t, v: +v })).filter(p => Number.isFinite(p.t) && Number.isFinite(p.v));
+      E.d = pts(d); E.m = pts(m);
+      // mätarställningen vid midnatt, så att Idag räknas live i stället för från timstatistiken
+      const mid = new Date(); mid.setHours(0, 0, 0, 0);
+      const h = Math.ceil((Date.now() - mid.getTime()) / 3600000) + 1;
+      const hp = pts(await get(`api/history?entity=${encodeURIComponent(id)}&hours=${h}`)).sort((a, b) => a.t - b.t);
+      const before = hp.filter(p => p.t <= mid.getTime() + 60000);
+      E.base = before.length ? before[before.length - 1].v : hp.length ? hp[0].v : null;
+    } catch {}
+    E.loading = false; E.at = Date.now();
+    if (drawerOpen) renderDrawerStats();
+  }
+  function energySection(id, title) {
+    if (!id) return '';
+    loadEnergy(id);
+    const E = ENR[id] || {};
+    if (!E.d) return `<section class="sx"><div class="sh">${esc(title || 'Energi')}</div><div class="empty">Hämtar statistik …</div></section>`;
+    const now = new Date(), day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const wk0 = day0 - ((now.getDay() + 6) % 7) * 86400000, mon0 = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const pmon0 = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime(), yr0 = new Date(now.getFullYear(), 0, 1).getTime();
+    const sum = (arr, a, b) => { const x = arr.filter(p => p.t >= a && p.t < b); return x.length ? x.reduce((s, p) => s + p.v, 0) : null; };
+    const inf = Infinity, cur = num(id), cap = Math.max(30, 3 * Math.max(0, ...E.d.map(p => p.v))), live = cur != null && E.base != null && cur >= E.base && cur - E.base <= cap ? cur - E.base : null;
+    const today = live ?? sum(E.d, day0, inf), yday = sum(E.d, day0 - 86400000, day0);
+    const week = live != null ? (sum(E.d, wk0, day0) || 0) + live : sum(E.d, wk0, inf);
+    const month = sum(E.m, mon0, inf) ?? sum(E.d, mon0, inf), pmonth = sum(E.m, pmon0, mon0), year = sum(E.m, yr0, inf);
+    const lyMonth = sum(E.m, new Date(now.getFullYear() - 1, now.getMonth(), 1).getTime(), new Date(now.getFullYear() - 1, now.getMonth() + 1, 1).getTime());
+    const f = v => v == null ? '–' : nf(v, v < 10 ? 1 : 0);
+    const stat = (k, v, sub) => `<div class="dstat"><span>${esc(k)}</span><b>${f(v)}<small>kWh</small></b>${sub ? `<em>${esc(sub)}</em>` : ''}</div>`;
+    // staplar för de senaste 14 dagarna
+    const days = []; for (let i = 13; i >= 0; i--) { const a = day0 - i * 86400000; days.push({ a, v: i ? sum(E.d, a, a + 86400000) : today }); }
+    const mx = Math.max(0.1, ...days.map(x => x.v || 0));
+    const bars = days.map(x => `<div class="ebar${x.a === day0 ? ' now' : ''}" title="${new Date(x.a).toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })}: ${f(x.v)} kWh"><i style="height:${Math.round((x.v || 0) / mx * 100)}%"></i><span>${'SMTOTFL'[new Date(x.a).getDay()]}</span></div>`).join('');
+    const avg = days.slice(0, 13).filter(x => x.v != null), avgV = avg.length ? avg.reduce((s, x) => s + x.v, 0) / avg.length : null;
+    return `<section class="sx"><div class="sh">${esc(title || 'Energi')}</div><div class="dstats k3">
+        ${stat('Idag', today, '')}${stat('Igår', yday, '')}${stat('Denna vecka', week, '')}
+        ${stat(now.toLocaleDateString('sv-SE', { month: 'long' }).replace(/^./, c => c.toUpperCase()), month, lyMonth != null ? `Förra året ${f(lyMonth)} kWh` : '')}${stat('Förra månaden', pmonth, '')}${stat('I år', year, '')}</div>
+        <div class="ebars">${bars}</div><div class="enote">Senaste 14 dagarna${avgV != null ? ` · snitt ${f(avgV)} kWh/dag` : ''}</div></section>`;
+  }
+  // Största förbrukarna just nu, från de effektsensorer som står i config.house.consumers
+  function consumersCtl() {
+    const C = cfg.consumers; if (!C || !C.length) return '';
+    const load = num(cfg.load);
+    const rows = C.map(c => ({ ...c, w: num(c.entity) })).filter(c => c.w != null && c.w >= 5).sort((a, b) => b.w - a.w);
+    const known = rows.reduce((s, c) => s + c.w, 0), total = Math.max(load || 0, known), top = rows.slice(0, 10), mx = Math.max(total, 1);
+    const w = v => v >= 1000 ? `${nf(v / 1000, 2)} kW` : `${Math.round(v)} W`;
+    const row = (n, v, cls) => `<div class="crow${cls ? ' ' + cls : ''}"><span>${esc(n)}</span><b>${w(v)}</b><i><em style="width:${Math.max(1, Math.round(v / mx * 100))}%"></em></i>${total > 0 ? `<small>${Math.round(v / total * 100)} %</small>` : '<small></small>'}</div>`;
+    const rest = load != null ? load - known : null;
+    return `<div class="eyebrow">Största förbrukarna just nu</div>${top.length ? `<div class="clist">${top.map(c => row(c.name, c.w)).join('')}${rest != null && rest > 20 ? row('Övrigt (ej mätt)', rest, 'rest') : ''}</div>` : '<p class="dnote">Inget drar mer än 5 W just nu.</p>'}
+      <p class="dnote">Andel av husets förbrukning ${total > 0 ? w(total) : '–'}. ${rows.length > top.length ? `${rows.length - top.length} till drar mindre. ` : ''}Lampor och kameror är beräknade värden.</p>`;
+  }
   function kaminRich() {
     const K = cfg.stove || {}; loadKamin();
     const t = num(K.temp), room = K.room ? num(K.room) : null, loaded = !!KAM.pts, a = kaminAnalyze();
@@ -716,8 +775,9 @@
       ['Nät nu', kw(num(cfg.grid)), num(cfg.grid) < 0 ? 'kW ut' : 'kW in'], ['Elpris', nf(num(cfg.price), 2), 'kr/kWh'],
       ['Köpt idag', nf(num(cfg.grid_in_today)), 'kWh'], ['Sålt idag', nf(num(cfg.grid_out_today)), 'kWh'],
       ['Elkostnad idag', nf(num(cfg.cost_today), 2), 'kr']],
+      ctl: consumersCtl,
       charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']] },
-    heatpump: { eyebrow: 'Klimat / värmepump', title: 'Värmepump', ctl: ctlHeatpump, stats: () => [
+    heatpump: { eyebrow: 'Klimat / värmepump', title: 'Värmepump', ctl: ctlHeatpump, energy: () => energySection(cfg.heatpump_energy, 'Elförbrukning'), stats: () => [
       ['Effekt', num(cfg.heatpump) == null ? '–' : Math.round(num(cfg.heatpump)).toLocaleString('sv-SE'), 'W'],
       ['Inne', nf(num(cfg.indoor)), '°C'], ['Utblås', nf(num(HPC.exhaust)), '°C'], ['Ute', nf(outdoorTemp()), '°C']],
       charts: () => [[cfg.heatpump, 'Effekt', TC('orange'), 1, 'W'], { title: 'Utblås mot inne', unit: '°C', div: 1, series: [[HPC.exhaust, 'Utblås', TC('orange')], [cfg.indoor, 'Inne', TC('sage')]] }],
@@ -726,11 +786,11 @@
       ['Laddeffekt', kw(num(cfg.charger)), 'kW'], ['EV6', num(cfg.ev_soc) == null ? '–' : Math.round(num(cfg.ev_soc)), '%']],
       charts: () => [[cfg.charger, 'Laddeffekt', TC('sage'), 1000, 'kW'], [cfg.ev_soc, 'EV6 laddnivå', TC('blue'), 1, '%']],
       extra: () => '<a class="btn primary-link" href="laddbox.html">Öppna laddboxsidan →</a> <a class="btn primary-link" href="ev6.html">Öppna EV6-sidan →</a>' },
-    hotwater: { eyebrow: 'Värme / varmvatten', title: 'Varmvattenberedare', ctl: ctlWater, stats: () => {
+    hotwater: { eyebrow: 'Värme / varmvatten', title: 'Varmvattenberedare', ctl: ctlWater, energy: () => energySection(cfg.hot_water_energy, 'Elförbrukning'), stats: () => {
       const s = st(cfg.hot_water);
       return [['Temperatur', nf(num(cfg.hot_water, 'temperature')), '°C'], ['Mål', nf(num(cfg.hot_water, 'target_temperature'), 0), '°C'],
-        ['Status', s ? (HW[s.state] || s.state) : '–', '']];
-    }, charts: () => [], extra: () => '<a class="btn primary-link" href="varmvatten.html">Öppna varmvattensidan →</a>' },
+        ['Status', s ? (HW[s.state] || s.state) : '–', ''], ['Effekt', num(cfg.hot_water_power) == null ? '–' : Math.round(num(cfg.hot_water_power)).toLocaleString('sv-SE'), 'W']];
+    }, charts: () => cfg.hot_water_power ? [[cfg.hot_water_power, 'Effekt', TC('orange'), 1, 'W']] : [], extra: () => '<a class="btn primary-link" href="varmvatten.html">Öppna varmvattensidan →</a>' },
     // Laddbox och EV6 visar sina egna sidor i en bredare panel
     charger: { eyebrow: 'Garage / laddbox', title: 'Laddbox', frame: 'laddbox.html' },
     car: { eyebrow: 'Garage / bil', title: 'Kia EV6', frame: 'ev6.html' },
@@ -1175,7 +1235,7 @@
     if (d.frame) return;
     if (d.ctl && $('dctl')) { const h = d.ctl(); if (h !== lastCtl) { $('dctl').innerHTML = h; lastCtl = h; } }
     if (d.rich) { $('drawer-stats').innerHTML = d.rich(); return; }
-    $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>`;
+    $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>` + (d.energy ? d.energy() : '');
   }
   function closeDrawer() {
     const wasFrame = drawerOpen && DRAWERS[drawerOpen] && DRAWERS[drawerOpen].frame;

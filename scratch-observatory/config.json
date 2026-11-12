@@ -1487,7 +1487,148 @@
         "name": "Varmvattenberedare",
         "entity": "sensor.varmvattenberedare_status"
       }
-    }
+    },
+    "heatpump_energy": "sensor.shellypmminig3_48f6eeb4a5d4_energi",
+    "hot_water_energy": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total_energy",
+    "hot_water_power": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total",
+    "consumers": [
+      {
+        "entity": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
+        "name": "Luftvärmepump"
+      },
+      {
+        "entity": "sensor.shelly_shem_3_485519d75132_2_current_consumption_total",
+        "name": "Varmvattenberedare"
+      },
+      {
+        "entity": "sensor.go_echarger_404702_power_total",
+        "name": "Laddbox"
+      },
+      {
+        "entity": "sensor.0xa4c1387cf86503ed_power",
+        "name": "Spabad"
+      },
+      {
+        "entity": "sensor.0xa4c138b4330f7c7e_power",
+        "name": "Poolpump"
+      },
+      {
+        "entity": "sensor.0xa4c1389e35055ae0_power",
+        "name": "Tvättmaskin"
+      },
+      {
+        "entity": "sensor.sl_ol_de_a3maaabcafaurzuzmtgxna_6594_power",
+        "name": "Torktumlare"
+      },
+      {
+        "entity": "sensor.sl_ol_de_a3maaabcafaurzuzmtgxna_6595_power",
+        "name": "Diskmaskin"
+      },
+      {
+        "entity": "sensor.sl_ol_de_a3maaabcafaurzuzmtgxna_6592_power",
+        "name": "Kylskåp"
+      },
+      {
+        "entity": "sensor.sl_ol_de_a3maaabcafaurzuzmtgxna_6593_power",
+        "name": "Frys kök"
+      },
+      {
+        "entity": "sensor.0x0015bc002f004328_power",
+        "name": "Frys tvättstuga"
+      },
+      {
+        "entity": "sensor.0x0015bc002f0043ff_power",
+        "name": "Kaffebryggare"
+      },
+      {
+        "entity": "sensor.0x3fff0004000002be_power",
+        "name": "Element Tvättstuga"
+      },
+      {
+        "entity": "sensor.0x3fff0004000002e4_power",
+        "name": "Element Oliver"
+      },
+      {
+        "entity": "sensor.0x3fff000400000602_power",
+        "name": "Element Kontor stora"
+      },
+      {
+        "entity": "sensor.0x3fff000400000652_power",
+        "name": "Element Ludvig"
+      },
+      {
+        "entity": "sensor.0x3fff000700000067_power",
+        "name": "Element Kontor lilla"
+      },
+      {
+        "entity": "sensor.0x3fff000700000681_power",
+        "name": "Element toa"
+      },
+      {
+        "entity": "sensor.shelly1pm_3494547892f1_power",
+        "name": "Golvvärme"
+      },
+      {
+        "entity": "sensor.shelly1pm_bcff4dfcc5f0_power",
+        "name": "Handdukstork"
+      },
+      {
+        "entity": "sensor.0xa4c13824069606cb_power",
+        "name": "FTX"
+      },
+      {
+        "entity": "sensor.0xa4c138682f640b75_power",
+        "name": "Mediaskåp"
+      },
+      {
+        "entity": "sensor.0xa4c138fa6883eaae_power",
+        "name": "Kontorsdator"
+      },
+      {
+        "entity": "sensor.0x0015bc002f00453e_power",
+        "name": "TV vardagsrum"
+      },
+      {
+        "entity": "sensor.0xa4c1385ecb17e308_power",
+        "name": "TV sovrum"
+      },
+      {
+        "entity": "sensor.avfuktare_power",
+        "name": "Avfuktare"
+      },
+      {
+        "entity": "sensor.0xa4c138bc11e283d3_power",
+        "name": "Dräneringspump"
+      },
+      {
+        "entity": "sensor.mqtt_hydrofor_active_power",
+        "name": "Hydrofor"
+      },
+      {
+        "entity": "sensor.nuc_server_effekt",
+        "name": "Nuc-server"
+      },
+      {
+        "entity": "sensor.server_effekt",
+        "name": "Server"
+      },
+      {
+        "entity": "sensor.shellypmminig3_84fce63c597c_effekt",
+        "name": "Takfläkt"
+      },
+      {
+        "entity": "sensor.0xa4c1383432be041d_power",
+        "name": "Kaminfläkt"
+      },
+      {
+        "entity": "sensor.alla_lampor_power",
+        "name": "Lampor (beräknat)"
+      },
+      {
+        "entity": "sensor.kameror_power",
+        "name": "Kameror (beräknat)"
+      }
+    ]
   },
   "water": {
     "title": "Varmvatten / beredaren.",
