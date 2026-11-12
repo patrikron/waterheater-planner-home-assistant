@@ -570,3 +570,5 @@ body.lite .smoke i:nth-child(n+4){display:none}
 .drawer .crow small{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
 .drawer .crow.rest span,.drawer .crow.rest b{color:var(--muted)}
 .drawer .crow.rest i em{background:var(--dim)}
+#dafter{margin-top:0}
+#dafter .sx>.eyebrow{font:600 12.5px/1.2 var(--mono,monospace);color:var(--gold);letter-spacing:.12em}

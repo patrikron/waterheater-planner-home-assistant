@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.40.0';
+  const VERSION = '0.40.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -775,9 +775,9 @@
       ['Nät nu', kw(num(cfg.grid)), num(cfg.grid) < 0 ? 'kW ut' : 'kW in'], ['Elpris', nf(num(cfg.price), 2), 'kr/kWh'],
       ['Köpt idag', nf(num(cfg.grid_in_today)), 'kWh'], ['Sålt idag', nf(num(cfg.grid_out_today)), 'kWh'],
       ['Elkostnad idag', nf(num(cfg.cost_today), 2), 'kr']],
-      ctl: consumersCtl,
+      after: () => `<section class="sx">${consumersCtl()}</section>`,
       charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']] },
-    heatpump: { eyebrow: 'Klimat / värmepump', title: 'Värmepump', ctl: ctlHeatpump, energy: () => energySection(cfg.heatpump_energy, 'Elförbrukning'), stats: () => [
+    heatpump: { eyebrow: 'Klimat / värmepump', title: 'Värmepump', ctl: ctlHeatpump, after: () => energySection(cfg.heatpump_energy, 'Elförbrukning'), stats: () => [
       ['Effekt', num(cfg.heatpump) == null ? '–' : Math.round(num(cfg.heatpump)).toLocaleString('sv-SE'), 'W'],
       ['Inne', nf(num(cfg.indoor)), '°C'], ['Utblås', nf(num(HPC.exhaust)), '°C'], ['Ute', nf(outdoorTemp()), '°C']],
       charts: () => [[cfg.heatpump, 'Effekt', TC('orange'), 1, 'W'], { title: 'Utblås mot inne', unit: '°C', div: 1, series: [[HPC.exhaust, 'Utblås', TC('orange')], [cfg.indoor, 'Inne', TC('sage')]] }],
@@ -786,7 +786,7 @@
       ['Laddeffekt', kw(num(cfg.charger)), 'kW'], ['EV6', num(cfg.ev_soc) == null ? '–' : Math.round(num(cfg.ev_soc)), '%']],
       charts: () => [[cfg.charger, 'Laddeffekt', TC('sage'), 1000, 'kW'], [cfg.ev_soc, 'EV6 laddnivå', TC('blue'), 1, '%']],
       extra: () => '<a class="btn primary-link" href="laddbox.html">Öppna laddboxsidan →</a> <a class="btn primary-link" href="ev6.html">Öppna EV6-sidan →</a>' },
-    hotwater: { eyebrow: 'Värme / varmvatten', title: 'Varmvattenberedare', ctl: ctlWater, energy: () => energySection(cfg.hot_water_energy, 'Elförbrukning'), stats: () => {
+    hotwater: { eyebrow: 'Värme / varmvatten', title: 'Varmvattenberedare', ctl: ctlWater, after: () => energySection(cfg.hot_water_energy, 'Elförbrukning'), stats: () => {
       const s = st(cfg.hot_water);
       return [['Temperatur', nf(num(cfg.hot_water, 'temperature')), '°C'], ['Mål', nf(num(cfg.hot_water, 'target_temperature'), 0), '°C'],
         ['Status', s ? (HW[s.state] || s.state) : '–', ''], ['Effekt', num(cfg.hot_water_power) == null ? '–' : Math.round(num(cfg.hot_water_power)).toLocaleString('sv-SE'), 'W']];
@@ -823,7 +823,7 @@
   let drawerOpen = null;
   // ---------- Styrning i detaljpanelen (värmepump, FTX, varmvatten) ----------
   // Servern släpper bara igenom entiteter och värden som står i config; här byggs bara knapparna.
-  let lastCtl = '';
+  let lastCtl = ''; let lastAfter = '';
   // ---------- Lampor och barnens poäng (menyn längst ner i kiosken) ----------
   const BULB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>';
   let armed = null; // två tryck för "Släck alla" och sysslor: första trycket väljer, andra skickar
@@ -1207,9 +1207,9 @@
     $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false'); $('scrim').hidden = false;
     const body = $('drawer-charts');
     const charts = d.charts().map(c => Array.isArray(c) ? { title: c[1], unit: c[4], div: c[3], series: [[c[0], c[1], c[2]]] } : c);
-    lastCtl = '';
+    lastCtl = ''; lastAfter = '';
     body.innerHTML = (d.ctl ? `<div id="dctl" class="dctl">${(lastCtl = d.ctl())}</div>` : '') + (d.extra ? d.extra() : '') + charts.map((c, i) => `<div class="dchart" id="dc${i}"><div class="eyebrow">${esc(c.title)} · senaste 24 h</div><div class="empty">Hämtar historik …</div></div>`).join('') +
-      (d.note ? `<p class="dnote">${esc(d.note)}</p>` : '');
+      (d.after ? `<div id="dafter">${(lastAfter = d.after())}</div>` : '') + (d.note ? `<p class="dnote">${esc(d.note)}</p>` : '');
     charts.forEach(async (c, i) => {
       const box = $('dc' + i);
       try {
@@ -1234,8 +1234,9 @@
     const d = DRAWERS[drawerOpen];
     if (d.frame) return;
     if (d.ctl && $('dctl')) { const h = d.ctl(); if (h !== lastCtl) { $('dctl').innerHTML = h; lastCtl = h; } }
+    if (d.after && $('dafter')) { const h = d.after(); if (h !== lastAfter) { $('dafter').innerHTML = h; lastAfter = h; } }
     if (d.rich) { $('drawer-stats').innerHTML = d.rich(); return; }
-    $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>` + (d.energy ? d.energy() : '');
+    $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>`;
   }
   function closeDrawer() {
     const wasFrame = drawerOpen && DRAWERS[drawerOpen] && DRAWERS[drawerOpen].frame;
