@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.38.0';
+  const VERSION = '0.39.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -849,12 +849,17 @@
       + sec('Brandvarnare', fire ? 'BRAND' : chk ? chk + ' behöver koll' : 'Inga larm', fire ? 'alarm' : chk ? 'mid' : 'ok', smoke);
   }
   // Media som spelar och tv som är på (visas överst i kiosken)
+  const mediaOff = {};
   function mediaHtml() {
     const M = cfg.media; if (!M) return '';
-    // de som spelar först, sedan tv som bara är på och pausade
-    const rank = p => { const s = st(p.entity); return s && s.state === 'playing' ? 0 : 1; };
+    // tv-apparaterna först, sedan det som spelar, sist pausade
+    const rank = p => { const s = st(p.entity); return (p.tv ? 0 : 2) + (s && s.state === 'playing' ? 0 : 1); };
+    const now = Date.now();
     return [...M.players].sort((a, b) => rank(a) - rank(b)).map(p => {
       const s = st(p.entity); if (!s) return '';
+      // nyss avstängd: döljs direkt i stället för att vänta på att tv:n rapporterar off
+      const off = mediaOff[p.entity];
+      if (off) { if (now < off.until && s.state !== 'off') return ''; delete mediaOff[p.entity]; }
       const show = p.tv ? !['off', 'unavailable', 'unknown', 'standby'].includes(s.state) : s.state === 'playing' || s.state === 'paused';
       if (!show) return '';
       const a = s.attributes || {}, title = a.media_title || a.app_name || a.source || (s.state === 'on' ? 'På' : ''), sub = [a.media_artist || a.media_series_title, a.media_title ? a.app_name : ''].filter(Boolean).join(' · ');
@@ -869,7 +874,9 @@
     const b = e.target.closest('[data-mcmd]'); if (!b) return;
     e.stopPropagation();
     if (b.dataset.mcmd === 'turn_off') { if (!isArmed('moff:' + b.dataset.ment)) { armed = { k: 'moff:' + b.dataset.ment, t: Date.now() }; return toast('Tryck igen för att stänga av tv:n.'); } armed = null; }
-    sendCtl({ action: 'media', entity: b.dataset.ment, value: b.dataset.mcmd }, true);
+    const ent = b.dataset.ment, cmd = b.dataset.mcmd;
+    if (cmd === 'turn_off') { mediaOff[ent] = { until: Date.now() + 90000 }; refresh(); }
+    sendCtl({ action: 'media', entity: ent, value: cmd }, true).then(ok => { if (!ok && cmd === 'turn_off') { delete mediaOff[ent]; refresh(); } });
   }, true);
   function lightsCtl() {
     const L = cfg.lights; if (!L) return '<p class="dnote">Inga lampor i config.</p>';
