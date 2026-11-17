@@ -734,7 +734,12 @@
         "light.shelly_shdm_1_d0b28d",
         "light.ute_spottar",
         "light.0x000b57fffec87452",
-        "light.0x14b457fffe6caf0d"
+        "light.0x14b457fffe6caf0d",
+        "light.utomhus_spottar_verkstad",
+        "light.garage_lampor",
+        "light.framsida_lampor",
+        "light.baksida_lampor",
+        "light.uterum_lampor"
       ],
       "all_off": true,
       "groups": [
@@ -882,11 +887,66 @@
           ]
         },
         {
+          "name": "Garage",
+          "entity": "light.garage_lampor",
+          "lights": [
+            {
+              "entity": "light.smart_ljus",
+              "name": "Strålkastare"
+            },
+            {
+              "entity": "light.0x680ae2fffe1aa86d",
+              "name": "Hörnlampa"
+            },
+            {
+              "entity": "light.0x00158d000389a77a",
+              "name": "Uppfart"
+            },
+            {
+              "entity": "light.shelly1pm_8caab505faf2",
+              "name": "Ytterbelysning"
+            },
+            {
+              "entity": "light.utomhus_spottar_verkstad",
+              "name": "Spottar Verkstad"
+            }
+          ]
+        },
+        {
+          "name": "Framsida",
+          "entity": "light.framsida_lampor",
+          "lights": [
+            {
+              "entity": "light.shelly1minig4_ccba97c898f4",
+              "name": "Ytterlampa"
+            },
+            {
+              "entity": "light.shelly_shdm_1_d0b28d",
+              "name": "Spottar"
+            }
+          ]
+        },
+        {
+          "name": "Baksida",
+          "entity": "light.baksida_lampor",
+          "lights": [
+            {
+              "entity": "light.0x000b57fffec87452",
+              "name": "Lyktstolpe"
+            },
+            {
+              "entity": "light.0x14b457fffe6caf0d",
+              "name": "Gårdshus"
+            }
+          ]
+        },
+        {
           "name": "Uterum",
+          "entity": "light.uterum_lampor",
           "lights": [
             {
               "entity": "light.0x680ae2fffefa255f",
-              "name": "Framsida"
+              "name": "Ljusslinga Framsida"
             },
             {
               "entity": "light.0x086bd7fffe6178e9",
@@ -895,52 +955,6 @@
             {
               "entity": "light.0xf4b3b1fffe8c1c06",
               "name": "Ljusslinga baksida"
-            }
-          ]
-        },
-        {
-          "name": "Garage",
-          "lights": [
-            {
-              "entity": "light.0x680ae2fffe1aa86d",
-              "name": "Hörnlampa"
-            },
-            {
-              "entity": "light.smart_ljus",
-              "name": "Smart ljus"
-            },
-            {
-              "entity": "light.0x00158d000389a77a",
-              "name": "Uppfart"
-            }
-          ]
-        },
-        {
-          "name": "Ute",
-          "lights": [
-            {
-              "entity": "light.shelly1minig4_ccba97c898f4",
-              "name": "Ytterlampa"
-            },
-            {
-              "entity": "light.shelly1pm_8caab505faf2",
-              "name": "Garage ytterbelysning"
-            },
-            {
-              "entity": "light.shelly_shdm_1_d0b28d",
-              "name": "Spottar"
-            },
-            {
-              "entity": "light.ute_spottar",
-              "name": "Ute spottar"
-            },
-            {
-              "entity": "light.0x000b57fffec87452",
-              "name": "Lyktstolpe"
-            },
-            {
-              "entity": "light.0x14b457fffe6caf0d",
-              "name": "Gårdshus"
             }
           ]
         }

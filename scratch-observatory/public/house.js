@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.40.1';
+  const VERSION = '0.41.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -942,7 +942,10 @@
     const L = cfg.lights; if (!L) return '<p class="dnote">Inga lampor i config.</p>';
     const on = L.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on');
     const head = `<div class="lhead"><span><b>${on.length}</b> tända</span>${L.all_off ? `<button class="lalloff${isArmed('alloff') ? ' armed' : ''}" data-alloff ${on.length ? '' : 'disabled'}>${isArmed('alloff') ? 'Tryck igen för att släcka' : 'Släck alla'}</button>` : ''}</div>`;
-    return head + L.groups.map(g => `<div class="lgroup"><div class="eyebrow">${esc(g.name)}</div><div class="lgrid">${g.lights.map(l => {
+    // grupper med en ljusgrupp i HA får en strömknapp i rubriken, som i Belysning-popupen
+    const gbtn = g => { if (!g.entity) return ''; const s = st(g.entity), on = !!s && s.state === 'on', ok = !!s && (s.state === 'on' || s.state === 'off');
+      return `<button class="lgpow ${on ? 'on' : ''}" data-light="${esc(g.entity)}" data-on="${on}" ${ok ? '' : 'disabled'} aria-label="${on ? 'Släck' : 'Tänd'} ${esc(g.name)}"><svg viewBox="0 0 24 24"><path d="M12 3v8M6.3 7.3a8 8 0 1 0 11.4 0"/></svg></button>`; };
+    return head + L.groups.map(g => `<div class="lgroup"><div class="lghead"><div class="eyebrow">${esc(g.name)}</div>${gbtn(g)}</div><div class="lgrid">${g.lights.map(l => {
       const s = st(l.entity), state = s ? s.state : 'unavailable', ok = state === 'on' || state === 'off';
       const br = state === 'on' && s.attributes && s.attributes.brightness != null ? Math.round(s.attributes.brightness / 2.55) + ' %' : '';
       return `<button class="lbtn ${state === 'on' ? 'on' : ''}" data-light="${esc(l.entity)}" data-on="${state === 'on'}" ${ok ? '' : 'disabled'}>${BULB}<span>${esc(l.name)}</span><small>${ok ? (state === 'on' ? (br || 'På') : 'Av') : 'Ej nåbar'}</small></button>`;

@@ -572,3 +572,10 @@ body.lite .smoke i:nth-child(n+4){display:none}
 .drawer .crow.rest i em{background:var(--dim)}
 #dafter{margin-top:0}
 #dafter .sx>.eyebrow{font:600 12.5px/1.2 var(--mono,monospace);color:var(--gold);letter-spacing:.12em}
+.drawer .lghead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.drawer .lgpow{width:32px;height:32px;border-radius:50%;border:1px solid var(--line2);background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer;flex:none}
+.drawer .lgpow svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.drawer .lgpow.on{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+.drawer .lgpow:disabled{opacity:.4;cursor:default}
+.drawer .lghead{margin-bottom:6px}
+.drawer .lghead .eyebrow{margin:0!important}
