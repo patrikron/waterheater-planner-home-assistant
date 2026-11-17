@@ -683,3 +683,4 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .pa{width:min(480px,calc(100vw - 32px))}
 .drawer .camfbar span .abtn.camlivebtn{width:auto;padding:0 16px;font-size:14px;white-space:nowrap}
 .drawer .camfbar span .abtn{display:grid;place-items:center;text-align:center}.drawer .camfbar span .abtn.camlivebtn{display:inline-flex;align-items:center}
+.drawer .cambar .camfrigate{margin-left:auto;display:inline-flex;align-items:center;text-decoration:none;min-height:38px}

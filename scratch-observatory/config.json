@@ -1866,6 +1866,7 @@
       }
     ],
     "cameras": {
+      "frigate_url": "http://192.168.88.90:5000/",
       "refresh_seconds": 10,
       "focus_seconds": 1,
       "list": [

@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.45.0';
+  const VERSION = '0.45.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1049,7 +1049,7 @@
   }
   function camGrid() {
     const C = cfg.cameras; if (!C || !(C.list || []).length) return '<p class="dnote">Inga kameror i config.</p>';
-    return `<div class="camwrap"><div id="camgridwrap"><div class="cambar"><div class="kfseg" id="camlive"><button class="sel" data-camlive="0">Stillbilder</button><button data-camlive="1">Live alla</button></div><small id="camhint">Uppdateras var ${C.refresh_seconds || 10}:e sekund</small></div>
+    return `<div class="camwrap"><div id="camgridwrap"><div class="cambar"><div class="kfseg" id="camlive"><button class="sel" data-camlive="0">Stillbilder</button><button data-camlive="1">Live alla</button></div><small id="camhint">Uppdateras var ${C.refresh_seconds || 10}:e sekund</small>${/^https?:\/\//.test(C.frigate_url || '') ? `<a class="abtn camfrigate" href="${esc(C.frigate_url)}" target="_blank" rel="noopener noreferrer">Öppna Frigate ↗</a>` : ''}</div>
       <div class="camgrid" id="camgrid">${C.list.map((c, i) => `<button class="camtile" data-cam="${i}"><img alt="${esc(c.name)}"><span class="camwait">Hämtar …</span><span class="camname">${esc(c.name)}</span><span class="camage"></span></button>`).join('')}</div></div>
       <div class="camfocus" id="camfocus" hidden><div class="camfbar"><button class="abtn" data-camback>← Alla kameror</button><b id="camfname"></b><span><button class="abtn camlivebtn" data-camflive>Live</button><button class="abtn" data-camnav="-1" aria-label="Föregående">‹</button><button class="abtn" data-camnav="1" aria-label="Nästa">›</button></span></div>
       <div class="camfimg"><img id="camfimg" alt=""><span class="camwait">Hämtar …</span></div></div></div>
