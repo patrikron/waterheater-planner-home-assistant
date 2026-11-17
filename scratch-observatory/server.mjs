@@ -621,7 +621,8 @@ async function money() {
 // ---------- Kamerabilder ----------
 // Stillbilder hämtas från HA:s camera_proxy med token på serversidan. Bara kameror i house.cameras
 // och dammsugarens karta. Varje bild sparas en kort stund, så flera skärmar delar på samma hämtning.
-const CAMS = new Set([...((CONFIG.house && CONFIG.house.cameras && CONFIG.house.cameras.list) || []).map(c => c.entity), VAC && VAC.map].filter(Boolean));
+const CAM_CFG = (CONFIG.house && CONFIG.house.cameras) || {};
+const CAMS = new Set([...(CAM_CFG.list || []).map(c => c.entity), CAM_CFG.person_alert && CAM_CFG.person_alert.camera, VAC && VAC.map].filter(Boolean));
 const camCache = new Map(); let camBusy = 0;
 const CAM_TTL = 900, CAM_MAX = 4;
 async function cameraImage(res, entity, w) {

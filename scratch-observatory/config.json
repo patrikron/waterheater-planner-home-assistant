@@ -1905,7 +1905,74 @@
           "entity": "camera.hall",
           "name": "Hall"
         }
-      ]
+      ],
+      "person_alert": {
+        "camera": "camera.birdseye",
+        "hold_seconds": 30,
+        "refresh_ms": 1000,
+        "sensors": [
+          {
+            "entity": "binary_sensor.framsida_dorr_person_occupancy",
+            "name": "Framsida dörr"
+          },
+          {
+            "entity": "binary_sensor.framsida_grind_person_occupancy",
+            "name": "Framsida grind"
+          },
+          {
+            "entity": "binary_sensor.grind_person_occupancy",
+            "name": "Grind"
+          },
+          {
+            "entity": "binary_sensor.uppfart_person_occupancy",
+            "name": "Uppfart"
+          },
+          {
+            "entity": "binary_sensor.vag_person_occupancy_2",
+            "name": "Vägen"
+          },
+          {
+            "entity": "binary_sensor.gangstig_person_occupancy",
+            "name": "Gångstig"
+          },
+          {
+            "entity": "binary_sensor.gangstig_person_occupancy_2",
+            "name": "Gångstig"
+          },
+          {
+            "entity": "binary_sensor.garage_person_occupancy",
+            "name": "Garage"
+          },
+          {
+            "entity": "binary_sensor.garage_dorr_person_occupancy",
+            "name": "Garagedörr"
+          },
+          {
+            "entity": "binary_sensor.garage_soder_person_occupancy",
+            "name": "Garage söder"
+          },
+          {
+            "entity": "binary_sensor.verkstad_person_occupancy",
+            "name": "Verkstad"
+          },
+          {
+            "entity": "binary_sensor.uterum_person_occupancy",
+            "name": "Uterum"
+          },
+          {
+            "entity": "binary_sensor.baksida_vaxthus_person_occupancy",
+            "name": "Baksida växthus"
+          },
+          {
+            "entity": "binary_sensor.vaxthus_person_occupancy",
+            "name": "Växthus"
+          },
+          {
+            "entity": "binary_sensor.baksida_sandlada_person_occupancy",
+            "name": "Baksida sandlåda"
+          }
+        ]
+      }
     }
   },
   "water": {

@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.43.0';
+  const VERSION = '0.44.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1655,6 +1655,61 @@
   }
   setInterval(tick, 20000); tick();
 
+  // ---------- Person upptäckt: liten ruta med Birdseye ----------
+  // Visas när någon av Frigates personsensorer slår till, och stängs en stund efter att alla gått tillbaka.
+  // Bilden hämtas bara medan rutan syns och sidan inte är dold.
+  const PA = { el: null, until: 0, gen: 0, ctrl: null, mute: 0, dismissed: null, names: [] };
+  function personCheck() {
+    const P = cfg && cfg.cameras && cfg.cameras.person_alert; if (!P || !P.camera) return;
+    const on = (P.sensors || []).filter(x => (st(x.entity) || {}).state === 'on');
+    const now = Date.now();
+    if (on.length) { PA.until = now + (P.hold_seconds || 30) * 1000; PA.names = [...new Set(on.map(x => x.name))]; }
+    // stängd ruta kommer bara tillbaka vid en ny upptäckt (en sensor som inte var på när den stängdes)
+    if (!on.length && PA.until <= now) PA.dismissed = null;
+    const fresh = !PA.dismissed || on.some(x => !PA.dismissed.has(x.entity));
+    if (PA.dismissed && fresh && on.length) PA.dismissed = null;
+    const want = PA.until > now && now > PA.mute && !PA.dismissed && drawerOpen !== 'cameras';
+    if (want && !PA.el) personShow(P);
+    else if (!want && PA.el) personHide();
+    if (PA.el) { const n = PA.el.querySelector('.pa-who'); n.textContent = on.length ? 'Person: ' + PA.names.join(', ') : 'Senast: ' + PA.names.join(', '); PA.el.classList.toggle('live', !!on.length); }
+  }
+  setInterval(personCheck, 5000);
+  function personShow(P) {
+    const el = document.createElement('div'); el.className = 'pa'; el.setAttribute('role', 'status');
+    el.innerHTML = `<div class="pa-img"><img alt="Birdseye"><span class="camwait">Hämtar bild …</span></div><div class="pa-bar"><i></i><span class="pa-who"></span>
+      <button class="pa-btn" data-pa="mute" title="Visa inte på 15 min">Tysta</button><button class="pa-btn" data-pa="close" aria-label="Stäng">×</button></div>`;
+    document.body.appendChild(el); PA.el = el;
+    requestAnimationFrame(() => el.classList.add('in'));
+    const gen = ++PA.gen; PA.ctrl = new AbortController();
+    (async () => {
+      const img = el.querySelector('img'), box = el.querySelector('.pa-img');
+      while (gen === PA.gen) {
+        const t0 = Date.now();
+        if (!document.hidden) {
+          try {
+            const r = await fetch(`api/camera?entity=${encodeURIComponent(P.camera)}&w=640`, { cache: 'no-store', signal: PA.ctrl.signal });
+            if (!r.ok) throw new Error(r.status);
+            const u = URL.createObjectURL(await r.blob()), old = img.dataset.u;
+            await new Promise(res => { img.onload = img.onerror = res; img.src = u; });
+            img.dataset.u = u; if (old) URL.revokeObjectURL(old); box.classList.add('ok'); box.classList.remove('err');
+          } catch (e) { if (e.name === 'AbortError') return; box.classList.add('err'); }
+        }
+        await new Promise(r => setTimeout(r, Math.max(200, (P.refresh_ms || 1000) - (Date.now() - t0))));
+      }
+    })();
+  }
+  function personHide() {
+    PA.gen++; if (PA.ctrl) PA.ctrl.abort(); const el = PA.el; PA.el = null; if (!el) return;
+    el.classList.remove('in'); setTimeout(() => { const i = el.querySelector('img'); if (i && i.dataset.u) URL.revokeObjectURL(i.dataset.u); el.remove(); }, 300);
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.pa'); if (!b) return;
+    const a = e.target.closest('[data-pa]');
+    if (a && a.dataset.pa === 'mute') { PA.mute = Date.now() + 15 * 60000; personHide(); }
+    else if (a) { const P = cfg.cameras.person_alert; PA.dismissed = new Set((P.sensors || []).filter(x => (st(x.entity) || {}).state === 'on').map(x => x.entity)); personHide(); }
+    else { personHide(); openDrawer('cameras'); }
+  });
+
   // ---------- Data ----------
   let queued = false;
   function refresh() {
@@ -1666,6 +1721,7 @@
       $('badge').lastElementChild.textContent = live ? 'Live · Home Assistant' : 'Väntar på data';
       renderBoxes(); applyLight(); pvFx();
       if (drawerOpen) renderDrawerStats();
+      personCheck();
     });
   }
 
