@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { timingSafeEqual } from 'node:crypto';
+import { Readable } from 'node:stream';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(ROOT, 'public');
@@ -643,6 +644,25 @@ async function cameraImage(res, entity, w) {
   if (c.p) { try { await c.p; } catch (e) { if (!c.body) { camCache.delete(key); throw Object.assign(new Error('Kunde inte hämta bilden'), { code: 404 }); } } }
   return sendImg(res, c);
 }
+// Livebild (MJPEG) från HA:s camera_proxy_stream, vidarebefordrad så att token stannar här.
+// Strömmen stängs mot HA så fort webbläsaren släpper bilden. Högst STREAM_MAX samtidigt.
+let streams = 0; const STREAM_MAX = Number(CAM_CFG.max_streams) || 12;
+async function cameraStream(req, res, entity) {
+  if (!CAMS.has(entity) || !ID_RE.test(entity) || entity === (VAC && VAC.map)) throw Object.assign(new Error('Okänd kamera'), { code: 404 });
+  if (streams >= STREAM_MAX) throw Object.assign(new Error('För många liveströmmar'), { code: 429 });
+  const ac = new AbortController(); streams++;
+  let done = false; const end = () => { if (done) return; done = true; streams--; ac.abort(); };
+  req.on('close', end); res.on('close', end);
+  try {
+    const r = await fetch(`${HA_URL}/api/camera_proxy_stream/${entity}`, { headers: { Authorization: `Bearer ${HA_TOKEN}` }, signal: ac.signal });
+    const type = r.headers.get('content-type') || '';
+    if (!r.ok || !r.body || !/^multipart\/x-mixed-replace/i.test(type)) { end(); throw Object.assign(new Error('Ingen liveström'), { code: 404 }); }
+    res.writeHead(200, { ...SEC, 'Content-Type': type, 'Cache-Control': 'no-store', Connection: 'close' });
+    const body = Readable.fromWeb(r.body);
+    body.on('error', () => { end(); res.destroy(); });
+    body.pipe(res);
+  } catch (e) { end(); if (e.code) throw e; if (!res.headersSent) throw Object.assign(new Error('Ingen liveström'), { code: 404 }); res.destroy(); }
+}
 function sendImg(res, c) {
   if (!/^image\//.test(c.type || '')) throw Object.assign(new Error('Ingen bild'), { code: 404 });
   res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'no-store', 'Content-Length': c.body.length });
@@ -739,6 +759,7 @@ const server = http.createServer(async (req, res) => {
       req.on('close', () => { clearInterval(ping); clients.delete(res); });
       return;
     }
+    if (url.pathname === '/api/camera_stream') return await cameraStream(req, res, url.searchParams.get('entity') || '');
     if (url.pathname === '/api/camera') return await cameraImage(res, url.searchParams.get('entity') || '', Number(url.searchParams.get('w')) || 640);
     if (url.pathname === '/healthz') return json(res, connected ? 200 : 503, { connected });
     // Statiska filer från public/

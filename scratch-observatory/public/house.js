@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.44.3';
+  const VERSION = '0.45.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -856,7 +856,7 @@
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl, after: vacuumAfter,
       extra: () => cfg.vacuum && cfg.vacuum.map ? '<div class="sx vmap"><div class="eyebrow">Karta</div><div class="vmapbox"><img id="vmapimg" alt="Dammsugarens karta"><span class="camwait">Hämtar karta …</span></div></div>' : '',
       open: vacMapStart, close: camStop },
-    cameras: { eyebrow: 'Säkerhet / kameror', title: 'Kameror', wide: true, rich: () => '', stats: () => [], charts: () => [], extra: camGrid, open: camStart, close: camStop },
+    cameras: { eyebrow: 'Säkerhet / kameror', title: 'Kameror', wide: true, cls: 'cams', rich: () => '', stats: () => [], charts: () => [], extra: camGrid, open: camStart, close: camStop },
     info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
     kamin: { eyebrow: 'Vardagsrum / kamin', title: 'Kaminen', stats: () => [], rich: kaminRich, ctl: stoveCtl, charts: () => cfg.stove ? [[cfg.stove.temp, 'Temperatur vid utblåset', TC('orange'), 1, '°C']] : [] },
@@ -1033,7 +1033,8 @@
     } catch (e) { if (e.name !== 'AbortError' && box) box.classList.add('err'); return false; }
   }
   function camStop() {
-    CAMV.gen++; if (CAMV.ctrl) CAMV.ctrl.abort(); CAMV.ctrl = null; CAMV.focus = null;
+    CAMV.gen++; if (CAMV.ctrl) CAMV.ctrl.abort(); CAMV.ctrl = null; CAMV.focus = null; CAMV.live = false; CAMV.flive = false;
+    document.querySelectorAll('#drawer img[data-live]').forEach(i => { delete i.dataset.live; i.onload = i.onerror = null; i.removeAttribute('src'); }); // stänger liveströmmar direkt
     // bilderna släpps när panelen har stängts, så att de inte ligger kvar i minnet
     setTimeout(() => { if (drawerOpen === 'cameras' || drawerOpen === 'vacuum') return; document.querySelectorAll('#drawer img[data-u]').forEach(i => { URL.revokeObjectURL(i.dataset.u); i.removeAttribute('src'); delete i.dataset.u; }); }, 400);
   }
@@ -1048,53 +1049,94 @@
   }
   function camGrid() {
     const C = cfg.cameras; if (!C || !(C.list || []).length) return '<p class="dnote">Inga kameror i config.</p>';
-    return `<div class="camwrap"><div class="camgrid" id="camgrid">${C.list.map((c, i) => `<button class="camtile" data-cam="${i}"><img alt="${esc(c.name)}"><span class="camwait">Hämtar …</span><span class="camname">${esc(c.name)}</span><span class="camage"></span></button>`).join('')}</div>
-      <div class="camfocus" id="camfocus" hidden><div class="camfbar"><button class="abtn" data-camback>← Alla kameror</button><b id="camfname"></b><span><button class="abtn" data-camnav="-1" aria-label="Föregående">‹</button><button class="abtn" data-camnav="1" aria-label="Nästa">›</button></span></div>
+    return `<div class="camwrap"><div id="camgridwrap"><div class="cambar"><div class="kfseg" id="camlive"><button class="sel" data-camlive="0">Stillbilder</button><button data-camlive="1">Live alla</button></div><small id="camhint">Uppdateras var ${C.refresh_seconds || 10}:e sekund</small></div>
+      <div class="camgrid" id="camgrid">${C.list.map((c, i) => `<button class="camtile" data-cam="${i}"><img alt="${esc(c.name)}"><span class="camwait">Hämtar …</span><span class="camname">${esc(c.name)}</span><span class="camage"></span></button>`).join('')}</div></div>
+      <div class="camfocus" id="camfocus" hidden><div class="camfbar"><button class="abtn" data-camback>← Alla kameror</button><b id="camfname"></b><span><button class="abtn camlivebtn" data-camflive>Live</button><button class="abtn" data-camnav="-1" aria-label="Föregående">‹</button><button class="abtn" data-camnav="1" aria-label="Nästa">›</button></span></div>
       <div class="camfimg"><img id="camfimg" alt=""><span class="camwait">Hämtar …</span></div></div></div>
-      <p class="dnote">Stillbilder som uppdateras var ${C.refresh_seconds || 10}:e sekund medan panelen är öppen. Tryck på en kamera för att se den större och tätare uppdaterad. Inget hämtas när panelen är stängd.</p>`;
+      <p class="dnote">Tryck på en kamera för att se den stor. Live i storbilden är rörlig bild från Home Assistant. Live alla visar en ny bild ungefär varje sekund för kamerorna som syns. Inget hämtas när panelen är stängd.</p>`;
   }
+  // livebild: <img> med MJPEG-ström via servern; src tas bort för att stänga strömmen
+  function liveOn(img, ent) {
+    if (img.dataset.live === ent) return;
+    const box = img.closest('.camtile,.camfocus'), failed = Number(img.dataset.failed || 0);
+    if (Date.now() - failed < 15000) return;
+    if (img.dataset.u) { URL.revokeObjectURL(img.dataset.u); delete img.dataset.u; }
+    img.dataset.live = ent;
+    img.onload = () => { if (box) { box.classList.add('ok'); box.classList.remove('err'); } };
+    img.onerror = () => { if (img.dataset.live !== ent) return; img.dataset.failed = Date.now(); liveOff(img); if (box) box.classList.add('err'); };
+    img.src = `api/camera_stream?entity=${encodeURIComponent(ent)}&n=${Date.now()}`;
+  }
+  function liveOff(img) { if (!img || !img.dataset.live) return; delete img.dataset.live; img.onload = img.onerror = null; img.removeAttribute('src'); const b = img.closest('.camtile,.camfocus'); if (b) { b.classList.remove('ok'); delete b.dataset.at; } }
+  const liveAllOff = () => document.querySelectorAll('#drawer img[data-live]').forEach(liveOff);
   async function camStart() {
-    camStop(); const gen = ++CAMV.gen; CAMV.ctrl = new AbortController();
+    camStop(); const gen = ++CAMV.gen; CAMV.ctrl = new AbortController(); CAMV.live = false; CAMV.flive = false;
     const C = cfg.cameras; if (!C) return;
     const grid = $('camgrid'); if (!grid) return;
     const vis = t => { const r = t.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight && r.width > 0; };
     const tiles = () => [...grid.querySelectorAll('.camtile')];
-    const load = async list => { for (let k = 0; k < list.length && gen === CAMV.gen && CAMV.focus == null; k += 2)
-      await Promise.all(list.slice(k, k + 2).map(t => camFetch(t.querySelector('img'), C.list[+t.dataset.cam].entity, 640))); };
+    const ent = t => C.list[+t.dataset.cam].entity;
+    const load = async list => { for (let k = 0; k < list.length && gen === CAMV.gen && CAMV.focus == null && !CAMV.live; k += 2)
+      await Promise.all(list.slice(k, k + 2).map(t => camFetch(t.querySelector('img'), ent(t), 640))); };
     await camWait(350); // vänta tills panelen har glidit in
     const every = (C.refresh_seconds || 10) * 1000, fast = (C.focus_seconds || 1) * 1000;
     while (gen === CAMV.gen) {
-      if (document.hidden) { await camWait(1000); continue; }
+      if (document.hidden) { liveAllOff(); await camWait(1000); continue; }
       if (CAMV.focus != null) {
-        const t0 = Date.now(), c = C.list[CAMV.focus], img = $('camfimg');
+        tiles().forEach(t => liveOff(t.querySelector('img')));
+        const c = C.list[CAMV.focus], img = $('camfimg');
+        if (CAMV.flive) { if (c && img) liveOn(img, c.entity); await camWait(800); continue; }
+        liveOff(img);
+        const t0 = Date.now();
         if (c && img) await camFetch(img, c.entity, 1280);
         await camWait(Math.max(150, fast - (Date.now() - t0)));
         continue;
+      }
+      liveOff($('camfimg'));
+      if (CAMV.live) {
+        // "live alla": nya bilder hela tiden, tre åt gången. Riktiga liveströmmar för alla skulle ta slut på
+        // webbläsarens sex anslutningar per server och låsa resten av sidan, så bara storbilden får en ström.
+        const t0 = Date.now(), list = tiles().filter(vis);
+        for (let k = 0; k < list.length && gen === CAMV.gen && CAMV.focus == null && CAMV.live; k += 3)
+          await Promise.all(list.slice(k, k + 3).map(t => camFetch(t.querySelector('img'), ent(t), 640)));
+        camAges(); await camWait(Math.max(300, 1000 - (Date.now() - t0))); continue;
       }
       // bara de kameror som syns hämtas, två i taget
       const t0 = Date.now();
       await load(tiles().filter(vis));
       camAges();
-      for (let w = 0; w < every - (Date.now() - t0) && gen === CAMV.gen && CAMV.focus == null; w += 500) {
+      for (let w = 0; w < every - (Date.now() - t0) && gen === CAMV.gen && CAMV.focus == null && !CAMV.live; w += 500) {
         await camWait(500); camAges();
         const fresh = tiles().filter(t => vis(t) && !t.dataset.at && !t.classList.contains('err')); // nyss inscrollade
         if (fresh.length) await load(fresh);
       }
     }
   }
-  function camAges() { document.querySelectorAll('#camgrid .camtile').forEach(t => { const a = Number(t.dataset.at), el = t.querySelector('.camage'); if (el) el.textContent = a ? Math.round((Date.now() - a) / 1000) + ' s' : ''; }); }
+  function camAges() { document.querySelectorAll('#camgrid .camtile').forEach(t => { const a = Number(t.dataset.at), el = t.querySelector('.camage');
+    const lv = !!CAMV.live && !!a && Date.now() - a < 4000;
+    if (el) { el.textContent = lv ? 'LIVE' : a ? Math.round((Date.now() - a) / 1000) + ' s' : ''; el.classList.toggle('live', lv); } }); }
   function camFocus(i) {
     const C = cfg.cameras, n = C.list.length; i = ((i % n) + n) % n; CAMV.focus = i;
-    $('camgrid').hidden = true; $('camfocus').hidden = false; $('camfname').textContent = C.list[i].name;
+    $('camgridwrap').hidden = true; $('camfocus').hidden = false; $('camfname').textContent = C.list[i].name;
     const img = $('camfimg'), g = document.querySelector(`#camgrid [data-cam="${i}"] img`);
+    liveOff(img); delete img.dataset.failed;
     $('camfocus').classList.remove('ok', 'err');
-    if (g && g.src) { img.src = g.src; $('camfocus').classList.add('ok'); } else img.removeAttribute('src');
+    if (g && g.src && !g.dataset.live) { img.src = g.src; $('camfocus').classList.add('ok'); } else img.removeAttribute('src');
+    if (CAMV.live) CAMV.flive = true;
+    if (CAMV.flive) liveOn(img, C.list[i].entity);
+    camLiveUi();
+  }
+  function camLiveUi() {
+    document.querySelectorAll('#camlive [data-camlive]').forEach(b => b.classList.toggle('sel', (b.dataset.camlive === '1') === !!CAMV.live));
+    const h = $('camhint'); if (h) h.textContent = CAMV.live ? 'Ny bild ungefär varje sekund. Tryck på en kamera för riktig livebild' : `Uppdateras var ${(cfg.cameras && cfg.cameras.refresh_seconds) || 10}:e sekund`;
+    const f = document.querySelector('[data-camflive]'); if (f) { f.classList.toggle('on', !!CAMV.flive); f.textContent = CAMV.flive ? '● Live' : 'Live'; }
   }
   document.addEventListener('click', e => {
     if (drawerOpen !== 'cameras') return;
-    const t = e.target.closest('[data-cam],[data-camback],[data-camnav]'); if (!t) return;
+    const t = e.target.closest('[data-cam],[data-camback],[data-camnav],[data-camlive],[data-camflive]'); if (!t) return;
     if (t.dataset.cam != null) camFocus(+t.dataset.cam);
-    else if (t.hasAttribute('data-camback')) { CAMV.focus = null; $('camfocus').hidden = true; $('camgrid').hidden = false; }
+    else if (t.dataset.camlive != null) { CAMV.live = t.dataset.camlive === '1'; document.querySelectorAll('#camgrid img').forEach(i => delete i.dataset.failed); camLiveUi(); }
+    else if (t.hasAttribute('data-camflive')) { CAMV.flive = !CAMV.flive; const img = $('camfimg'); delete img.dataset.failed; if (CAMV.flive) liveOn(img, cfg.cameras.list[CAMV.focus].entity); else liveOff(img); camLiveUi(); }
+    else if (t.hasAttribute('data-camback')) { CAMV.focus = null; liveOff($('camfimg')); $('camfocus').hidden = true; $('camgridwrap').hidden = false; }
     else camFocus(CAMV.focus + Number(t.dataset.camnav));
   });
   // Hus-info: luft, dörrar, rörelse, vattenläckor, brandvarnare
@@ -1453,6 +1495,7 @@
     $('drawer-eyebrow').textContent = d.eyebrow; $('drawer-title').textContent = d.title;
     $('drawer').classList.toggle('wide', !!d.wide);
     $('drawer').classList.toggle('framed', !!d.frame);
+    $('drawer').classList.toggle('cams', d.cls === 'cams');
     if (d.frame) {
       $('drawer-stats').innerHTML = '';
       const cur = $('drawer-charts').querySelector('iframe');

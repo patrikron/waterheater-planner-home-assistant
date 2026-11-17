@@ -671,3 +671,15 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .box .bio small{font-size:10.5px;color:var(--muted);margin-left:3px}
 .box .bio .in svg{stroke:var(--orange)}.box .bio .out svg{stroke:var(--sage)}.box .bio .use svg{stroke:var(--muted)}.box .bio .sun svg{stroke:var(--gold)}
 .box:has(.bio){width:max-content;min-width:clamp(124px,12cqw,184px)}
+/* 0.45 större kamerapanel + live */
+.drawer.cams{width:min(1320px,100vw)}
+.drawer.cams .camgrid{grid-template-columns:repeat(auto-fill,minmax(min(380px,100%),1fr))}
+.drawer .cambar{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.drawer .cambar small{color:var(--muted);font-size:12.5px}
+.drawer .camage.live{opacity:1;color:#fff;font-weight:700;letter-spacing:.05em}
+.drawer .camage.live::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:5px;vertical-align:1px;animation:pablink 1.2s infinite}
+.drawer .camlivebtn.on{background:color-mix(in srgb,var(--red) 30%,var(--panel));border-color:var(--red)}
+.drawer.cams .camfimg{max-height:calc(100dvh - 210px)}
+.pa{width:min(480px,calc(100vw - 32px))}
+.drawer .camfbar span .abtn.camlivebtn{width:auto;padding:0 16px;font-size:14px;white-space:nowrap}
+.drawer .camfbar span .abtn{display:grid;place-items:center;text-align:center}.drawer .camfbar span .abtn.camlivebtn{display:inline-flex;align-items:center}

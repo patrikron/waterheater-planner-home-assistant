@@ -51,9 +51,12 @@
   function activity() {
     body.classList.remove('hide-cursor');
     clearTimeout(cursor); cursor = setTimeout(() => body.classList.add('hide-cursor'), 4000);
-    clearTimeout(idle); idle = setTimeout(() => {
+    clearTimeout(idle); idle = setTimeout(function close() {
       const d = document.getElementById('drawer');
-      if (d && d.classList.contains('open')) document.getElementById('drawer-close').click();
+      if (!d || !d.classList.contains('open')) return;
+      // kamerapanelen får stå öppen 5 min utan tryck, sedan stängs den (och liveströmmarna)
+      if (d.classList.contains('cams') && !close.x) { close.x = 1; idle = setTimeout(close, 300000 - IDLE_CLOSE); return; }
+      document.getElementById('drawer-close').click();
     }, IDLE_CLOSE);
   }
   ['pointerdown', 'pointermove', 'keydown', 'wheel'].forEach(e => document.addEventListener(e, activity, { passive: true }));

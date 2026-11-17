@@ -1,6 +1,6 @@
 {
   "name": "observatory-site",
-  "version": "0.44.3",
+  "version": "0.45.0",
   "private": true,
   "type": "module",
   "description": "Egen sajt som visar huset med live-data från Home Assistant",
