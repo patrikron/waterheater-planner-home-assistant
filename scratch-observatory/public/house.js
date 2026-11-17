@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.44.2';
+  const VERSION = '0.44.3';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1713,7 +1713,7 @@
   // kWh idag på en rad med ikon och liten förklaring under (köpt/sålt, förbrukat, producerat)
   const IO_SVG = { in: '<path d="M12 3v11M7 9l5 5 5-5M4 20h16"/>', out: '<path d="M12 15V4M7 9l5-5 5 5M4 20h16"/>',
     use: '<path d="M4 11l8-7 8 7M6 10v10h12V10"/><path d="M13 11l-3 4h4l-3 4"/>', sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>' };
-  const ioRow = items => `<div class="bio">${items.map(([ic, v, label, cls], i) => `<span class="${cls}" title="${esc(label)} idag"><span class="bion"><svg viewBox="0 0 24 24" aria-hidden="true">${IO_SVG[ic]}</svg><b>${nf(v)}</b>${i === items.length - 1 ? '<small>kWh</small>' : ''}</span><em>${esc(label)}</em></span>`).join('')}</div>`;
+  const ioRow = items => `<div class="bio">${items.map(([ic, v, label, cls], i) => `<span class="${cls}" title="${esc(label)} idag"><em>${esc(label)}</em><span class="bion"><svg viewBox="0 0 24 24" aria-hidden="true">${IO_SVG[ic]}</svg><b>${nf(v)}</b>${i === items.length - 1 ? '<small>kWh</small>' : ''}</span></span>`).join('')}</div>`;
   // ---------- Data ----------
   let queued = false;
   function refresh() {
