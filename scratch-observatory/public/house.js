@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.44.1';
+  const VERSION = '0.44.2';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -131,13 +131,13 @@
     sol: { title: 'Solpaneler', cls: 'key', drawer: 'solar', wire: 'sol', render() {
       const w = num(cfg.solar), today = num(cfg.pv_today);
       const rem = num(cfg.fc_remaining), tom = num(cfg.fc_tomorrow);
-      return { v: kw(w), u: 'kW', s: `${nf(today)} kWh idag`, vc: vcol('sol', w),
+      return { v: kw(w), u: 'kW', io: [['sun', today, 'Producerat', 'sun']], vc: vcol('sol', w),
         flow: w > 20 ? { cls: 'sol', dir: 'out', w } : null };
     } },
     hus: { title: 'Huset', cls: 'key', drawer: 'house', render() {
       const load = num(cfg.load), ch = num(cfg.charger);
       const house = load != null && ch != null && ch <= load ? load - ch : load;
-      return { v: kw(house), u: 'kW', vc: vcol('hus', house), s: `Förbrukat ${nf(num(cfg.load_today))} kWh`, flow: house > 30 ? { cls: '', dir: 'in', w: house } : null };
+      return { v: kw(house), u: 'kW', vc: vcol('hus', house), io: [['use', num(cfg.load_today), 'Förbrukat', 'use']], flow: house > 30 ? { cls: '', dir: 'in', w: house } : null };
     } },
     vv: { title: 'Varmvatten', drawer: 'hotwater', render() {
       const t = num(cfg.hot_water, 'temperature'), s = st(cfg.hot_water);
@@ -147,7 +147,7 @@
     nat: { title: 'Elnät', cls: 'key', drawer: 'grid', wire: 'grid', render() {
       const g = num(cfg.grid);
       const lbl = g == null ? 'okänt' : g > 30 ? 'Köper från nätet' : g < -30 ? 'Säljer till nätet' : 'I balans';
-      return { v: kw(g), u: 'kW', vc: vcol('nat', g), io: [num(cfg.grid_in_today), num(cfg.grid_out_today)], title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
+      return { v: kw(g), u: 'kW', vc: vcol('nat', g), io: [['in', num(cfg.grid_in_today), 'Köpt', 'in'], ['out', num(cfg.grid_out_today), 'Sålt', 'out']], title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
     } },
     vp: { title: 'Värmepump', drawer: 'heatpump', render() {
       const w = num(cfg.heatpump), inne = num(cfg.indoor);
@@ -1710,9 +1710,10 @@
     else { personHide(); openDrawer('cameras'); }
   });
 
-  // Köpt och sålt idag på en rad: pil in i huset = köpt, pil ut = sålt
-  const IO_IN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11M7 9l5 5 5-5M4 20h16"/></svg>', IO_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16"/></svg>';
-  const ioRow = ([a, b]) => `<div class="bio"><span class="in" title="Köpt idag">${IO_IN}<b>${nf(a)}</b></span><span class="out" title="Sålt idag">${IO_OUT}<b>${nf(b)}</b></span><small>kWh</small></div>`;
+  // kWh idag på en rad med ikon och liten förklaring under (köpt/sålt, förbrukat, producerat)
+  const IO_SVG = { in: '<path d="M12 3v11M7 9l5 5 5-5M4 20h16"/>', out: '<path d="M12 15V4M7 9l5-5 5 5M4 20h16"/>',
+    use: '<path d="M4 11l8-7 8 7M6 10v10h12V10"/><path d="M13 11l-3 4h4l-3 4"/>', sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>' };
+  const ioRow = items => `<div class="bio">${items.map(([ic, v, label, cls], i) => `<span class="${cls}" title="${esc(label)} idag"><span class="bion"><svg viewBox="0 0 24 24" aria-hidden="true">${IO_SVG[ic]}</svg><b>${nf(v)}</b>${i === items.length - 1 ? '<small>kWh</small>' : ''}</span><em>${esc(label)}</em></span>`).join('')}</div>`;
   // ---------- Data ----------
   let queued = false;
   function refresh() {

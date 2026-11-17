@@ -661,11 +661,13 @@ body.lite .smoke i:nth-child(n+4){display:none}
 .pa-btn{font:inherit;font-size:12.5px;color:var(--text);background:transparent;border:1px solid var(--line2);border-radius:999px;padding:4px 10px;cursor:pointer}
 @keyframes pablink{50%{opacity:.3}}
 body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom))}
-/* 0.44.1 köpt/sålt idag i import/export-rutan */
-.box .bio{display:flex;align-items:center;gap:8px;margin-top:3px;white-space:nowrap}
-.box .bio span{display:inline-flex;align-items:center;gap:3px;font-variant-numeric:tabular-nums}
+/* 0.44.1–0.44.2 kWh idag i Import/Export, Huset och Solpaneler */
+.box .bio{display:flex;align-items:flex-start;gap:9px;margin-top:3px;white-space:nowrap}
+.box .bio>span{display:flex;flex-direction:column;gap:0}
+.box .bio .bion{display:inline-flex;align-items:center;gap:3px;font-variant-numeric:tabular-nums}
 .box .bio svg{width:14px;height:14px;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .box .bio b{font-size:14.5px;font-weight:600;color:var(--text)}
-.box .bio small{font-size:10.5px;color:var(--muted)}
-.box .bio .in svg{stroke:var(--orange)}.box .bio .out svg{stroke:var(--sage)}
+.box .bio em{font-style:normal;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-left:17px;line-height:1.1}
+.box .bio small{font-size:10.5px;color:var(--muted);margin-left:3px}
+.box .bio .in svg{stroke:var(--orange)}.box .bio .out svg{stroke:var(--sage)}.box .bio .use svg{stroke:var(--muted)}.box .bio .sun svg{stroke:var(--gold)}
 .box:has(.bio){width:max-content;min-width:clamp(124px,12cqw,184px)}
