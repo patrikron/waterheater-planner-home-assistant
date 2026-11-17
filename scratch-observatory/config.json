@@ -748,12 +748,19 @@
         "light.garage_lampor",
         "light.framsida_lampor",
         "light.baksida_lampor",
-        "light.uterum_lampor"
+        "light.uterum_lampor",
+        "light.kok_lampor",
+        "light.vardagsrum_lampor",
+        "light.hall_lampor",
+        "light.oliver_lampor",
+        "light.ludvig_lampor",
+        "light.kontor_lampor"
       ],
       "all_off": true,
       "groups": [
         {
           "name": "Kök",
+          "entity": "light.kok_lampor",
           "lights": [
             {
               "entity": "light.shellydimmer_d3e607",
@@ -775,6 +782,7 @@
         },
         {
           "name": "Vardagsrum",
+          "entity": "light.vardagsrum_lampor",
           "lights": [
             {
               "entity": "light.shelly1_bcddc277bfd3",
@@ -808,6 +816,7 @@
         },
         {
           "name": "Hall",
+          "entity": "light.hall_lampor",
           "lights": [
             {
               "entity": "light.shelly1minig4_7c2c67704ac8",
@@ -825,6 +834,7 @@
         },
         {
           "name": "Sovrum",
+          "entity": "light.shelly1minig4_ccba97c95510",
           "lights": [
             {
               "entity": "light.shelly1minig4_ccba97c95510",
@@ -834,6 +844,7 @@
         },
         {
           "name": "Olivers rum",
+          "entity": "light.oliver_lampor",
           "lights": [
             {
               "entity": "light.shelly1pmminig3_34b7daca6ec0_switch_0",
@@ -855,6 +866,7 @@
         },
         {
           "name": "Ludvigs rum",
+          "entity": "light.ludvig_lampor",
           "lights": [
             {
               "entity": "light.shelly1pm_349454764950",
@@ -872,6 +884,7 @@
         },
         {
           "name": "Kontor",
+          "entity": "light.kontor_lampor",
           "lights": [
             {
               "entity": "light.shelly1minig4_ccba97d73918",
