@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.44.0';
+  const VERSION = '0.44.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -147,7 +147,7 @@
     nat: { title: 'Elnät', cls: 'key', drawer: 'grid', wire: 'grid', render() {
       const g = num(cfg.grid);
       const lbl = g == null ? 'okänt' : g > 30 ? 'Köper från nätet' : g < -30 ? 'Säljer till nätet' : 'I balans';
-      return { v: kw(g), u: 'kW', vc: vcol('nat', g), s: `Köpt idag ${nf(num(cfg.grid_in_today))} kWh`, s2: `Sålt idag ${nf(num(cfg.grid_out_today))} kWh`, title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
+      return { v: kw(g), u: 'kW', vc: vcol('nat', g), io: [num(cfg.grid_in_today), num(cfg.grid_out_today)], title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
     } },
     vp: { title: 'Värmepump', drawer: 'heatpump', render() {
       const w = num(cfg.heatpump), inne = num(cfg.indoor);
@@ -528,7 +528,7 @@
       el._flow = r.flow || null;
       el.hidden = !!r.hide && !editing;
       if (r.custom) el.innerHTML = r.custom;
-      else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v${r.vc ? ' ' + r.vc : ''}">${r.v}<small>${r.u}</small></div><div class="s">${esc(r.s || '')}</div>${r.s2 ? `<div class="s s2">${esc(r.s2)}</div>` : ''}` +
+      else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v${r.vc ? ' ' + r.vc : ''}">${r.v}<small>${r.u}</small></div>${r.io ? ioRow(r.io) : `<div class="s">${esc(r.s || '')}</div>`}${r.s2 ? `<div class="s s2">${esc(r.s2)}</div>` : ''}` +
         (r.soc != null ? `<div class="soc"><span style="width:${Math.max(0, Math.min(100, r.soc))}%"></span></div>${r.socLabel === false ? '' : `<div class="s">EV6 ${Math.round(r.soc)} %</div>`}` : '');
       // Liten ikon framför rubriken; väderrutan får ikonen för aktuellt väder
       const k = el.querySelector('.k'), id = el.dataset.id;
@@ -1710,6 +1710,9 @@
     else { personHide(); openDrawer('cameras'); }
   });
 
+  // Köpt och sålt idag på en rad: pil in i huset = köpt, pil ut = sålt
+  const IO_IN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11M7 9l5 5 5-5M4 20h16"/></svg>', IO_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16"/></svg>';
+  const ioRow = ([a, b]) => `<div class="bio"><span class="in" title="Köpt idag">${IO_IN}<b>${nf(a)}</b></span><span class="out" title="Sålt idag">${IO_OUT}<b>${nf(b)}</b></span><small>kWh</small></div>`;
   // ---------- Data ----------
   let queued = false;
   function refresh() {
