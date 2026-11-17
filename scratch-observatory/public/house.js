@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.45.2';
+  const VERSION = '0.46.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -109,7 +109,7 @@
     const s = st(cfg.outdoor), sun = st(cfg.sun); if (!s) return null;
     const a = s.attributes || {};
     return { cond: s.state, temp: outdoorTemp(), wind: a.wind_speed != null ? a.wind_speed / 3.6 : null, humidity: a.humidity,
-      rise: sun ? time(sun.attributes.next_rising) : null, set: sun ? time(sun.attributes.next_setting) : null };
+      rise: sun ? time(sun.attributes.next_rising) : null, set: sun ? time(sun.attributes.next_setting) : null, rain: cfg.rain ? num(cfg.rain.today) : null };
   } };
 
   // ---------- Rutornas innehåll ----------
@@ -168,7 +168,7 @@
       return { v: soc == null ? '–' : Math.round(soc), u: '%', s: `${range == null ? '–' : Math.round(range)} km räckvidd`, s2: charging ? 'Laddar' : plugged ? 'Ansluten' : 'Inte ansluten', soc, socLabel: false,
         flow: charging ? { cls: '', dir: 'in', w: num(cfg.charger) || 3000 } : null };
     } },
-    vader: { title: 'Ute / nu', cls: 'weather', render() {
+    vader: { title: 'Ute / nu', cls: 'weather', drawer: 'weather', render() {
       const s = st(cfg.outdoor), sun = st(cfg.sun);
       const a = s ? s.attributes : {};
       return { custom: `<div class="k">Ute / nu</div>
@@ -856,6 +856,7 @@
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl, after: vacuumAfter,
       extra: () => cfg.vacuum && cfg.vacuum.map ? '<div class="sx vmap"><div class="eyebrow">Karta</div><div class="vmapbox"><img id="vmapimg" alt="Dammsugarens karta"><span class="camwait">Hämtar karta …</span></div></div>' : '',
       open: vacMapStart, close: camStop },
+    weather: { eyebrow: 'Ute / väder', title: 'Vädret', wide: true, stats: () => [], rich: weatherRich, charts: () => [], open: wxLoad },
     cameras: { eyebrow: 'Säkerhet / kameror', title: 'Kameror', wide: true, cls: 'cams', rich: () => '', stats: () => [], charts: () => [], extra: camGrid, open: camStart, close: camStop },
     info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
@@ -1016,6 +1017,68 @@
     if (T) { const c = num(T.count), a = num(T.area), t = num(T.time);
       if (c != null || a != null) parts.push(`<section class="sx"><div class="eyebrow">Totalt sedan start</div><div class="vlive"><div><span>Städningar</span><b>${c != null ? nf(c, 0) : '–'}</b></div><div><span>Yta</span><b>${a != null ? nf(a, 0) + ' m²' : '–'}</b></div><div><span>Tid</span><b>${t != null ? nf(t / 60, 0) + ' h' : '–'}</b></div><div><span>Snitt per gång</span><b>${c ? nf(a / c, 0) + ' m²' : '–'}</b></div></div></section>`); }
     return parts.join('');
+  }
+  // ---------- Vädret: SMHI nu + prognos per timme och dag, Netatmos regnmätare ----------
+  const WXF = { at: 0, data: null, err: '', rain: null, rainAt: 0 };
+  async function wxLoad() {
+    const now = Date.now();
+    if (!WXF.data || now - WXF.at > 10 * 60000) {
+      try { const r = await fetch('api/weather', { cache: 'no-store' }); if (!r.ok) throw new Error((await r.json()).error || r.status); WXF.data = await r.json(); WXF.at = now; WXF.err = ''; }
+      catch (e) { WXF.err = e.message; }
+    }
+    if (cfg.rain && (!WXF.rain || now - WXF.rainAt > 30 * 60000)) {
+      try { const r = await fetch(`api/daily?entity=${encodeURIComponent(cfg.rain.today)}&days=14&stat=max`, { cache: 'no-store' }); if (r.ok) { WXF.rain = (await r.json()).points || []; WXF.rainAt = now; } } catch { }
+    }
+    if (drawerOpen === 'weather') renderDrawerStats();
+  }
+  const COMPASS = ['N', 'NO', 'O', 'SO', 'S', 'SV', 'V', 'NV'];
+  const compass = b => b == null || !Number.isFinite(+b) ? '' : COMPASS[Math.round(((+b % 360) + 360) % 360 / 45) % 8];
+  const ms = kmh => kmh == null || !Number.isFinite(+kmh) ? null : kmh / 3.6;
+  const windArrow = b => b == null ? '' : `<svg class="wxarrow" viewBox="0 0 24 24" style="transform:rotate(${(+b + 180) % 360}deg)" aria-hidden="true"><path d="M12 3v16M6 13l6 6 6-6"/></svg>`;
+  function weatherRich() {
+    const s = st(cfg.outdoor), a = (s && s.attributes) || {}, sun = st(cfg.sun), R = cfg.rain;
+    const cond = s ? s.state : '';
+    const t = outdoorTemp(), w = ms(a.wind_speed), g = ms(a.wind_gust_speed);
+    const cell = (k, v, u = '') => `<div class="sc"><span>${esc(k)}</span><b>${v}${u ? `<small>${esc(u)}</small>` : ''}</b></div>`;
+    let h = `<section class="sx wxhero"><div class="wxnow">${wxIcon(cond, 'wxbig')}<div><div class="sbig">${nf(t)}<small>°C</small></div><div class="ss">${esc(WX[cond] || cond || 'okänt')}${a.thunder_probability ? ` · åska ${Math.round(a.thunder_probability)} %` : ''}</div></div></div>
+      <div class="sgrid4">${cell('Vind', `${windArrow(a.wind_bearing)}${w != null ? nf(w) : '–'}`, 'm/s ' + compass(a.wind_bearing))}${cell('Byar', g != null ? nf(g) : '–', 'm/s')}${cell('Luftfuktighet', a.humidity != null ? Math.round(a.humidity) : '–', '%')}${cell('Lufttryck', a.pressure != null ? Math.round(a.pressure) : '–', 'hPa')}
+      ${cell('Molnighet', a.cloud_coverage != null ? Math.round(a.cloud_coverage) : '–', '%')}${cell('Sikt', a.visibility != null ? nf(a.visibility, 0) : '–', 'km')}${cell('Sol upp', sun ? time(sun.attributes.next_rising) : '–')}${cell('Sol ned', sun ? time(sun.attributes.next_setting) : '–')}</div></section>`;
+    // regnmätaren
+    if (R) {
+      const today = num(R.today), hour = num(R.hour), nowr = num(R.now), bat = num(R.battery);
+      const raining = (nowr || 0) > 0 || (hour || 0) > 0;
+      const pts = (WXF.rain || []).map(([t0, v]) => [new Date(t0), Math.max(0, Number(v) || 0)]);
+      // dagens stapel är det levande värdet
+      if (pts.length && today != null) { const last = pts[pts.length - 1][0]; if (last.toDateString() === new Date().toDateString()) pts[pts.length - 1][1] = today; else pts.push([new Date(), today]); }
+      const mx = Math.max(1, ...pts.map(p => p[1])), sum = pts.reduce((x, p) => x + p[1], 0), wet = pts.filter(p => p[1] >= 0.2).length;
+      const bars = pts.length ? `<div class="ebars wxrbars">${pts.map(([d, v]) => `<div class="ebar" title="${d.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })}: ${nf(v)} mm"><i style="height:${Math.max(v > 0 ? 4 : 1, v / mx * 100)}%"></i><span>${'SMTOTFL'[d.getDay()]}</span></div>`).join('')}</div>
+        <div class="ss">${pts.length} dagar: ${nf(sum)} mm, regn ${wet} av dem.</div>` : '';
+      h += `<section class="sx"><div class="sh">Regnmätaren</div><div class="sgrid3">${cell('Idag', today != null ? nf(today) : '–', 'mm')}${cell('Senaste timmen', hour != null ? nf(hour, 1) : '–', 'mm')}${cell('Just nu', raining ? 'Regnar' : 'Uppehåll')}</div>${bars}
+        ${bat != null && bat < 25 ? `<div class="ss" style="color:var(--orange)">Regnmätarens batteri ${Math.round(bat)} %</div>` : ''}</section>`;
+    }
+    // prognos
+    const F = WXF.data;
+    if (!F) h += `<section class="sx"><div class="sh">Prognos</div><div class="ss">${WXF.err ? 'Kunde inte hämta prognosen (' + esc(WXF.err) + ').' : 'Hämtar prognos …'}</div></section>`;
+    else {
+      const now = Date.now(), hrs = (F.hourly || []).filter(x => Date.parse(x.t) > now - 3600000).slice(0, 24);
+      if (hrs.length) {
+        const tmin = Math.min(...hrs.map(x => x.temp)), tmax = Math.max(...hrs.map(x => x.temp)), rmax = Math.max(0.5, ...hrs.map(x => x.rain || 0));
+        h += `<section class="sx"><div class="sh">Närmaste dygnet</div><div class="wxhours">${hrs.map(x => { const d = new Date(x.t), tp = tmax > tmin ? (x.temp - tmin) / (tmax - tmin) : .5;
+          return `<div class="wxh"><span>${String(d.getHours()).padStart(2, '0')}</span>${wxIcon(x.cond, 'wxhi')}<b style="margin-top:${Math.round((1 - tp) * 14)}px">${Math.round(x.temp)}°</b>
+            <div class="wxr" title="${nf(x.rain || 0)} mm"><i style="height:${(x.rain || 0) / rmax * 100}%"></i></div><small>${x.rain ? nf(x.rain) : ''}</small><em>${x.wind != null ? Math.round(ms(x.wind)) : ''}${x.gust != null && ms(x.gust) >= 10 ? `<sup>${Math.round(ms(x.gust))}</sup>` : ''}</em></div>`; }).join('')}</div>
+          <div class="ss">Temperatur, nederbörd (mm) och vind (m/s, byar upphöjt när de är minst 10 m/s).</div></section>`;
+      }
+      const days = (F.daily || []).slice(0, 10);
+      if (days.length) {
+        const lo = Math.min(...days.map(x => x.lo != null ? x.lo : x.temp)), hi = Math.max(...days.map(x => x.temp)), span = Math.max(1, hi - lo);
+        h += `<section class="sx"><div class="sh">Kommande dagar</div><div class="wxdays">${days.map((x, i) => { const d = new Date(x.t), l = x.lo != null ? x.lo : x.temp;
+          const name = i === 0 && d.toDateString() === new Date().toDateString() ? 'Idag' : d.toLocaleDateString('sv-SE', { weekday: 'short' }).replace('.', '') + ' ' + d.getDate();
+          return `<div class="wxd"><span class="wxdn">${esc(name)}</span>${wxIcon(x.cond, 'wxhi')}<span class="wxdl">${Math.round(l)}°</span><div class="wxdbar"><i style="left:${(l - lo) / span * 100}%;width:${Math.max(4, (x.temp - l) / span * 100)}%"></i></div><b>${Math.round(x.temp)}°</b>
+            <span class="wxdr">${x.rain ? nf(x.rain) + ' mm' : ''}</span><span class="wxdw">${x.wind != null ? Math.round(ms(x.wind)) + ' m/s' : ''}</span></div>`; }).join('')}</div>
+          <div class="ss">SMHI via Home Assistant, uppdateras var 10:e minut.</div></section>`;
+      }
+    }
+    return h;
   }
   // ---------- Kameror och dammsugarens karta: stillbilder som bara hämtas när panelen är öppen ----------
   const CAMV = { gen: 0, ctrl: null, focus: null };

@@ -684,3 +684,28 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .drawer .camfbar span .abtn.camlivebtn{width:auto;padding:0 16px;font-size:14px;white-space:nowrap}
 .drawer .camfbar span .abtn{display:grid;place-items:center;text-align:center}.drawer .camfbar span .abtn.camlivebtn{display:inline-flex;align-items:center}
 .drawer .cambar .camfrigate{margin-left:auto;display:inline-flex;align-items:center;text-decoration:none;min-height:38px}
+/* 0.46 väderpanel */
+.drawer .wxhero .wxnow{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.drawer .wxbig{width:64px;height:64px;flex:none}
+.drawer .wxhero .sbig{color:var(--text)}
+.drawer .wxarrow{width:13px;height:13px;fill:none;stroke:var(--blue);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-right:3px}
+.drawer .sgrid4 .sc,.drawer .sgrid3 .sc{background:color-mix(in srgb,var(--text) 3%,transparent)}
+.drawer .wxrbars{grid-template-columns:repeat(15,1fr)}
+.drawer .wxrbars .ebar i{background:color-mix(in srgb,var(--blue) 60%,transparent)}.drawer .wxrbars .ebar:last-child i{background:var(--blue)}
+.drawer .wxhours{display:flex;gap:2px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.drawer .wxh{flex:0 0 44px;display:flex;flex-direction:column;align-items:center;font-size:12px;gap:2px}
+.drawer .wxh>span{font:500 10.5px var(--mono,monospace);color:var(--muted)}
+.drawer .wxhi{width:24px;height:24px}
+.drawer .wxh b{font-size:14px;font-weight:600;height:20px}
+.drawer .wxh .wxr{width:14px;height:34px;display:flex;align-items:flex-end;background:color-mix(in srgb,var(--text) 6%,transparent);border-radius:2px;margin-top:16px}
+.drawer .wxh .wxr i{display:block;width:100%;background:var(--blue);border-radius:2px}
+.drawer .wxh small{font-size:10px;color:var(--blue);height:12px}
+.drawer .wxh em{font-style:normal;font-size:11px;color:var(--muted)}.drawer .wxh sup{color:var(--orange);font-size:9px;margin-left:1px}
+.drawer .wxdays{display:flex;flex-direction:column}
+.drawer .wxd{display:grid;grid-template-columns:62px 28px 34px minmax(60px,1fr) 34px 62px 54px;gap:8px;align-items:center;padding:6px 0;border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent);font-size:13.5px}
+.drawer .wxd:first-child{border-top:0}
+.drawer .wxdn{text-transform:capitalize}.drawer .wxdl{color:var(--muted);text-align:right}.drawer .wxd b{font-weight:600}
+.drawer .wxdbar{position:relative;height:6px;border-radius:3px;background:color-mix(in srgb,var(--text) 8%,transparent)}
+.drawer .wxdbar i{position:absolute;top:0;bottom:0;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--gold))}
+.drawer .wxdr{color:var(--blue);font-size:12.5px;text-align:right}.drawer .wxdw{color:var(--muted);font-size:12.5px;text-align:right}
+@media (max-width:520px){.drawer .wxd{grid-template-columns:52px 24px 28px minmax(40px,1fr) 30px 54px}.drawer .wxdw{display:none}}

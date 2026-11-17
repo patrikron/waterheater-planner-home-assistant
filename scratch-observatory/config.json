@@ -69,10 +69,16 @@
       "solar_hours"
     ],
     "weather.smhi_home": [
-      "temperature",
+      "cloud_coverage",
       "humidity",
+      "pressure",
+      "temperature",
+      "thunder_probability",
+      "visibility",
+      "wind_bearing",
+      "wind_gust_speed",
       "wind_speed",
-      "wind_gust_speed"
+      "wind_speed_unit"
     ],
     "sensor.nordpool_kwh_se3_sek_3_10_025": [
       "today",
@@ -1974,6 +1980,12 @@
           }
         ]
       }
+    },
+    "rain": {
+      "today": "sensor.netatmo_station_regnmatare_rain_last_24h",
+      "hour": "sensor.netatmo_station_regnmatare_rain_last_hour",
+      "now": "sensor.netatmo_station_regnmatare_rain",
+      "battery": "sensor.netatmo_station_regnmatare_battery_percent"
     }
   },
   "water": {

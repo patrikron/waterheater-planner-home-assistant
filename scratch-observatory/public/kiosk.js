@@ -142,11 +142,21 @@
     return it('wind', 'kx-w', `${n1(w.wind)}<small> m/s</small>`, 'Vind') + it('hum', 'kx-h', `${w.humidity != null ? Math.round(w.humidity) : '–'}<small> %</small>`, 'Luftfuktighet')
       + it('rise', 'kx-r', esc(w.rise || '–'), 'Sol upp') + it('set', 'kx-s', esc(w.set || '–'), 'Sol ned');
   }
-  let lastWx = '', lastWxd = '';
+  // Regn idag från regnmätaren (nollställs vid midnatt), visas bara om det regnat
+  const RAIN_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>';
+  function rainHtml() {
+    const w = window.ObsHouse && window.ObsHouse.weather(), r = w && w.rain;
+    if (r == null || !Number.isFinite(r) || r < 0.1) return '';
+    return `${RAIN_SVG}<b>${r.toFixed(1).replace('.', ',')}<small> mm</small></b><span>idag</span>`;
+  }
+  let lastWx = '', lastWxd = '', lastRain = '';
   window.addEventListener('obs-render', () => {
     const el = document.getElementById('know'), h = nowWx(); if (el && h !== lastWx) { el.innerHTML = h; lastWx = h; }
     const ed = document.getElementById('kwxd'), d = wxDetails(); if (ed && d !== lastWxd) { ed.innerHTML = d; lastWxd = d; }
+    const er = document.getElementById('krain'), r = rainHtml(); if (er && r !== lastRain) { er.innerHTML = r; lastRain = r; }
   });
+  // tryck på vädret eller regnet öppnar väderpanelen
+  document.addEventListener('click', e => { if (e.target.closest('#know,#krain') && window.ObsHouse) window.ObsHouse.open('weather'); });
   let lastSchool = '';
   // Skolmat idag och imorgon (input_text i HA), bara vardagar
   function schoolText() {
@@ -168,7 +178,7 @@
     const name = evs.find(e => e.cal === (cal && cal.namedays) && dayKey(startOf(e)) === dayKey(now));
     if (name) html += `<div class="kname">Namnsdag: <b>${esc(name.title.replace(/\s+[–-]\s+\d.*$/, ''))}</b></div>`;
     // Vind/fukt/sol (wxDetails) är bortplockat tills vidare (Patrik 2026-11-09)
-    html += `</div></div></div><div class="kdays">`;
+    html += `</div><div class="krain" id="krain" data-open="weather">${rainHtml()}</div></div></div><div class="kdays">`;
     if (!cal) html += `<div class="kerr">${calErr ? 'Kunde inte hämta kalendern (' + esc(calErr) + ').' : 'Hämtar kalendern …'}</div>`;
     else {
       const colors = Object.fromEntries((cal.calendars || []).map(c => [c.entity, COL[c.color] || c.color]));

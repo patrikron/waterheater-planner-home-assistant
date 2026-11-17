@@ -189,7 +189,7 @@ async function attrHistory(id, hours, attr) {
 // ---------- Dygnsvis förändring (staplar per dag) ----------
 const dailyCache = new Map();
 async function daily(id, days, stat = 'change') {
-  if (!['change', 'mean'].includes(stat)) stat = 'change';
+  if (!['change', 'mean', 'max'].includes(stat)) stat = 'change';
   if (!ALLOWED.has(id)) throw Object.assign(new Error('Entiteten är inte tillåten'), { code: 403 });
   const n = Math.max(1, Math.min(60, Math.round(days) || 14));
   const key = id + '|' + n + '|' + stat, hit = dailyCache.get(key);
@@ -232,6 +232,19 @@ async function calEvents(id, start, end) {
     return { cal: id, title: String(e.summary || '').slice(0, 200), all_day: !!s.date, start: s.dateTime || s.date, end: en.dateTime || en.date,
       location: e.location ? String(e.location).split(',')[0].slice(0, 80) : null };
   });
+}
+// Väderprognos per timme och dag till väderpanelen (samma väderentitet som kalendern), sparas 10 min
+let wxCache = null;
+async function weatherForecast() {
+  if (wxCache && Date.now() - wxCache.at < 10 * 60 * 1000) return wxCache.data;
+  const id = CAL.weather; if (!id || !ID_RE.test(id)) throw Object.assign(new Error('Ingen väderentitet i config'), { code: 404 });
+  const get = async type => { const r = await haCall({ type: 'call_service', domain: 'weather', service: 'get_forecasts', service_data: { type }, target: { entity_id: id }, return_response: true });
+    return ((((r || {}).response || {})[id] || {}).forecast || []); };
+  const map = f => ({ t: f.datetime, cond: f.condition, temp: f.temperature, lo: f.templow, rain: f.precipitation, prob: f.precipitation_probability, wind: f.wind_speed, gust: f.wind_gust_speed, bearing: f.wind_bearing, hum: f.humidity, cloud: f.cloud_coverage, thunder: f.thunder_probability });
+  const [h, d] = await Promise.all([get('hourly').catch(() => []), get('daily').catch(() => [])]);
+  const data = { hourly: h.slice(0, 48).map(map), daily: d.slice(0, 10).map(map) };
+  if (data.hourly.length || data.daily.length) wxCache = { at: Date.now(), data };
+  return data;
 }
 async function calendar() {
   if (calCache && Date.now() - calCache.at < 5 * 60 * 1000) return calCache.data;
@@ -744,6 +757,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/radiators') return json(res, 200, CONFIG.radiators || {});
     if (url.pathname === '/api/themes') return json(res, 200, await listThemes());
     if (url.pathname === '/api/calendar') return json(res, 200, await calendar());
+    if (url.pathname === '/api/weather') return json(res, 200, await weatherForecast());
     if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours')), url.searchParams.get('attr') || ''));
