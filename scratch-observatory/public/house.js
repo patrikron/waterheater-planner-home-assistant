@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.42.1';
+  const VERSION = '0.43.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -853,7 +853,10 @@
     car: { eyebrow: 'Garage / bil', title: 'Kia EV6', frame: 'ev6.html' },
     media: { eyebrow: 'Media / spelar nu', title: 'Media', rich: () => '', stats: () => [], charts: () => [], ctl: () => { const h = mediaHtml(); return h ? `<div class="kmlist">${h}</div>` : '<p class="dnote">Inget spelar just nu.</p>'; } },
     access: { eyebrow: 'Säkerhet / lås och portar', title: 'Lås och garageportar', rich: () => '', stats: () => [], charts: () => [], ctl: accessCtl },
-    vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl },
+    vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl, after: vacuumAfter,
+      extra: () => cfg.vacuum && cfg.vacuum.map ? '<div class="sx vmap"><div class="eyebrow">Karta</div><div class="vmapbox"><img id="vmapimg" alt="Dammsugarens karta"><span class="camwait">Hämtar karta …</span></div></div>' : '',
+      open: vacMapStart, close: camStop },
+    cameras: { eyebrow: 'Säkerhet / kameror', title: 'Kameror', wide: true, rich: () => '', stats: () => [], charts: () => [], extra: camGrid, open: camStart, close: camStop },
     info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
     kamin: { eyebrow: 'Vardagsrum / kamin', title: 'Kaminen', stats: () => [], rich: kaminRich, ctl: stoveCtl, charts: () => cfg.stove ? [[cfg.stove.temp, 'Temperatur vid utblåset', TC('orange'), 1, '°C']] : [] },
@@ -923,23 +926,177 @@
   }
   // Robotdammsugaren
   const VAC_L = { docked: 'I dockan', cleaning: 'Städar', returning: 'Åker hem', idle: 'Väntar', paused: 'Pausad', error: 'Fel', unavailable: 'Ej nåbar' };
+  const VFAN = { silent: 'Tyst', standard: 'Standard', strong: 'Stark', turbo: 'Turbo' };
+  const VOPT = { off: 'Av', routine_cleaning: 'Rutin', deep_cleaning: 'Djup', deep: 'Djup', daily: 'Daglig', water_saving: 'Spara vatten', standard: 'Standard', high_frequency: 'Ofta', low_frequency: 'Sällan' };
+  const VSTA = { idle: 'Vilar', charging: 'Laddar', charging_completed: 'Fulladdad', not_charging: 'Laddar inte', return_to_charge: 'På väg hem', active: 'Pågår', emptying: 'Tömmer', washing: 'Tvättar', drying: 'Torkar', paused: 'Pausad',
+    no_warning: 'OK', installed: 'Monterade', not_installed: 'Ej monterade', available: 'OK', not_available: 'Ej tillgänglig', completed: 'Klar', cleaning: 'Städar', drainage: 'Tömmer vatten' };
+  const VHIST = { 'Room cleaning': 'Rumsstädning', 'Cleaning': 'Hela huset', 'Spot cleaning': 'Punktstädning', 'Zone cleaning': 'Zonstädning' };
+  const VINT = { 'Brush entangled by object': 'borsten fastnade i något', 'Robot is stuck': 'fastnade', 'Low battery': 'lågt batteri', 'Wheel stuck': 'hjulet fastnade', 'Water tank empty': 'vattentanken tom', 'Dust bin full': 'dammbehållaren full' };
+  const vlabel = v => VSTA[v] || String(v).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+  const vok = s => s && !['unknown', 'unavailable', ''].includes(s.state);
+  const vhm = m => m == null ? '–' : m < 60 ? Math.round(m) + ' min' : Math.floor(m / 60) + ' h ' + String(Math.round(m % 60)).padStart(2, '0') + ' min';
+  function vacHist() {
+    const V = cfg.vacuum, h = V.history && st(V.history); if (!h || !h.attributes) return [];
+    return Object.entries(h.attributes).filter(([, v]) => v && typeof v === 'object' && v.timestamp).map(([, v]) => v).sort((a, b) => b.timestamp - a.timestamp);
+  }
   function vacuumCtl() {
     const V = cfg.vacuum; if (!V) return '';
-    const s = st(V.entity), state = s ? s.state : 'unavailable', bat = num(V.battery);
+    const s = st(V.entity), state = s ? s.state : 'unavailable', bat = num(V.battery), ctl = !!V.controls;
     const on = V.rooms.filter(r => (st(r.entity) || {}).state === 'on');
+    const busy = ['cleaning', 'paused', 'returning'].includes(state);
     const extra = [];
-    const room = st(V.room_now); if (state === 'cleaning' && room && !['unknown', 'unavailable'].includes(room.state)) extra.push('Nu: ' + room.state);
-    const prog = num(V.progress); if (state === 'cleaning' && prog != null) extra.push(nf(prog, 0) + ' %');
     const err = st(V.error); if (err && !['no_error', 'unknown', 'unavailable'].includes(err.state)) extra.push('Fel: ' + err.state.replace(/_/g, ' '));
     const head = `<div class="vhead ${state}"><div><b>${esc(VAC_L[state] || state)}</b><small>${bat != null ? 'Batteri ' + nf(bat, 0) + ' %' : ''}${extra.length ? ' · ' + esc(extra.join(' · ')) : ''}</small></div>
-      <div class="vcmds">${state === 'cleaning' ? '<button class="abtn" data-vaccmd="pause">Pausa</button>' : ''}${['cleaning', 'paused', 'idle', 'error'].includes(state) ? '<button class="abtn" data-vaccmd="return_to_base">Åk hem</button>' : ''}</div></div>`;
+      <div class="vcmds">${state === 'cleaning' ? '<button class="abtn" data-vaccmd="pause">Pausa</button>' : ''}${['cleaning', 'paused', 'idle', 'error'].includes(state) ? '<button class="abtn" data-vaccmd="return_to_base">Åk hem</button>' : ''}${ctl && s && state !== 'unavailable' ? '<button class="abtn" data-vaccmd="locate">Hitta</button>' : ''}</div></div>`;
+    // pågående eller senaste städning
+    let run = '';
+    if (busy) {
+      const room = st(V.room_now), prog = num(V.progress), t = num(V.time), ar = num(V.area);
+      run = `<div class="vlive"><div><span>Tid</span><b>${t != null ? vhm(t) : '–'}</b></div><div><span>Yta</span><b>${ar != null ? nf(ar, 0) + ' m²' : '–'}</b></div>
+        <div><span>Klart</span><b>${prog != null ? nf(prog, 0) + ' %' : '–'}</b></div><div><span>Rum nu</span><b>${vok(room) ? esc(room.state) : '–'}</b></div></div>
+        ${prog != null ? `<div class="vprog"><i style="width:${Math.max(0, Math.min(100, prog))}%"></i></div>` : ''}`;
+    } else {
+      const last = vacHist()[0];
+      if (last) {
+        const d = new Date(last.timestamp * 1000);
+        run = `<div class="vlast"><span>Senaste städning</span><b>${d.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}</b>
+          <small>${esc(VHIST[last.status] || last.status || '')} · ${esc(last.cleaning_time || '')} · ${esc(last.cleaned_area || '')}${last.completed === false ? ' · <em>avbruten</em>' : ''}</small></div>`;
+      }
+    }
     const rooms = `<div class="eyebrow">Välj rum · ${on.length ? on.length + ' valda' : 'inga valda'}</div><div class="vrooms">${V.rooms.map(r => {
       const rs = st(r.entity), o = rs && rs.state === 'on';
       return `<button class="vroom ${o ? 'on' : ''}" data-room="${esc(r.entity)}" data-on="${o}" ${rs ? '' : 'disabled'}>${esc(r.name)}</button>`;
     }).join('')}</div>`;
     const go = `<div class="vgo">${V.modes.map(m => { const k = 'vac:' + m.script; return `<button class="vstart${isArmed(k) ? ' armed' : ''}" data-vacgo="${esc(m.script)}" ${on.length ? '' : 'disabled'}>${isArmed(k) ? 'Tryck igen för att starta' : esc(m.name)}</button>`; }).join('')}</div>`;
-    return head + rooms + go + `<p class="dnote">${on.length ? 'Starta kräver två tryck.' : 'Välj minst ett rum först.'}</p>`;
+    const startNote = `<p class="dnote">${on.length ? 'Starta kräver två tryck.' : 'Välj minst ett rum först.'}</p>`;
+    // inställningar: sugkraft, val och brytare
+    let set = '';
+    if (ctl && s) {
+      const fl = (s.attributes && s.attributes.fan_speed_list) || [], fs = s.attributes && s.attributes.fan_speed;
+      const cg = (V.settings || []).find(x => /cleangenius/.test(x.entity)), cgOn = cg && vok(st(cg.entity)) && st(cg.entity).state !== 'off';
+      const rows = [];
+      if (V.fan && fl.length) rows.push(`<div class="kfrow"><span>Sugkraft${cgOn ? ' <em class="vhint">(CleanGenius styr när den är på)</em>' : ''}</span><div class="kfseg">${fl.map(f => `<button class="${f === fs ? 'sel' : ''}" data-vf="${esc(f)}">${esc(VFAN[f] || f)}</button>`).join('')}</div></div>`);
+      const sw = [];
+      for (const x of V.settings || []) {
+        const xs = st(x.entity); if (!vok(xs)) continue;
+        if (x.entity.startsWith('select.')) {
+          const opts = (xs.attributes && xs.attributes.options) || []; if (!opts.length) continue;
+          rows.push(`<div class="kfrow"><span>${esc(x.name)}</span><div class="kfseg">${opts.map(o => `<button class="${o === xs.state ? 'sel' : ''}" data-vsel="${esc(x.entity)}" data-v="${esc(o)}">${esc(VOPT[o] || o)}</button>`).join('')}</div></div>`);
+        } else sw.push(`<button class="vsw ${xs.state === 'on' ? 'on' : ''}" data-vsw="${esc(x.entity)}" data-on="${xs.state === 'on'}"><i></i>${esc(x.name)}</button>`);
+      }
+      if (rows.length || sw.length) set = `<div class="vsec"><div class="eyebrow">Inställningar</div>${rows.join('')}${sw.length ? `<div class="vsws">${sw.join('')}</div>` : ''}</div>`;
+    }
+    // basstationen
+    let sta = '';
+    const chips = (V.station || []).map(x => { const xs = st(x.entity); if (!vok(xs)) return ''; const u = xs.attributes && xs.attributes.unit_of_measurement;
+      const bad = /warning|not_installed|not_available/.test(xs.state) && xs.state !== 'no_warning';
+      return `<div class="vchip${bad ? ' bad' : ''}"><span>${esc(x.name)}</span><b>${u ? esc(nf(Number(xs.state), 0) + ' ' + u) : esc(vlabel(xs.state))}</b></div>`; }).join('');
+    const acts = ctl ? (V.station_actions || []).map(x => { const xs = st(x.entity), k = 'vbtn:' + x.entity; if (!xs || xs.state === 'unavailable') return '';
+      return `<button class="abtn${isArmed(k) ? ' armed' : ''}" data-vbtn="${esc(x.entity)}">${isArmed(k) ? 'Tryck igen' : esc(x.name)}</button>`; }).join('') : '';
+    if (chips || acts) sta = `<div class="vsec"><div class="eyebrow">Basstationen</div>${chips ? `<div class="vchips">${chips}</div>` : ''}${acts ? `<div class="vacts">${acts}</div>` : ''}</div>`;
+    return head + run + rooms + go + startNote + set + sta;
   }
+  function vacuumAfter() {
+    const V = cfg.vacuum; if (!V) return '';
+    const parts = [];
+    const mt = (V.maintenance || []).map(m => {
+      const l = num(m.left); if (l == null) return '';
+      const ts = st(m.time), u = ts && ts.attributes && ts.attributes.unit_of_measurement, tv = ts ? Number(ts.state) : NaN;
+      const left = Number.isFinite(tv) ? (u === 'h' ? (tv >= 48 ? Math.round(tv / 24) + ' d kvar' : tv + ' h kvar') : u === 'd' ? tv + ' d kvar' : tv + ' ' + (u || '')) : '';
+      const cls = l < 10 ? 'bad' : l < 25 ? 'warn' : '';
+      return `<div class="vmt ${cls}"><span>${esc(m.name)}</span><div class="vbar"><i style="width:${Math.max(2, Math.min(100, l))}%"></i></div><b>${nf(l, 0)} %</b><small>${esc(left)}</small></div>`;
+    }).join('');
+    if (mt) parts.push(`<section class="sx"><div class="eyebrow">Underhåll</div><div class="vmts">${mt}</div></section>`);
+    const h = vacHist().slice(0, 6);
+    if (h.length) parts.push(`<section class="sx"><div class="eyebrow">Senaste städningar</div><div class="vhist">${h.map(r => { const d = new Date(r.timestamp * 1000);
+      return `<div class="vh${r.completed === false ? ' bad' : ''}"><span>${d.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}</span>
+        <span>${esc(VHIST[r.status] || r.status || '')}${r.cleanup_method === 'Cleangenius' ? ' · CleanGenius' : ''}</span><b>${esc(r.cleaning_time || '')}</b><b>${esc(r.cleaned_area || '')}</b>
+        ${r.completed === false ? `<small>Avbruten${r.interrupt_reason ? ': ' + esc(VINT[r.interrupt_reason] || r.interrupt_reason) : ''}</small>` : ''}</div>`; }).join('')}</div></section>`);
+    const T = V.totals;
+    if (T) { const c = num(T.count), a = num(T.area), t = num(T.time);
+      if (c != null || a != null) parts.push(`<section class="sx"><div class="eyebrow">Totalt sedan start</div><div class="vlive"><div><span>Städningar</span><b>${c != null ? nf(c, 0) : '–'}</b></div><div><span>Yta</span><b>${a != null ? nf(a, 0) + ' m²' : '–'}</b></div><div><span>Tid</span><b>${t != null ? nf(t / 60, 0) + ' h' : '–'}</b></div><div><span>Snitt per gång</span><b>${c ? nf(a / c, 0) + ' m²' : '–'}</b></div></div></section>`); }
+    return parts.join('');
+  }
+  // ---------- Kameror och dammsugarens karta: stillbilder som bara hämtas när panelen är öppen ----------
+  const CAMV = { gen: 0, ctrl: null, focus: null };
+  const camWait = ms => new Promise(r => setTimeout(r, ms));
+  async function camFetch(img, ent, w) {
+    const box = img.closest('.camtile,.vmapbox,.camfocus');
+    try {
+      const r = await fetch(`api/camera?entity=${encodeURIComponent(ent)}&w=${w}`, { cache: 'no-store', signal: CAMV.ctrl && CAMV.ctrl.signal });
+      if (!r.ok) throw new Error(r.status);
+      const u = URL.createObjectURL(await r.blob()), old = img.dataset.u;
+      await new Promise(res => { img.onload = img.onerror = res; img.src = u; });
+      img.dataset.u = u; if (old) URL.revokeObjectURL(old);
+      if (box) { box.classList.remove('err'); box.classList.add('ok'); box.dataset.at = Date.now(); }
+      return true;
+    } catch (e) { if (e.name !== 'AbortError' && box) box.classList.add('err'); return false; }
+  }
+  function camStop() {
+    CAMV.gen++; if (CAMV.ctrl) CAMV.ctrl.abort(); CAMV.ctrl = null; CAMV.focus = null;
+    // bilderna släpps när panelen har stängts, så att de inte ligger kvar i minnet
+    setTimeout(() => { if (drawerOpen === 'cameras' || drawerOpen === 'vacuum') return; document.querySelectorAll('#drawer img[data-u]').forEach(i => { URL.revokeObjectURL(i.dataset.u); i.removeAttribute('src'); delete i.dataset.u; }); }, 400);
+  }
+  async function vacMapStart() {
+    camStop(); const gen = ++CAMV.gen; CAMV.ctrl = new AbortController();
+    while (gen === CAMV.gen) {
+      const img = $('vmapimg'); if (!img) return;
+      if (!document.hidden) await camFetch(img, cfg.vacuum.map, 960);
+      const s = st(cfg.vacuum.entity), busy = s && ['cleaning', 'returning', 'paused'].includes(s.state);
+      await camWait(busy ? 5000 : 60000);
+    }
+  }
+  function camGrid() {
+    const C = cfg.cameras; if (!C || !(C.list || []).length) return '<p class="dnote">Inga kameror i config.</p>';
+    return `<div class="camwrap"><div class="camgrid" id="camgrid">${C.list.map((c, i) => `<button class="camtile" data-cam="${i}"><img alt="${esc(c.name)}"><span class="camwait">Hämtar …</span><span class="camname">${esc(c.name)}</span><span class="camage"></span></button>`).join('')}</div>
+      <div class="camfocus" id="camfocus" hidden><div class="camfbar"><button class="abtn" data-camback>← Alla kameror</button><b id="camfname"></b><span><button class="abtn" data-camnav="-1" aria-label="Föregående">‹</button><button class="abtn" data-camnav="1" aria-label="Nästa">›</button></span></div>
+      <div class="camfimg"><img id="camfimg" alt=""><span class="camwait">Hämtar …</span></div></div></div>
+      <p class="dnote">Stillbilder som uppdateras var ${C.refresh_seconds || 10}:e sekund medan panelen är öppen. Tryck på en kamera för att se den större och tätare uppdaterad. Inget hämtas när panelen är stängd.</p>`;
+  }
+  async function camStart() {
+    camStop(); const gen = ++CAMV.gen; CAMV.ctrl = new AbortController();
+    const C = cfg.cameras; if (!C) return;
+    const grid = $('camgrid'); if (!grid) return;
+    const vis = t => { const r = t.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight && r.width > 0; };
+    const tiles = () => [...grid.querySelectorAll('.camtile')];
+    const load = async list => { for (let k = 0; k < list.length && gen === CAMV.gen && CAMV.focus == null; k += 2)
+      await Promise.all(list.slice(k, k + 2).map(t => camFetch(t.querySelector('img'), C.list[+t.dataset.cam].entity, 640))); };
+    await camWait(350); // vänta tills panelen har glidit in
+    const every = (C.refresh_seconds || 10) * 1000, fast = (C.focus_seconds || 1) * 1000;
+    while (gen === CAMV.gen) {
+      if (document.hidden) { await camWait(1000); continue; }
+      if (CAMV.focus != null) {
+        const t0 = Date.now(), c = C.list[CAMV.focus], img = $('camfimg');
+        if (c && img) await camFetch(img, c.entity, 1280);
+        await camWait(Math.max(150, fast - (Date.now() - t0)));
+        continue;
+      }
+      // bara de kameror som syns hämtas, två i taget
+      const t0 = Date.now();
+      await load(tiles().filter(vis));
+      camAges();
+      for (let w = 0; w < every - (Date.now() - t0) && gen === CAMV.gen && CAMV.focus == null; w += 500) {
+        await camWait(500); camAges();
+        const fresh = tiles().filter(t => vis(t) && !t.dataset.at && !t.classList.contains('err')); // nyss inscrollade
+        if (fresh.length) await load(fresh);
+      }
+    }
+  }
+  function camAges() { document.querySelectorAll('#camgrid .camtile').forEach(t => { const a = Number(t.dataset.at), el = t.querySelector('.camage'); if (el) el.textContent = a ? Math.round((Date.now() - a) / 1000) + ' s' : ''; }); }
+  function camFocus(i) {
+    const C = cfg.cameras, n = C.list.length; i = ((i % n) + n) % n; CAMV.focus = i;
+    $('camgrid').hidden = true; $('camfocus').hidden = false; $('camfname').textContent = C.list[i].name;
+    const img = $('camfimg'), g = document.querySelector(`#camgrid [data-cam="${i}"] img`);
+    $('camfocus').classList.remove('ok', 'err');
+    if (g && g.src) { img.src = g.src; $('camfocus').classList.add('ok'); } else img.removeAttribute('src');
+  }
+  document.addEventListener('click', e => {
+    if (drawerOpen !== 'cameras') return;
+    const t = e.target.closest('[data-cam],[data-camback],[data-camnav]'); if (!t) return;
+    if (t.dataset.cam != null) camFocus(+t.dataset.cam);
+    else if (t.hasAttribute('data-camback')) { CAMV.focus = null; $('camfocus').hidden = true; $('camgrid').hidden = false; }
+    else camFocus(CAMV.focus + Number(t.dataset.camnav));
+  });
   // Hus-info: luft, dörrar, rörelse, vattenläckor, brandvarnare
   function infoCtl() {
     const I = cfg.info; if (!I) return '';
@@ -1179,8 +1336,12 @@
       .then(ok => { alarmBusy = false; renderDrawerStats(); if (ok) toast(t.dataset.amode === 'disarm' ? 'Avlarmar.' : 'Larmar på: ' + (ALARM_M[t.dataset.amode] || '')); });
   }, true);
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-light],[data-alloff],[data-kid],[data-chore],[data-cover],[data-lockc],[data-room],[data-vacgo],[data-vaccmd]'); if (!t || !t.closest('#dctl')) return;
+    const t = e.target.closest('[data-light],[data-alloff],[data-kid],[data-chore],[data-cover],[data-lockc],[data-room],[data-vacgo],[data-vaccmd],[data-vf],[data-vsel],[data-vsw],[data-vbtn]'); if (!t || !t.closest('#dctl')) return;
     e.stopPropagation();
+    if (t.dataset.vf) { const s = states[cfg.vacuum.entity]; if (s) { states[cfg.vacuum.entity] = Object.assign({}, s, { attributes: Object.assign({}, s.attributes, { fan_speed: t.dataset.vf }) }); renderDrawerStats(); } return sendCtl({ action: 'vacuum_fan', entity: cfg.vacuum.entity, value: t.dataset.vf }); }
+    if (t.dataset.vsel) { const s = states[t.dataset.vsel]; if (s) { states[t.dataset.vsel] = Object.assign({}, s, { state: t.dataset.v }); renderDrawerStats(); } return sendCtl({ action: 'select', entity: t.dataset.vsel, value: t.dataset.v }); }
+    if (t.dataset.vsw) { const on = t.dataset.on !== 'true', s = states[t.dataset.vsw]; if (s) { states[t.dataset.vsw] = Object.assign({}, s, { state: on ? 'on' : 'off' }); renderDrawerStats(); } return sendCtl({ action: 'toggle', entity: t.dataset.vsw, value: on }); }
+    if (t.dataset.vbtn) { const k = 'vbtn:' + t.dataset.vbtn; if (!isArmed(k)) return arm(k); armed = null; renderDrawerStats(); return sendCtl({ action: 'button', entity: t.dataset.vbtn }); }
     if (t.dataset.cover || t.dataset.lockc) {
       const ent = t.dataset.cover || t.dataset.lockc, k = (t.dataset.cover ? 'cov:' : 'lock:') + ent + ':' + t.dataset.cmd;
       if (!isArmed(k)) return arm(k);
@@ -1287,6 +1448,7 @@
 
   async function openDrawer(id) {
     const d = DRAWERS[id]; if (!d) return;
+    if (drawerOpen && drawerOpen !== id && DRAWERS[drawerOpen].close) DRAWERS[drawerOpen].close();
     drawerOpen = id;
     $('drawer-eyebrow').textContent = d.eyebrow; $('drawer-title').textContent = d.title;
     $('drawer').classList.toggle('wide', !!d.wide);
@@ -1305,6 +1467,7 @@
     lastCtl = ''; lastAfter = '';
     body.innerHTML = (d.ctl ? `<div id="dctl" class="dctl">${(lastCtl = d.ctl())}</div>` : '') + (d.extra ? d.extra() : '') + charts.map((c, i) => `<div class="dchart" id="dc${i}"><div class="eyebrow">${esc(c.title)} · senaste 24 h</div><div class="empty">Hämtar historik …</div></div>`).join('') +
       (d.after ? `<div id="dafter">${(lastAfter = d.after())}</div>` : '') + (d.note ? `<p class="dnote">${esc(d.note)}</p>` : '');
+    if (d.open) d.open();
     charts.forEach(async (c, i) => {
       const box = $('dc' + i);
       try {
@@ -1336,6 +1499,7 @@
   function closeDrawer() {
     const wasFrame = drawerOpen && DRAWERS[drawerOpen] && DRAWERS[drawerOpen].frame;
     if (drawerOpen === 'alarm') clearCode();
+    if (drawerOpen && DRAWERS[drawerOpen] && DRAWERS[drawerOpen].close) DRAWERS[drawerOpen].close();
     drawerOpen = null; $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden', 'true'); $('scrim').hidden = true;
     // Sidan i panelen stängs så att dess liveström inte ligger kvar
     if (wasFrame) setTimeout(() => { if (!drawerOpen) { $('drawer').classList.remove('framed'); $('drawer-charts').innerHTML = ''; } }, 320);

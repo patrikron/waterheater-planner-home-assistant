@@ -335,7 +335,9 @@ async function control(body) {
     || (act0 === 'vacuum' && !!(VAC && VAC.controls && VAC.entity === ent0))
     || (act0 === 'lights_off' && !!(LIGHTS && LIGHTS.controls && LIGHTS.all_off)) || (act0 === 'chore' && !!(CHORES && CHORES.controls && CHORES.script))
     || (act0 === 'alarm' && !!(ALARM && ALARM.entity === ent0))
-    || (act0 === 'stove' && !!(STOVE && STOVE.controls && (STOVE.fans || []).length));
+    || (act0 === 'stove' && !!(STOVE && STOVE.controls && (STOVE.fans || []).length))
+    || (act0 === 'button' && allow('buttons').has(ent0))
+    || (act0 === 'vacuum_fan' && !!(VAC && VAC.controls && VAC.fan && VAC.entity === ent0));
   const hpOk = !!(HP.controls && HP.climate);
   if (!ftxOk && !hpOk) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
   const now = Date.now();
@@ -390,6 +392,13 @@ async function control(body) {
   }
   else if (action === 'cover' && ftxOk && COVER_CMD[value]) call = ['cover', COVER_CMD[value], entity, {}];
   else if (action === 'vacuum' && ftxOk && VAC_CMD.includes(value)) call = ['vacuum', value, entity, {}];
+  else if (action === 'vacuum_fan' && ftxOk) {
+    // sugkraft: bara de lägen dammsugaren själv anger
+    const s = states.get(entity);
+    if (!s || !inList(s.attributes.fan_speed_list, value)) throw Object.assign(new Error('Ogiltig sugkraft'), { code: 400 });
+    call = ['vacuum', 'set_fan_speed', entity, { fan_speed: value }];
+  }
+  else if (action === 'button' && ftxOk) call = ['button', 'press', entity, {}];
   else if (action === 'media' && ftxOk && MEDIA_CMD.includes(value)) call = ['media_player', value, entity, {}];
   else if (action === 'lights_off' && ftxOk) {
     // släck alla: bara lamporna i house.lights.toggles
@@ -609,6 +618,36 @@ async function money() {
   return data;
 }
 
+// ---------- Kamerabilder ----------
+// Stillbilder hämtas från HA:s camera_proxy med token på serversidan. Bara kameror i house.cameras
+// och dammsugarens karta. Varje bild sparas en kort stund, så flera skärmar delar på samma hämtning.
+const CAMS = new Set([...((CONFIG.house && CONFIG.house.cameras && CONFIG.house.cameras.list) || []).map(c => c.entity), VAC && VAC.map].filter(Boolean));
+const camCache = new Map(); let camBusy = 0;
+const CAM_TTL = 900, CAM_MAX = 4;
+async function cameraImage(res, entity, w) {
+  if (!CAMS.has(entity) || !ID_RE.test(entity)) throw Object.assign(new Error('Okänd kamera'), { code: 404 });
+  const width = Math.max(160, Math.min(1920, Math.round(w / 160) * 160));
+  const key = entity + '@' + width;
+  let c = camCache.get(key);
+  if (!c || (Date.now() - c.at > CAM_TTL && !c.p)) {
+    if (camBusy >= CAM_MAX && c && c.body) return sendImg(res, c);
+    if (camBusy >= CAM_MAX) throw Object.assign(new Error('Upptaget, försök igen'), { code: 429 });
+    const prev = c; c = { at: Date.now(), body: prev && prev.body, type: prev && prev.type };
+    camBusy++;
+    c.p = fetch(`${HA_URL}/api/camera_proxy/${entity}?width=${width}`, { headers: { Authorization: `Bearer ${HA_TOKEN}` }, signal: AbortSignal.timeout(10000) })
+      .then(async r => { if (!r.ok) throw new Error('HA svarade ' + r.status); c.type = r.headers.get('content-type') || 'image/jpeg'; c.body = Buffer.from(await r.arrayBuffer()); c.at = Date.now(); })
+      .finally(() => { camBusy--; c.p = null; });
+    camCache.set(key, c);
+  }
+  if (c.p) { try { await c.p; } catch (e) { if (!c.body) { camCache.delete(key); throw Object.assign(new Error('Kunde inte hämta bilden'), { code: 404 }); } } }
+  return sendImg(res, c);
+}
+function sendImg(res, c) {
+  if (!/^image\//.test(c.type || '')) throw Object.assign(new Error('Ingen bild'), { code: 404 });
+  res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'no-store', 'Content-Length': c.body.length });
+  res.end(c.body);
+}
+
 const server = http.createServer(async (req, res) => {
   if (!authOk(req)) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Observatory"' }); return res.end('Inloggning krävs'); }
   const url = new URL(req.url, 'http://x');
@@ -699,6 +738,7 @@ const server = http.createServer(async (req, res) => {
       req.on('close', () => { clearInterval(ping); clients.delete(res); });
       return;
     }
+    if (url.pathname === '/api/camera') return await cameraImage(res, url.searchParams.get('entity') || '', Number(url.searchParams.get('w')) || 640);
     if (url.pathname === '/healthz') return json(res, connected ? 200 : 503, { connected });
     // Statiska filer från public/
     const rel = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');

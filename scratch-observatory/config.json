@@ -583,6 +583,23 @@
     ],
     "script.kamin_flaktpaus": [
       "last_triggered"
+    ],
+    "vacuum.l20_ultra": [
+      "cleangenius",
+      "fan_speed",
+      "fan_speed_list"
+    ],
+    "sensor.l20_ultra_cleaning_history": [
+      "*"
+    ],
+    "select.l20_ultra_cleangenius": [
+      "options"
+    ],
+    "select.l20_ultra_mop_wash_level": [
+      "options"
+    ],
+    "select.l20_ultra_auto_empty_mode": [
+      "options"
     ]
   },
   "house": {
@@ -1099,7 +1116,11 @@
         "input_boolean.vacuum_room_hall",
         "input_boolean.vacuum_room_garderob",
         "input_boolean.vacuum_room_oliver",
-        "input_boolean.vacuum_room_ludvig"
+        "input_boolean.vacuum_room_ludvig",
+        "switch.l20_ultra_carpet_boost",
+        "switch.l20_ultra_auto_drying",
+        "switch.l20_ultra_dnd",
+        "switch.l20_ultra_child_lock"
       ],
       "rooms": [
         {
@@ -1144,7 +1165,133 @@
           "script": "script.dammsug_och_moppa_valda_rum",
           "name": "Dammsug och moppa"
         }
-      ]
+      ],
+      "time": "sensor.l20_ultra_cleaning_time",
+      "task": "sensor.l20_ultra_task_status",
+      "history": "sensor.l20_ultra_cleaning_history",
+      "map": "camera.l20_ultra_map",
+      "fan": true,
+      "settings": [
+        {
+          "entity": "select.l20_ultra_cleangenius",
+          "name": "CleanGenius"
+        },
+        {
+          "entity": "select.l20_ultra_mop_wash_level",
+          "name": "Mopptvätt"
+        },
+        {
+          "entity": "select.l20_ultra_auto_empty_mode",
+          "name": "Automatisk tömning"
+        },
+        {
+          "entity": "switch.l20_ultra_carpet_boost",
+          "name": "Mattboost"
+        },
+        {
+          "entity": "switch.l20_ultra_auto_drying",
+          "name": "Torka moppen efter tvätt"
+        },
+        {
+          "entity": "switch.l20_ultra_dnd",
+          "name": "Stör ej (natt)"
+        },
+        {
+          "entity": "switch.l20_ultra_child_lock",
+          "name": "Barnlås"
+        }
+      ],
+      "selects": [
+        "select.l20_ultra_cleangenius",
+        "select.l20_ultra_mop_wash_level",
+        "select.l20_ultra_auto_empty_mode"
+      ],
+      "buttons": [
+        "button.l20_ultra_start_auto_empty",
+        "button.l20_ultra_self_clean",
+        "button.l20_ultra_manual_drying"
+      ],
+      "station_actions": [
+        {
+          "entity": "button.l20_ultra_start_auto_empty",
+          "name": "Töm dammbehållaren"
+        },
+        {
+          "entity": "button.l20_ultra_self_clean",
+          "name": "Tvätta moppen"
+        },
+        {
+          "entity": "button.l20_ultra_manual_drying",
+          "name": "Torka moppen"
+        }
+      ],
+      "station": [
+        {
+          "entity": "sensor.l20_ultra_charging_status",
+          "name": "Laddning"
+        },
+        {
+          "entity": "sensor.l20_ultra_auto_empty_status",
+          "name": "Tömning"
+        },
+        {
+          "entity": "sensor.l20_ultra_self_wash_base_status",
+          "name": "Tvättstation"
+        },
+        {
+          "entity": "sensor.l20_ultra_low_water_warning",
+          "name": "Vatten"
+        },
+        {
+          "entity": "sensor.l20_ultra_mop_pad",
+          "name": "Moppar"
+        },
+        {
+          "entity": "sensor.l20_ultra_dust_collection",
+          "name": "Dammpåse"
+        },
+        {
+          "entity": "sensor.l20_ultra_drying_progress",
+          "name": "Torkning"
+        }
+      ],
+      "maintenance": [
+        {
+          "name": "Huvudborste",
+          "left": "sensor.l20_ultra_main_brush_left",
+          "time": "sensor.l20_ultra_main_brush_time_left"
+        },
+        {
+          "name": "Sidoborste",
+          "left": "sensor.l20_ultra_side_brush_left",
+          "time": "sensor.l20_ultra_side_brush_time_left"
+        },
+        {
+          "name": "Filter",
+          "left": "sensor.l20_ultra_filter_left",
+          "time": "sensor.l20_ultra_filter_time_left"
+        },
+        {
+          "name": "Sensorer",
+          "left": "sensor.l20_ultra_sensor_dirty_left",
+          "time": "sensor.l20_ultra_sensor_dirty_time_left"
+        },
+        {
+          "name": "Moppdynor",
+          "left": "sensor.l20_ultra_mop_pad_left",
+          "time": "sensor.l20_ultra_mop_pad_time_left"
+        },
+        {
+          "name": "Rengöringsmedel",
+          "left": "sensor.l20_ultra_detergent_left",
+          "time": "sensor.l20_ultra_detergent_time_left"
+        }
+      ],
+      "totals": {
+        "count": "sensor.l20_ultra_cleaning_count",
+        "area": "sensor.l20_ultra_total_cleaned_area",
+        "time": "sensor.l20_ultra_total_cleaning_time"
+      }
     },
     "media": {
       "controls": true,
@@ -1717,7 +1864,49 @@
         "entity": "sensor.kameror_power",
         "name": "Kameror (beräknat)"
       }
-    ]
+    ],
+    "cameras": {
+      "refresh_seconds": 10,
+      "focus_seconds": 1,
+      "list": [
+        {
+          "entity": "camera.framsida_dorr",
+          "name": "Framsida dörr"
+        },
+        {
+          "entity": "camera.framsida_grind",
+          "name": "Framsida grind"
+        },
+        {
+          "entity": "camera.garage",
+          "name": "Garage"
+        },
+        {
+          "entity": "camera.garage_soder",
+          "name": "Garage söder"
+        },
+        {
+          "entity": "camera.verkstad",
+          "name": "Verkstad"
+        },
+        {
+          "entity": "camera.uterum",
+          "name": "Uterum"
+        },
+        {
+          "entity": "camera.baksida_vaxthus",
+          "name": "Baksida växthus"
+        },
+        {
+          "entity": "camera.baksida_sandlada",
+          "name": "Baksida sandlåda"
+        },
+        {
+          "entity": "camera.hall",
+          "name": "Hall"
+        }
+      ]
+    }
   },
   "water": {
     "title": "Varmvatten / beredaren.",
