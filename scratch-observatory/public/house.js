@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.46.0';
+  const VERSION = '0.46.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -884,7 +884,7 @@
   let drawerOpen = null;
   // ---------- Styrning i detaljpanelen (värmepump, FTX, varmvatten) ----------
   // Servern släpper bara igenom entiteter och värden som står i config; här byggs bara knapparna.
-  let lastCtl = ''; let lastAfter = '';
+  let lastCtl = ''; let lastAfter = ''; let lastRich = null;
   // ---------- Lampor och barnens poäng (menyn längst ner i kiosken) ----------
   const BULB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>';
   let armed = null; // två tryck för "Släck alla" och sysslor: första trycket väljer, andra skickar
@@ -1063,7 +1063,7 @@
       const now = Date.now(), hrs = (F.hourly || []).filter(x => Date.parse(x.t) > now - 3600000).slice(0, 24);
       if (hrs.length) {
         const tmin = Math.min(...hrs.map(x => x.temp)), tmax = Math.max(...hrs.map(x => x.temp)), rmax = Math.max(0.5, ...hrs.map(x => x.rain || 0));
-        h += `<section class="sx"><div class="sh">Närmaste dygnet</div><div class="wxhours">${hrs.map(x => { const d = new Date(x.t), tp = tmax > tmin ? (x.temp - tmin) / (tmax - tmin) : .5;
+        h += `<section class="sx"><div class="sh">Närmaste dygnet</div><div class="wxhours" data-keepscroll="wxh">${hrs.map(x => { const d = new Date(x.t), tp = tmax > tmin ? (x.temp - tmin) / (tmax - tmin) : .5;
           return `<div class="wxh"><span>${String(d.getHours()).padStart(2, '0')}</span>${wxIcon(x.cond, 'wxhi')}<b style="margin-top:${Math.round((1 - tp) * 14)}px">${Math.round(x.temp)}°</b>
             <div class="wxr" title="${nf(x.rain || 0)} mm"><i style="height:${(x.rain || 0) / rmax * 100}%"></i></div><small>${x.rain ? nf(x.rain) : ''}</small><em>${x.wind != null ? Math.round(ms(x.wind)) : ''}${x.gust != null && ms(x.gust) >= 10 ? `<sup>${Math.round(ms(x.gust))}</sup>` : ''}</em></div>`; }).join('')}</div>
           <div class="ss">Temperatur, nederbörd (mm) och vind (m/s, byar upphöjt när de är minst 10 m/s).</div></section>`;
@@ -1570,7 +1570,7 @@
     $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false'); $('scrim').hidden = false;
     const body = $('drawer-charts');
     const charts = d.charts().map(c => Array.isArray(c) ? { title: c[1], unit: c[4], div: c[3], series: [[c[0], c[1], c[2]]] } : c);
-    lastCtl = ''; lastAfter = '';
+    lastCtl = ''; lastAfter = ''; lastRich = null;
     body.innerHTML = (d.ctl ? `<div id="dctl" class="dctl">${(lastCtl = d.ctl())}</div>` : '') + (d.extra ? d.extra() : '') + charts.map((c, i) => `<div class="dchart" id="dc${i}"><div class="eyebrow">${esc(c.title)} · senaste 24 h</div><div class="empty">Hämtar historik …</div></div>`).join('') +
       (d.after ? `<div id="dafter">${(lastAfter = d.after())}</div>` : '') + (d.note ? `<p class="dnote">${esc(d.note)}</p>` : '');
     if (d.open) d.open();
@@ -1599,8 +1599,16 @@
     if (d.frame) return;
     if (d.ctl && $('dctl')) { const h = d.ctl(); if (h !== lastCtl) { $('dctl').innerHTML = h; lastCtl = h; } }
     if (d.after && $('dafter')) { const h = d.after(); if (h !== lastAfter) { $('dafter').innerHTML = h; lastAfter = h; } }
-    if (d.rich) { $('drawer-stats').innerHTML = d.rich(); return; }
-    $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>`;
+    if (d.rich) {
+      // Rita bara om när innehållet ändrats, och behåll sidledsscroll (t.ex. timprognosen)
+      const h = d.rich(), el = $('drawer-stats');
+      if (h === lastRich) return;
+      const keep = [...el.querySelectorAll('[data-keepscroll]')].map(x => [x.dataset.keepscroll, x.scrollLeft]);
+      el.innerHTML = h; lastRich = h;
+      keep.forEach(([k, v]) => { const x = el.querySelector(`[data-keepscroll="${k}"]`); if (x) x.scrollLeft = v; });
+      return;
+    }
+    lastRich = null; $('drawer-stats').innerHTML = `<div class="dstats">${d.stats().map(([k, v, u]) => `<div class="dstat"><span>${esc(k)}</span><b>${v}<small>${esc(u)}</small></b></div>`).join('')}</div>`;
   }
   function closeDrawer() {
     const wasFrame = drawerOpen && DRAWERS[drawerOpen] && DRAWERS[drawerOpen].frame;
