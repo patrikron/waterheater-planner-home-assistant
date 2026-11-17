@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.41.0';
+  const VERSION = '0.42.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -327,6 +327,66 @@
     return `<div class="eyebrow">Största förbrukarna just nu</div>${top.length ? `<div class="clist">${top.map(c => row(c.name, c.w)).join('')}${rest != null && rest > 20 ? row('Övrigt (ej mätt)', rest, 'rest') : ''}</div>` : '<p class="dnote">Inget drar mer än 5 W just nu.</p>'}
       <p class="dnote">Andel av husets förbrukning ${total > 0 ? w(total) : '–'}. ${rows.length > top.length ? `${rows.length - top.length} till drar mindre. ` : ''}Lampor och kameror är beräknade värden.</p>`;
   }
+  // Kaminens fläktar med styrning, som kaminkortet i HA: tryck = på/av, hastighet för takfläkten, fläktläge för luftvärmepumpen, fläktpaus
+  const FAN_ICON = {
+    ceiling: '<svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="1.6"/><path d="M12 3v4.4M12 10.6v1.4M4 9h6.4M13.6 9H20M5 13.5c2-1.2 4.4-1.6 7-1.6s5 .4 7 1.6"/></svg>',
+    fan: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.8"/><path d="M12 10.2C10 6 11 3 14 3.6c2.4.5 1.6 4.4-2 6.6M13.8 12c4.2-2 7.2-1 6.6 2-.5 2.4-4.4 1.6-6.6-2M12 13.8c2 4.2 1 7.2-2 6.6-2.4-.5-1.6-4.4 2-6.6M10.2 12C6 14 3 13 3.6 10c.5-2.4 4.4-1.6 6.6 2"/></svg>',
+    hvac: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="9" rx="1.5"/><path d="M7 17c0 1.5 1 2.5 1 4M12 17c0 1.5 1 2.5 1 4M17 17c0 1.5 1 2.5 1 4M6 10h12"/></svg>' };
+  const FMODE = { auto: 'Auto', quiet: 'Tyst' };
+  function stoveFanState(f) {
+    const s = st(f.entity); if (!s) return { cls: 'na', text: 'Saknas', on: false };
+    const na = s.state === 'unavailable' || s.state === 'unknown';
+    if (f.entity.startsWith('climate.')) {
+      const on = s.state === (f.hvac_mode || 'fan_only'), a = s.attributes || {};
+      const mode = { off: 'Av', heat: 'Värme', cool: 'Kyla', fan_only: 'Fläkt', dry: 'Torka', heat_cool: 'Auto' }[s.state] || s.state;
+      return { cls: na ? 'na' : on ? 'on' : '', on, text: na ? 'Ej nåbar' : on && a.fan_mode ? `${mode} · ${FMODE[a.fan_mode] || a.fan_mode}` : mode };
+    }
+    const on = s.state === 'on', pct = on && f.entity.startsWith('fan.') && s.attributes && Number.isFinite(s.attributes.percentage) ? Math.round(s.attributes.percentage) + ' %' : '';
+    const w = f.power ? num(f.power) : null;
+    return { cls: na ? 'na' : on ? 'on' : '', on, text: na ? 'Ej nåbar' : [pct || (on ? 'På' : 'Av'), w != null && (on || w >= 1) ? Math.round(w) + ' W' : ''].filter(Boolean).join(' · ') };
+  }
+  function stoveCtl() {
+    const K = cfg.stove; if (!K || !(K.fans || []).length) return '';
+    const ctl = !!K.controls, ps = K.pause_script ? st(K.pause_script) : null;
+    const tiles = K.fans.map(f => {
+      const x = stoveFanState(f), e = f.energy != null ? KAM.fanKwh[f.energy] : undefined;
+      return `<button class="kftile ${x.cls}" ${ctl ? `data-kf="toggle" data-kfe="${esc(f.entity)}" data-on="${x.on}"` : ''} ${x.cls === 'na' || !ctl ? 'disabled' : ''}>
+        <span class="kfi">${FAN_ICON[f.icon] || FAN_ICON.fan}</span><span class="kfn">${esc(f.name)}</span><small>${esc(x.text)}</small>${e != null ? `<em>${nf(e, e < 1 ? 2 : 1)} kWh idag</em>` : ''}</button>`;
+    }).join('');
+    // hastigheter / fläktlägen för de fläktar som är på
+    const extra = !ctl ? '' : K.fans.map(f => {
+      const s = st(f.entity), x = stoveFanState(f); if (!s || !x.on) return '';
+      if (f.entity.startsWith('fan.')) {
+        const step = Number(s.attributes.percentage_step) || 0; if (!step || step > 50) return '';
+        const n = Math.round(100 / step), cur = Number(s.attributes.percentage);
+        const b = []; for (let i = 1; i <= n; i++) { const p = Math.round(i * step); b.push(`<button class="${Math.abs(cur - p) < step / 2 ? 'sel' : ''}" data-kf="speed" data-kfe="${esc(f.entity)}" data-v="${p}">${i}</button>`); }
+        return `<div class="kfrow"><span>${esc(f.name)}</span><div class="kfseg">${b.join('')}</div></div>`;
+      }
+      if (f.entity.startsWith('climate.')) {
+        const modes = s.attributes.fan_modes || []; if (!modes.length) return '';
+        return `<div class="kfrow"><span>${esc(f.name)}</span><div class="kfseg">${modes.map(m => `<button class="${s.attributes.fan_mode === m ? 'sel' : ''}" data-kf="fanmode" data-kfe="${esc(f.entity)}" data-v="${esc(m)}">${esc(FMODE[m] || m)}</button>`).join('')}</div></div>`;
+      }
+      return '';
+    }).join('');
+    let pause = '';
+    if (ctl && ps) {
+      if (ps.state === 'on') {
+        const end = Date.parse(ps.attributes.last_triggered || ps.last_updated) + (K.pause_minutes || 45) * 60000, left = Math.max(1, Math.ceil((end - Date.now()) / 60000));
+        pause = `<button class="kfpause on" data-kf="resume">Fläktarna pausade${Number.isFinite(left) ? ` · ${left} min kvar` : ''} · <b>Starta igen</b></button>`;
+      } else if (K.fans.some(f => stoveFanState(f).on)) pause = `<button class="kfpause" data-kf="pause">Pausa fläktarna ${K.pause_minutes || 45} min</button>`;
+    }
+    return `<div class="eyebrow">Fläktar</div><div class="kftiles">${tiles}</div>${extra}${pause}`;
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-kf]'); if (!b || !b.closest('#dctl')) return;
+    e.stopPropagation();
+    const op = b.dataset.kf, ent = b.dataset.kfe, v = b.dataset.v;
+    const body = op === 'toggle' ? { op, entity: ent, on: b.dataset.on !== 'true' } : op === 'speed' ? { op, entity: ent, pct: Number(v) } : op === 'fanmode' ? { op, entity: ent, mode: v } : { op };
+    if (op === 'toggle') { const s = states[ent], f = (cfg.stove.fans || []).find(x => x.entity === ent);
+      if (s && f && !ent.startsWith('climate.')) { states[ent] = Object.assign({}, s, { state: body.on ? 'on' : 'off' }); renderDrawerStats(); } }
+    sendCtl({ action: 'stove', value: body }, true);
+  }, true);
+
   function kaminRich() {
     const K = cfg.stove || {}; loadKamin();
     const t = num(K.temp), room = K.room ? num(K.room) : null, loaded = !!KAM.pts, a = kaminAnalyze();
@@ -334,8 +394,6 @@
     const status = a.live ? (a.cooling ? 'Brinner ner' : 'Eldar') : t != null && t >= (K.burn || 40) - 12 ? 'Avsvalnar' : 'Kall';
     const wood = a.todayKwh >= 0.5 ? `≈ ${nf(a.todayKwh / (4.2 * (K.efficiency || 0.8)), 1)} kg ved` : '';
     const fires = a.fires.slice(-6).reverse();
-    const fans = (K.fans || []).map(f => { const s = st(f.entity), e = f.energy != null ? KAM.fanKwh[f.energy] : undefined;
-      return `<div class="kfan"><span>${esc(f.name)}</span><b class="${s && s.state === 'on' ? 'on' : ''}">${s ? (s.state === 'on' ? 'På' : s.state === 'off' ? 'Av' : esc(s.state)) : '–'}</b>${e != null ? `<small>${nf(e, e < 1 ? 2 : 1)} kWh idag</small>` : ''}</div>`; }).join('');
     return `<section class="sx hero kam"><div><div class="sk">${esc(status)}</div><div class="sbig">${nf(t, 0)}<small>°C</small></div>
         <div class="ss">${a.live ? `Sedan ${hm(a.live.start)} · ${durTxt((Date.now() - a.live.start) / 1000)}` : a.fires.length ? `Senast eldat ${dayLbl(a.fires[a.fires.length - 1].start)} ${hm(a.fires[a.fires.length - 1].start)}` : 'Inte eldat det senaste dygnet'}</div></div>
         <div class="hr"><div class="sk">Värme nu</div><div class="smid">${a.live ? '≈ ' + nf(a.kwNow, 1) : '0'}<small>kW</small></div>
@@ -345,7 +403,6 @@
         ${stat('Värme', loaded ? '≈ ' + nf(a.todayKwh, a.todayKwh < 10 ? 1 : 0) : '…', 'kWh', wood)}
         ${stat('Högst', a.todayMax != null ? nf(a.todayMax, 0) : '–', '°C', a.todayMaxAt ? 'kl ' + hm(a.todayMaxAt) : '')}</div></section>
       <section class="sx"><div class="sh">Eldningar senaste 36 h</div>${!loaded ? '<div class="empty">Hämtar historik …</div>' : fires.length ? `<div class="kfires">${fires.map(f => `<div class="kfire${f.end === null ? ' live' : ''}"><span>${dayLbl(f.start)} ${hm(f.start)}–${f.end === null ? 'nu' : hm(f.end)}</span><span>${durTxt(((f.end ?? Date.now()) - f.start) / 1000)}</span><span>≈ ${nf(f.kwh, f.kwh < 10 ? 1 : 0)} kWh</span><span>max ${nf(f.max, 0)}°</span></div>`).join('')}</div>` : '<div class="dnote">Inga eldningar.</div>'}</section>
-      <section class="sx"><div class="sh">Fläktar</div><div class="kfans">${fans}</div></section>
       <p class="dnote">Värmen är en grov uppskattning: ${nf(K.heat_kw || 6, 0)} kW vid ${nf(K.full_temp || 90, 0)} °C i utblåset, linjärt ner mot rumstemperaturen (≈ ${nf(a.base, 0)} °C), högst ${nf(K.max_kw || 9, 0)} kW. Eldar räknas från ${nf(K.burn || 40, 0)} °C.</p>`;
   }
 
@@ -799,7 +856,7 @@
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl },
     info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
-    kamin: { eyebrow: 'Vardagsrum / kamin', title: 'Kaminen', stats: () => [], rich: kaminRich, charts: () => cfg.stove ? [[cfg.stove.temp, 'Temperatur vid utblåset', TC('orange'), 1, '°C']] : [] },
+    kamin: { eyebrow: 'Vardagsrum / kamin', title: 'Kaminen', stats: () => [], rich: kaminRich, ctl: stoveCtl, charts: () => cfg.stove ? [[cfg.stove.temp, 'Temperatur vid utblåset', TC('orange'), 1, '°C']] : [] },
     temps: { eyebrow: 'Inomhus och byggnader', title: 'Temperaturer', wide: true, rich: () => '', stats: () => [], ctl: tempsCtl,
       charts: () => { const cols = ['orange', 'blue', 'sage', 'gold', 'red', 'text']; return (cfg.temp_pins || []).length ? [{ title: 'Utvalda rum', unit: '°C', div: 1, series: cfg.temp_pins.map((m, i) => [m.temp, m.name, TC(cols[i % cols.length])]) }] : []; } },
     radiators: { eyebrow: 'Värme / element', title: 'Element och golvvärme', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: radsCtl, extra: () => '<a class="btn primary-link" href="element.html">Öppna elementsidan →</a>' },
@@ -906,7 +963,42 @@
       + sec('Dörrar', open ? open + (open === 1 ? ' öppen' : ' öppna') : 'Allt stängt', open ? 'warn' : 'ok', doors)
       + sec('Rörelse', act ? act + ' aktiva' : 'Lugnt', act ? 'mid' : 'ok', motion)
       + sec('Vattenläckor', leak ? 'LÄCKA' : loff ? loff + ' offline' : 'Torrt', leak ? 'alarm' : loff ? 'mid' : 'ok', leaks)
-      + sec('Brandvarnare', fire ? 'BRAND' : chk ? chk + ' behöver koll' : 'Inga larm', fire ? 'alarm' : chk ? 'mid' : 'ok', smoke);
+      + sec('Brandvarnare', fire ? 'BRAND' : chk ? chk + ' behöver koll' : 'Inga larm', fire ? 'alarm' : chk ? 'mid' : 'ok', smoke)
+      + waterSec(sec, tile, dead);
+  }
+  // Hydrofor och pumpar, som hydrofor- och pumpkorten i HA
+  function waterSec(sec, tile, dead) {
+    const W = (cfg.info || {}).water; if (!W) return '';
+    const kwh = id => { const v = id ? num(id) : null; return v == null ? '' : `${nf(v, v < 1 ? 2 : 1)} kWh`; };
+    const sm = (...x) => { const t = x.filter(Boolean).join(' · '); return t ? `<small>${esc(t)}</small>` : ''; };
+    let warn = 0, run = [];
+    const out = [];
+    const H = W.hydrofor;
+    if (H) {
+      const s = st(H.entity), on = !!s && s.state === 'on', w = num(H.power), rt = num(H.runtime_today), rm = num(H.runtime_month), t = num(H.temperature), hum = num(H.humidity);
+      const longRun = H.warn_runtime && rt != null && rt > H.warn_runtime, cold = H.warn_temp != null && t != null && t < H.warn_temp;
+      if (on) run.push('Hydroforn');
+      if (longRun || cold || dead(s)) warn++;
+      const hm2 = h => h == null ? '' : h < 1 ? Math.round(h * 60) + ' min' : nf(h, 1) + ' h';
+      out.push(tile('Hydrofor', dead(s) ? 'Offline' : on ? 'Pumpar' : 'Vilar', dead(s) ? 'off' : longRun ? 'warn' : on ? 'mid' : 'ok',
+        sm(on && w != null ? Math.round(w) + ' W' : '', rt != null ? `${hm2(rt)} idag` : '', !on && rm != null ? `${hm2(rm)} i mån` : '', longRun ? 'lång drifttid, kolla läckor' : '')));
+      out.push(tile('Pumprum', t == null ? '–' : `${nf(t, 1)}<small> °C</small>`, cold ? 'warn' : 'ok', sm(hum != null ? `${nf(hum, 0)} % fukt` : '', cold ? 'frostrisk' : '')));
+      const ct = num(H.cost_today), cm = num(H.cost_month);
+      out.push(tile('Hydrofor el', kwh(H.energy_today) ? kwh(H.energy_today).replace(' kWh', '<small> kWh idag</small>') : '–', '',
+        sm(ct != null ? `${nf(ct, 1)} kr idag` : '', kwh(H.energy_month) ? `månad ${kwh(H.energy_month)}${cm != null ? ` (${nf(cm, 0)} kr)` : ''}` : '')));
+    }
+    for (const P of W.pumps || []) {
+      const w = num(P.power), sw = P.switch ? st(P.switch) : null, ps = st(P.power);
+      const off = !!sw && sw.state === 'off', on = w != null && w >= (P.threshold || 10);
+      const since = on && ps && ps.last_changed ? (Date.now() - Date.parse(ps.last_changed)) / 60000 : 0;
+      const longRun = on && P.warn_run_minutes && since > P.warn_run_minutes;
+      const bad = (off && P.warn_off) || longRun || dead(ps);
+      if (bad) warn++; if (on) run.push(P.name);
+      out.push(tile(P.name, dead(ps) ? 'Offline' : off ? 'Avstängd' : on ? 'Går' : 'Vilar', dead(ps) ? 'off' : bad ? 'warn' : on ? 'mid' : 'ok',
+        sm(on && w != null ? Math.round(w) + ' W' : '', kwh(P.energy_today) ? `${kwh(P.energy_today)} idag` : '', off && P.warn_off ? 'uttaget är av!' : '', longRun ? 'går länge' : '')));
+    }
+    const sum = warn ? warn + ' att kolla' : run.length ? run.join(', ') + ' går' : 'Allt lugnt';
+    return sec('Vatten och pumpar', sum, warn ? 'warn' : run.length ? 'mid' : 'ok', out.join(''));
   }
   // Media som spelar och tv som är på (visas överst i kiosken)
   const mediaOff = {};

@@ -579,3 +579,21 @@ body.lite .smoke i:nth-child(n+4){display:none}
 .drawer .lgpow:disabled{opacity:.4;cursor:default}
 .drawer .lghead{margin-bottom:6px}
 .drawer .lghead .eyebrow{margin:0!important}
+/* 0.42: kaminens fläktar */
+.drawer .kftiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin-top:8px}
+.drawer .kftile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:10px 12px;border-radius:6px;border:1px solid var(--line2);background:color-mix(in srgb,var(--text) 4%,transparent);color:var(--text);cursor:pointer;font:inherit}
+.drawer .kftile .kfi svg{width:22px;height:22px;fill:none;stroke:var(--muted);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.drawer .kftile .kfn{font-weight:600;font-size:13.5px}
+.drawer .kftile small{color:var(--muted);font-size:12px}
+.drawer .kftile em{font-style:normal;color:var(--dim);font-size:11px}
+.drawer .kftile.on{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 14%,transparent)}
+.drawer .kftile.on .kfi svg{stroke:var(--orange)}
+.drawer .kftile.on small{color:var(--text)}
+.drawer .kftile:disabled{opacity:.5;cursor:default}
+.drawer .kfrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.drawer .kfseg{display:flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+.drawer .kfseg button{background:transparent;border:0;border-right:1px solid var(--line2);color:var(--text);padding:7px 11px;font:inherit;font-size:13px;cursor:pointer;min-width:34px}
+.drawer .kfseg button:last-child{border-right:0}
+.drawer .kfseg button.sel{background:var(--orange);color:var(--bg);font-weight:600}
+.drawer .kfpause{margin-top:12px;width:100%;padding:9px 12px;border-radius:6px;border:1px solid var(--line2);background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+.drawer .kfpause.on{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,transparent)}

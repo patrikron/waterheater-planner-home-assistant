@@ -574,6 +574,15 @@
     ],
     "group.element_lastbalansering": [
       "entity_id"
+    ],
+    "fan.takflakt_main_fan": [
+      "percentage",
+      "percentage_step",
+      "direction",
+      "preset_mode"
+    ],
+    "script.kamin_flaktpaus": [
+      "last_triggered"
     ]
   },
   "house": {
@@ -1320,7 +1329,44 @@
           "name": "Vardagsrum",
           "batpct": "sensor.shellyplussmoke_048308ee1ad4_batteri"
         }
-      ]
+      ],
+      "water": {
+        "hydrofor": {
+          "entity": "binary_sensor.mqtt_hydrofor_active",
+          "state": "sensor.hydrofor_state",
+          "power": "sensor.mqtt_hydrofor_active_power",
+          "runtime_today": "sensor.hydrofor_aktiv_idag",
+          "runtime_month": "sensor.hydrofor_aktiv_denna_manad",
+          "temperature": "sensor.mqtt_hydrofor_temperature",
+          "humidity": "sensor.mqtt_hydrofor_humidity",
+          "energy_today": "sensor.mqtt_hydrofor_active_energy_daily",
+          "energy_month": "sensor.mqtt_hydrofor_active_energy_monthly",
+          "cost_today": "sensor.hydrofor_today_cost",
+          "cost_month": "sensor.hydrofor_mouth_cost",
+          "warn_runtime": 0.75,
+          "warn_temp": 3
+        },
+        "pumps": [
+          {
+            "name": "Dräneringspump",
+            "power": "sensor.0xa4c138bc11e283d3_power",
+            "switch": "switch.0xa4c138bc11e283d3",
+            "energy_today": "sensor.0xa4c138bc11e283d3_energy_daily",
+            "energy_month": "sensor.0xa4c138bc11e283d3_energy_monthly",
+            "threshold": 10,
+            "warn_run_minutes": 5,
+            "warn_off": true
+          },
+          {
+            "name": "Poolpump",
+            "power": "sensor.0xa4c138b4330f7c7e_power",
+            "switch": "switch.0xa4c138b4330f7c7e",
+            "energy_today": "sensor.0xa4c138b4330f7c7e_energy_daily",
+            "energy_month": "sensor.0xa4c138b4330f7c7e_energy_monthly",
+            "threshold": 10
+          }
+        ]
+      }
     },
     "phases": {
       "fuse": 20,
@@ -1466,16 +1512,29 @@
         {
           "name": "Takfläkt",
           "entity": "fan.takflakt_main_fan",
-          "energy": "sensor.shellypmminig3_84fce63c597c_energi"
+          "energy": "sensor.shellypmminig3_84fce63c597c_energi",
+          "power": "sensor.shellypmminig3_84fce63c597c_effekt",
+          "direction": "reverse",
+          "icon": "ceiling"
         },
         {
           "name": "Kaminfläkt",
           "entity": "switch.0xa4c1383432be041d",
-          "energy": "sensor.kaminflakt_energy"
+          "energy": "sensor.kaminflakt_energy",
+          "power": "sensor.0xa4c1383432be041d_power",
+          "icon": "fan"
         },
         {
           "name": "Värmeförflyttare",
-          "entity": "switch.varmeforflyttare_sovrum"
+          "entity": "switch.varmeforflyttare_sovrum",
+          "icon": "hvac"
+        },
+        {
+          "name": "Luftvärmepump",
+          "entity": "climate.daikinap97060_room_temperature",
+          "hvac_mode": "fan_only",
+          "return_mode": "heat",
+          "icon": "fan"
         }
       ],
       "heat_kw": 6,
@@ -1483,7 +1542,10 @@
       "full_temp": 90,
       "efficiency": 0.8,
       "room": "sensor.vardagsrum_temperature",
-      "room_name": "Vardagsrum"
+      "room_name": "Vardagsrum",
+      "controls": true,
+      "pause_script": "script.kamin_flaktpaus",
+      "pause_minutes": 45
     },
     "plan": {
       "washer": {

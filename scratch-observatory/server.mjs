@@ -313,6 +313,7 @@ async function readBody(req, max = 64 * 1024) {
 // ---------- Styrning (bara luftvärmepumpen, bara vitlistade åtgärder) ----------
 const HP = CONFIG.heatpump || {};
 const ctlLog = [];
+const STOVE = CONFIG.house && CONFIG.house.stove, stovePrev = {};
 const LIGHTS = CONFIG.house && CONFIG.house.lights, CHORES = CONFIG.house && CONFIG.house.chores, VAC = CONFIG.house && CONFIG.house.vacuum;
 const ALARM = CONFIG.house && CONFIG.house.alarm && CONFIG.house.alarm.controls ? CONFIG.house.alarm : null;
 const ALARM_MODES = ['arm_home', 'arm_away', 'arm_night', 'arm_vacation'];
@@ -333,7 +334,8 @@ async function control(body) {
     || (act0 === 'cover' && allow('covers').has(ent0)) || (act0 === 'media' && allow('media').has(ent0))
     || (act0 === 'vacuum' && !!(VAC && VAC.controls && VAC.entity === ent0))
     || (act0 === 'lights_off' && !!(LIGHTS && LIGHTS.controls && LIGHTS.all_off)) || (act0 === 'chore' && !!(CHORES && CHORES.controls && CHORES.script))
-    || (act0 === 'alarm' && !!(ALARM && ALARM.entity === ent0));
+    || (act0 === 'alarm' && !!(ALARM && ALARM.entity === ent0))
+    || (act0 === 'stove' && !!(STOVE && STOVE.controls && (STOVE.fans || []).length));
   const hpOk = !!(HP.controls && HP.climate);
   if (!ftxOk && !hpOk) throw Object.assign(new Error('Styrning är avstängd'), { code: 403 });
   const now = Date.now();
@@ -406,6 +408,7 @@ async function control(body) {
     if ((code && !/^\d+$/.test(code)) || code.length > (ALARM.code_max_len || 12)) throw Object.assign(new Error('Ogiltig kod'), { code: 400 });
     call = ['alarm_control_panel', 'alarm_' + mode, entity, code ? { code } : {}];
   }
+  else if (action === 'stove' && ftxOk) call = stoveCall(value || {});
   if (!call) throw Object.assign(new Error('Åtgärden är inte tillåten'), { code: 400 });
   ctlLog.push(now);
   const [domain, service, entity_id, service_data] = call;
@@ -423,7 +426,55 @@ async function control(body) {
   }
   await haCall({ type: 'call_service', domain, service, service_data, target: { entity_id } });
   console.log(`Styrning: ${domain}.${service} ${entity_id} ${JSON.stringify(service_data)}`);
+  // följdanrop, t.ex. riktning på takfläkten efter att den startat (som kaminkortet)
+  for (const [d2, s2, e2, sd2] of call[4] || []) {
+    await new Promise(r => setTimeout(r, 1500));
+    await haCall({ type: 'call_service', domain: d2, service: s2, service_data: sd2, target: { entity_id: e2 } });
+    console.log(`Styrning: ${d2}.${s2} ${e2} ${JSON.stringify(sd2)}`);
+  }
   return { ok: true };
+}
+
+// Kaminens fläktar, samma beteende som kaminkortet i HA. Bara fläktar som står i house.stove.fans.
+function stoveCall(v) {
+  const fans = STOVE.fans || [], f = fans.find(x => x.entity === v.entity), op = v.op;
+  const st = id => states.get(id), on = x => { const s = st(x.entity); return !!s && (x.entity.startsWith('climate.') ? s.state === (x.hvac_mode || 'fan_only') : s.state === 'on'); };
+  const dirAfter = x => x.direction === 'reverse' || x.direction === 'forward' ? [['fan', 'set_direction', x.entity, { direction: x.direction }]] : [];
+  if (op === 'pause' || op === 'resume') {
+    if (!STOVE.pause_script) return null;
+    if (op === 'resume') return ['script', 'turn_on', STOVE.pause_script, { variables: { resume: true } }];
+    const entities = [], climates = [];
+    for (const x of fans) if (on(x)) {
+      if (x.entity.startsWith('climate.')) climates.push({ entity_id: x.entity, pause_mode: stovePrev[x.entity] || x.return_mode || 'heat' });
+      else entities.push(x.entity);
+    }
+    if (!entities.length && !climates.length) return null;
+    return ['script', 'turn_on', STOVE.pause_script, { variables: { entities, climates, minutes: STOVE.pause_minutes || 45 } }];
+  }
+  if (!f) return null;
+  const s = st(f.entity), dom = f.entity.split('.')[0], at = (s && s.attributes) || {};
+  if (!s || s.state === 'unavailable') throw Object.assign(new Error('Fläkten svarar inte'), { code: 400 });
+  if (op === 'toggle' && typeof v.on === 'boolean') {
+    if (dom === 'climate') {
+      const target = f.hvac_mode || 'fan_only';
+      if (v.on) { if (s.state !== target && s.state !== 'unknown') stovePrev[f.entity] = s.state; return ['climate', 'set_hvac_mode', f.entity, { hvac_mode: target }]; }
+      const back = stovePrev[f.entity] && (at.hvac_modes || []).includes(stovePrev[f.entity]) ? stovePrev[f.entity] : (f.return_mode || 'heat');
+      return ['climate', 'set_hvac_mode', f.entity, { hvac_mode: back }];
+    }
+    if (dom === 'fan' && v.on) return ['fan', 'turn_on', f.entity, {}, s.state === 'on' ? [] : dirAfter(f)];
+    if (dom === 'fan' || dom === 'switch') return [dom, v.on ? 'turn_on' : 'turn_off', f.entity, {}];
+    return null;
+  }
+  if (op === 'speed' && dom === 'fan' && typeof v.pct === 'number') {
+    const step = Number(at.percentage_step) || 1, pct = Math.round(v.pct);
+    if (pct < 0 || pct > 100 || Math.abs(pct / step - Math.round(pct / step)) > 0.05) throw Object.assign(new Error('Ogiltig hastighet'), { code: 400 });
+    if (pct === 0) return ['fan', 'turn_off', f.entity, {}];
+    if (s.state !== 'on') return ['fan', 'turn_on', f.entity, { percentage: pct }, dirAfter(f)];
+    return ['fan', 'set_percentage', f.entity, { percentage: pct }];
+  }
+  if (op === 'fanmode' && dom === 'climate' && Array.isArray(at.fan_modes) && at.fan_modes.includes(v.mode))
+    return ['climate', 'set_fan_mode', f.entity, { fan_mode: v.mode }];
+  return null;
 }
 
 // ---------- Teman ----------
