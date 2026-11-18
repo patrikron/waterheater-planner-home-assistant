@@ -122,6 +122,8 @@ body.lite .kmp{backdrop-filter:none}
 .kmenu i.al-alarm{background:var(--red);color:#fff}
 .kmenu button.al-on{border-color:var(--blue)}.kmenu button.al-on svg{stroke:var(--blue)}
 .kmenu button.al-ok svg{stroke:var(--sage)}
+/* Larmikonen: kontur när avlarmat, ifylld när larmat eller larmar */
+.kmenu button.al-on svg path{fill:var(--blue)}.kmenu button.al-mid svg path{fill:color-mix(in srgb,var(--gold) 45%,transparent)}.kmenu button.al-alarm svg path{fill:#fff}
 .kmenu button.al-alarm{border-color:var(--red);background:color-mix(in srgb,var(--red) 30%,var(--panel))}.kmenu button.al-alarm svg{stroke:#fff}
 .kalarm{position:fixed;z-index:30;top:0;left:0;right:0;display:block;width:100%;padding:18px;border:0;background:var(--red);color:#fff;font:inherit;font-size:22px;font-weight:700;letter-spacing:.5px;text-align:center;animation:kalpulse 1s ease-in-out infinite alternate;cursor:pointer}
 .kalarm[hidden]{display:none}

@@ -252,8 +252,8 @@
       if (ab) {
         ab.hidden = !al;
         if (al) {
-          const short = { disarmed: 'Av', armed_home: 'Hemma', armed_away: 'Borta', armed_night: 'Natt', armed_vacation: 'Semester', arming: '…', disarming: '…', pending: '!', triggered: 'LARM' }[al.state] || '?';
-          ai.textContent = short; ai.className = 'al-' + al.cls; ab.className = 'al-' + al.cls;
+          const short = { disarmed: '', armed_home: 'Hemma', armed_away: 'Borta', armed_night: 'Natt', armed_vacation: 'Semester', arming: '…', disarming: '…', pending: '!', triggered: 'LARM' }[al.state] ?? '?';
+          ai.textContent = short; ai.className = 'al-' + al.cls; ab.className = 'al-' + al.cls; ab.title = 'Larm: ' + al.label; ab.setAttribute('aria-label', 'Larm, ' + al.label);
         }
       }
       if (ban) { const on = !!al && (al.state === 'triggered' || al.state === 'pending'); ban.hidden = !on; if (on) ban.textContent = al.label + ' – tryck för att avlarma'; }
