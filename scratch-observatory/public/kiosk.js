@@ -175,6 +175,24 @@
     const h = d.getHours();
     return h < 5 ? 'God natt' : h < 10 ? 'God morgon' : h < 12 ? 'God förmiddag' : h < 18 ? 'God eftermiddag' : h < 23 ? 'God kväll' : 'God natt';
   }
+  // Post: nästa utdelning (PostNord) och hur många gånger brevlådan öppnats idag (Patrik 2026-11-20)
+  const POST_SVG = '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6.5L20.5 7"/></svg>';
+  const BOX_SVG = '<svg viewBox="0 0 24 24"><path d="M6 9a4 4 0 0 1 8 0v9H3V12a3 3 0 0 1 3-3zM14 9h4a3 3 0 0 1 3 3v6h-7M7 13h3M17 4v6M17 4h3v2h-3"/></svg>';
+  function postHtml() {
+    const H = window.ObsHouse, C = H && H.cfg && H.cfg(), M = C && C.mail; if (!M) return '';
+    const d = H.st(M.delivery), o = H.st(M.opened), out = [];
+    if (d && d.attributes && d.attributes.next_delivery) {
+      const t = new Date(d.attributes.next_delivery + 'T12:00:00'), now = new Date(); now.setHours(12, 0, 0, 0);
+      const days = Math.round((t - now) / 864e5);
+      const when = days <= 0 ? 'idag' : days === 1 ? 'imorgon' : t.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/\.$/, '');
+      out.push(`<div class="kp${days <= 0 ? ' due' : ''}">${POST_SVG}<span>Post <b>${esc(when)}</b>${days > 1 ? ` <small>om ${days} dagar</small>` : ''}</span></div>`);
+    }
+    const n = o ? parseInt(o.state, 10) : NaN;
+    if (Number.isFinite(n)) out.push(`<div class="kp${n > 0 ? ' opened' : ''}">${BOX_SVG}<span>${n > 0 ? `Brevlådan öppnad <b>${n}</b> ${n === 1 ? 'gång' : 'gånger'}` : 'Brevlådan inte öppnad'} idag</span></div>`);
+    return out.join('');
+  }
+  let lastPost = '';
+  window.addEventListener('obs-render', () => { const el = document.getElementById('kpost'), h = postHtml(); if (el && h !== lastPost) { el.innerHTML = h; lastPost = h; } });
   function renderCal() {
     if (!kcal) return;
     const now = new Date();
@@ -183,7 +201,7 @@
     const name = evs.find(e => e.cal === (cal && cal.namedays) && dayKey(startOf(e)) === dayKey(now));
     if (name) html += `<div class="kname">Namnsdag: <b>${esc(name.title.replace(/\s+[–-]\s+\d.*$/, ''))}</b></div>`;
     // Vind/fukt/sol (wxDetails) är bortplockat tills vidare (Patrik 2026-11-09)
-    html += `</div><div class="krain" id="krain" data-open="weather">${rainHtml()}</div></div></div><div class="kdays">`;
+    html += `</div><div class="krain" id="krain" data-open="weather">${rainHtml()}</div></div></div><div class="kpost" id="kpost">${postHtml()}</div><div class="kdays">`;
     if (!cal) html += `<div class="kerr">${calErr ? 'Kunde inte hämta kalendern (' + esc(calErr) + ').' : 'Hämtar kalendern …'}</div>`;
     else {
       const colors = Object.fromEntries((cal.calendars || []).map(c => [c.entity, COL[c.color] || c.color]));

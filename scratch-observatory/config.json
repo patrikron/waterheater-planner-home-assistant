@@ -736,6 +736,11 @@
       "volume_level",
       "is_volume_muted",
       "media_content_type"
+    ],
+    "sensor.postnord_delivery_62275": [
+      "next_delivery",
+      "upcoming_delivery",
+      "days_left"
     ]
   },
   "house": {
@@ -2256,6 +2261,10 @@
       "hour": "sensor.netatmo_station_regnmatare_rain_last_hour",
       "now": "sensor.netatmo_station_regnmatare_rain",
       "battery": "sensor.netatmo_station_regnmatare_battery_percent"
+    },
+    "mail": {
+      "delivery": "sensor.postnord_delivery_62275",
+      "opened": "sensor.brevlada_oppnats_idag"
     }
   },
   "water": {
