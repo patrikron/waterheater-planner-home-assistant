@@ -25,6 +25,7 @@
       elpris:  { x: 1.5,  y: 64 },
       kostnad: { x: 54,   y: 72 },
       kamin:   { x: 45,   y: 18, anchor: [41.3, 28.6] }, // skorstenen, röken stiger härifrån
+      match:   { x: 31.5, y: 73 }, // matchdag (Team Tracker), syns bara samma dag som matchen
     },
     hotspots: {
       solar:    { points: [[30.7, 33.2], [55, 33.6], [61.4, 40], [45.7, 44], [35.5, 40]] },
@@ -71,6 +72,7 @@
   // Linjeikoner för rutorna (färg från rubriken) och färgade väderikoner. Delas med kiosksidan via window.ObsIcons.
   const svgI = d => `<svg class="bi" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   const BOX_ICON = {
+    match: svgI('<circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 4.5h-5L8 10zM12 3v4M16 10l4.5-1.5M14.5 14.5l2.5 4M9.5 14.5 7 18.5M8 10 3.5 8.5"/>'),
     kamin: svgI('<path d="M12 3c1 3 4 4.5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1.5-5 0-8z"/><path d="M5 21h14"/>'),
     nat: svgI('<path d="M12 2 7 22M12 2l5 20M8.6 15h6.8M9.8 9.5h4.4M5 6h14M6 11h12"/>'),
     sol: svgI('<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>'),
@@ -114,7 +116,7 @@
 
   // ---------- Rutornas innehåll ----------
   // Inställningar från inställningssidan (gäller alla skärmar), hämtas vid start och varje minut
-  let SET = { value_colors: true, solar_shimmer: true, effects: true, kiosk_people: true, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5, media_hidden: [] };
+  let SET = { value_colors: true, solar_shimmer: true, effects: true, kiosk_people: true, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5, media_hidden: [], match_hidden: [] };
   async function loadSettings() {
     try { const r = await fetch('api/settings', { cache: 'no-store' }); if (r.ok) { SET = { ...SET, ...(await r.json()) }; applyFx(); refresh(); } } catch {}
   }
@@ -257,7 +259,42 @@
         s2: on.length > 1 ? on.length + ' fläktar på' : on.length ? on[0] + ' på' : 'Fläktar av', flow: stoveBurning ? { cls: 'warm', dir: 'out', w: 1500 } : null };
     } },
     kostnad: { title: 'Idag / pengar', cls: 'wide money-box', drawer: 'money', render() { return { custom: moneyPage() }; } },
+    match: { title: 'Match', cls: 'wide match-box', render() { const h = matchHtml(); return h ? { custom: h } : { hide: true, custom: editing ? '<div class="k">Match</div><div class="s">Syns bara på matchdagar</div>' : '' }; } },
   };
+
+  // ---------- Matchdag (Team Tracker), Patrik 2026-11-20 ----------
+  // Rutan syns samma dag som matchen (eller medan den pågår). Krysset döljer just den matchen (sparas i inställningarna).
+  function todaysMatch() {
+    const S = cfg.sports; if (!S || !Array.isArray(S.sensors)) return null;
+    const today = new Date().toDateString(), hidden = SET.match_hidden || [];
+    const list = S.sensors.map(sc => ({ sc, s: st(sc.entity) })).filter(x => x.s && x.s.attributes && x.s.attributes.date).map(x => ({ ...x, a: x.s.attributes, t: new Date(x.s.attributes.date) }))
+      .filter(x => !isNaN(x.t) && (x.t.toDateString() === today || x.a.state === 'IN') && !hidden.includes(String(x.a.event_id)));
+    list.sort((x, y) => (y.a.state === 'IN') - (x.a.state === 'IN') || x.t - y.t);
+    return list[0] || null;
+  }
+  function matchHtml() {
+    const m = todaysMatch(); if (!m) return '';
+    const { sc, a, t } = m, stt = String(a.state || '').toUpperCase();
+    const home = a.team_homeaway !== 'away';
+    const img = k => `<img src="api/sport_img?e=${encodeURIComponent(sc.entity)}&k=${k}" alt="">`;
+    const team = (k, name, rec, win) => `<div class="mteam${win ? ' win' : ''}">${img(k)}<b>${esc(name || '')}</b>${rec ? `<small>${esc(rec)}</small>` : ''}</div>`;
+    const us = team('team', a.team_name, a.team_record, stt === 'POST' && a.team_winner), them = team('opponent', a.opponent_name, a.opponent_record, stt === 'POST' && a.opponent_winner);
+    const hs = home ? a.team_score : a.opponent_score, as = home ? a.opponent_score : a.team_score;
+    const mid = stt === 'IN' ? `<b class="msc live">${esc(hs ?? 0)} – ${esc(as ?? 0)}</b><small class="mlive">● ${esc(a.clock || 'pågår')}</small>`
+      : stt === 'POST' ? `<b class="msc">${esc(hs ?? 0)} – ${esc(as ?? 0)}</b><small>Slut</small>`
+      : `<b class="msc">${t.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}</b><small>${esc(a.kickoff_in || 'idag')}</small>`;
+    const foot = stt === 'IN' && a.last_play ? String(a.last_play) : [a.venue, a.tv_network ? 'TV ' + String(a.tv_network).split('/')[0] : ''].filter(Boolean).join(' · ');
+    return `<div class="k">${esc(sc.label || a.league_name || a.league || 'Match')} · ${stt === 'IN' ? 'pågår' : stt === 'POST' ? 'slutresultat' : 'idag'}<button class="mx" type="button" data-match-hide="${esc(String(a.event_id || ''))}" title="Dölj den här matchen" aria-label="Dölj den här matchen">×</button></div>
+      <div class="mrow">${home ? us + `<div class="mmid">${mid}</div>` + them : them + `<div class="mmid">${mid}</div>` + us}</div>
+      ${foot ? `<div class="s">${esc(foot)}</div>` : ''}`;
+  }
+  document.addEventListener('click', async e => {
+    const b = e.target.closest && e.target.closest('[data-match-hide]'); if (!b || editing) return;
+    e.stopPropagation(); e.preventDefault();
+    const id = b.dataset.matchHide; if (!/^[0-9]{1,15}$/.test(id)) return;
+    SET.match_hidden = [...(SET.match_hidden || []).filter(x => x !== id), id].slice(-30); renderBoxes();
+    try { await fetch('api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_hidden: SET.match_hidden }) }); } catch {}
+  }, true);
 
   // ---------- Kaminen: samma uträkning som kamin-kortet ----------
   // Eldar = utblåset når burn (slutar 2 °C under, så att det inte fladdrar). Värmen är en GROV uppskattning:
@@ -559,7 +596,7 @@
   // ---------- Rendera rutor ----------
   function buildBoxes() {
     boxesEl.innerHTML = '';
-    for (const id of ['nat', 'sol', 'hus', 'ftx', 'vv', 'vp', 'vader', 'ladd', 'ev6', 'elpris', 'kostnad', 'kamin']) {
+    for (const id of ['nat', 'sol', 'hus', 'ftx', 'vv', 'vp', 'vader', 'ladd', 'ev6', 'elpris', 'kostnad', 'kamin', 'match']) {
       const el = document.createElement('div');
       el.className = 'box ' + (BOX[id].cls || '');
       el.dataset.id = id;

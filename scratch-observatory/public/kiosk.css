@@ -189,3 +189,7 @@ body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
 .kcal .kpn small{white-space:nowrap}
 .kcal .kpn small{color:var(--muted);font-size:1em}
 .kcal .kperson.away .kpn b,.kcal .kperson.away .kpn>span{color:var(--muted)}
+
+/* Matcher i kalendern: lagloggor (0.57) */
+.kev .kmatch{display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap}
+.kev .kmatch img{width:20px;height:20px;object-fit:contain;flex:none}

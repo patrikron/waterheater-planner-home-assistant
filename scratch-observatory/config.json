@@ -23,6 +23,8 @@
     "price_low": 1.0
   },
   "attributes": {
+    "sensor.epl_arsenal": ["state", "league", "league_name", "date", "kickoff_in", "event_id", "venue", "location", "tv_network", "team_name", "team_abbr", "team_homeaway", "team_score", "team_record", "team_colors", "team_winner", "opponent_name", "opponent_abbr", "opponent_score", "opponent_record", "opponent_colors", "opponent_winner", "clock", "last_play", "team_shots_on_target", "team_total_shots", "opponent_shots_on_target", "opponent_total_shots", "team_win_probability", "opponent_win_probability"],
+    "sensor.cl_arsenal": ["state", "league", "league_name", "date", "kickoff_in", "event_id", "venue", "location", "tv_network", "team_name", "team_abbr", "team_homeaway", "team_score", "team_record", "team_colors", "team_winner", "opponent_name", "opponent_abbr", "opponent_score", "opponent_record", "opponent_colors", "opponent_winner", "clock", "last_play", "team_shots_on_target", "team_total_shots", "opponent_shots_on_target", "opponent_total_shots", "team_win_probability", "opponent_win_probability"],
     "sensor.varmvattenberedare_status": [
       "temperature",
       "target_temperature",

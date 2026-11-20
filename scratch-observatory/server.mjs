@@ -293,8 +293,9 @@ function withSports(data) {
     const [hs, as] = home ? [a.team_score, a.opponent_score] : [a.opponent_score, a.team_score];
     const score = st === 'IN' || st === 'POST' ? ` ${hs ?? 0}–${as ?? 0} ` : ' – ';
     const extra = st === 'IN' ? ' · pågår' + (a.clock ? ' ' + String(a.clock).slice(0, 12) : '') : st === 'POST' ? ' · slut' : (a.venue ? ' · ' + String(a.venue).slice(0, 60) : '');
-    ev.push({ cal: id, title: (h + score + aw).slice(0, 120), all_day: false, start: new Date(t).toISOString(), end: new Date(t + 2 * 3600e3).toISOString(),
-      location: String(sc.label || a.league || '').slice(0, 40) + extra });
+    const logo = k => `/api/sport_img?e=${encodeURIComponent(sc.entity)}&k=${k}`;
+    ev.push({ cal: id, title: (h + score + aw).slice(0, 120), all_day: false, start: new Date(t).toISOString(), end: new Date(Math.min(t + 2 * 3600e3, d0 + Math.floor((t - d0) / 864e5 + 1) * 864e5 - 60e3)).toISOString(), // slutar senast samma dag
+      location: String(sc.label || a.league || '').slice(0, 40) + extra, logos: home ? [logo('team'), logo('opponent')] : [logo('opponent'), logo('team')] });
   }
   if (!ev.length) return data;
   return { ...data, calendars: [...data.calendars, { entity: id, name: SPORT_CFG.name || 'Sport', color: SPORT_CFG.color || 'red' }],
@@ -378,6 +379,8 @@ const SETTINGS_DEF = {
   import_high_kw: { type: 'num', def: 2, min: 0, max: 50 }, import_max_kw: { type: 'num', def: 5, min: 0, max: 50 },
   // dolda mediaenheter (Patrik 2026-11-20): bara entiteter från house.media i config
   media_hidden: { type: 'ids', def: [] },
+  // matcher som tagits bort från översikten (Team Tracker event_id), Patrik 2026-11-20
+  match_hidden: { type: 'evs', def: [] },
 };
 function cleanSettings(o) {
   const out = {};
@@ -389,6 +392,7 @@ function cleanSettings(o) {
       const M = (CONFIG.house && CONFIG.house.media) || {}, ok = new Set([...(M.players || []), ...(M.groups || []), ...((M.ma && M.ma.players) || []), ...((M.ma && M.ma.groups) || [])].map(p => p.entity));
       out[k] = [...new Set(v.filter(x => typeof x === 'string' && ok.has(x)))].slice(0, 100);
     }
+    if (d.type === 'evs' && Array.isArray(v)) out[k] = [...new Set(v.filter(x => typeof x === 'string' && /^[0-9]{1,15}$/.test(x)))].slice(-30);
   }
   return out;
 }
@@ -879,6 +883,24 @@ async function personImage(res, entity) {
   res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'private, max-age=3600', 'Content-Length': c.body.length });
   res.end(c.body);
 }
+// Lagloggor från Team Tracker (ESPN). Bara loggorna i de konfigurerade sensorerna, bara https från espncdn.
+const sportImgCache = new Map();
+async function sportImage(res, entity, k) {
+  const s = SPORT.get(entity), u = s && s.attributes && ['team', 'opponent', 'league'].includes(k) ? s.attributes[k + '_logo'] : null;
+  if (typeof u !== 'string' || !/^https:\/\/a\.espncdn\.com\/[A-Za-z0-9_\/.%-]{1,300}\.png$/.test(u)) throw Object.assign(new Error('Ingen logga'), { code: 404 });
+  let c = sportImgCache.get(u);
+  if (!c) {
+    const url = 'https://a.espncdn.com/combiner/i?img=' + encodeURIComponent(u.replace('https://a.espncdn.com', '')) + '&h=160&w=160'; // mindre bild, faller tillbaka på originalet
+    let r = await fetch(url, { signal: AbortSignal.timeout(8000) }).catch(() => null);
+    if (!r || !r.ok || !/^image\//.test(r.headers.get('content-type') || '')) r = await fetch(u, { signal: AbortSignal.timeout(8000) });
+    const type = r.headers.get('content-type') || '';
+    if (!r.ok || !/^image\/(png|jpeg|webp|gif)/.test(type)) throw Object.assign(new Error('Kunde inte hämta loggan'), { code: 404 });
+    const body = Buffer.from(await r.arrayBuffer()); if (body.length > 1500000) throw Object.assign(new Error('För stor'), { code: 404 });
+    c = { type, body }; sportImgCache.set(u, c); if (sportImgCache.size > 60) sportImgCache.delete(sportImgCache.keys().next().value);
+  }
+  res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'private, max-age=86400', 'Content-Length': c.body.length });
+  res.end(c.body);
+}
 function sendImg(res, c) {
   if (!/^image\//.test(c.type || '')) throw Object.assign(new Error('Ingen bild'), { code: 404 });
   res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'no-store', 'Content-Length': c.body.length });
@@ -952,7 +974,7 @@ const server = http.createServer(async (req, res) => {
       try { return json(res, 200, JSON.parse(await readFile(LAYOUT_FILE, 'utf8'))); }
       catch { return json(res, 200, {}); }
     }
-    if (url.pathname === '/api/house') return json(res, 200, CONFIG.house || {});
+    if (url.pathname === '/api/house') return json(res, 200, SPORT_CFG ? { ...(CONFIG.house || {}), sports: SPORT_CFG } : (CONFIG.house || {}));
     if (url.pathname === '/api/water') return json(res, 200, CONFIG.water || {});
     if (url.pathname === '/api/heatpump') return json(res, 200, CONFIG.heatpump || {});
     if (url.pathname === '/api/solar') return json(res, 200, CONFIG.solar || {});
@@ -990,6 +1012,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (url.pathname === '/api/camera_stream') return await cameraStream(req, res, url.searchParams.get('entity') || '');
+    if (url.pathname === '/api/sport_img') return await sportImage(res, url.searchParams.get('e') || '', url.searchParams.get('k') || '');
     if (url.pathname === '/api/person_img') return await personImage(res, url.searchParams.get('entity') || '');
     if (url.pathname === '/api/camera') return await cameraImage(res, url.searchParams.get('entity') || '', Number(url.searchParams.get('w')) || 640);
     // Statiska filer från public/

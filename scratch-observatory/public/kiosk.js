@@ -228,6 +228,12 @@
   window.addEventListener('obs-render', () => { const el = document.getElementById('kpost'), h = postHtml(); if (el && h !== lastPost) { el.innerHTML = h; lastPost = h; } });
   let lastPeople = '';
   window.addEventListener('obs-render', () => { const el = document.getElementById('kfoot'), h = peopleHtml(); if (el && h !== lastPeople) { el.innerHTML = h; lastPeople = h; } });
+  // Matcher (Team Tracker): hemmalagets logga före och bortalagets efter rubriken
+  function matchTitle(e) {
+    const L = Array.isArray(e.logos) && e.logos.length === 2 && e.logos.every(u => typeof u === 'string' && u.startsWith('/api/sport_img?')) ? e.logos : null;
+    if (!L) return esc(e.title);
+    return `<span class="kmatch"><img src="${esc(L[0])}" alt="">${esc(e.title)}<img src="${esc(L[1])}" alt=""></span>`;
+  }
   function renderCal() {
     if (!kcal) return;
     const now = new Date();
@@ -257,7 +263,7 @@
           const s = startOf(e), en = endOf(e);
           const t = e.all_day || (s <= day && en >= next) ? 'Heldag' : s < day ? 'till ' + hm(en) : hm(s);
           const past = !e.all_day && en < now;
-          html += `<div class="kev${past ? ' past' : ''}" style="border-left-color:${colors[e.cal] || 'var(--blue)'}"><div class="kt">${t}</div><div class="kx">${esc(e.title)}${e.location ? `<small>${esc(e.location)}</small>` : ''}</div></div>`;
+          html += `<div class="kev${past ? ' past' : ''}" style="border-left-color:${colors[e.cal] || 'var(--blue)'}"><div class="kt">${t}</div><div class="kx">${matchTitle(e)}${e.location ? `<small>${esc(e.location)}</small>` : ''}</div></div>`;
         }
         html += '</div>';
       }
