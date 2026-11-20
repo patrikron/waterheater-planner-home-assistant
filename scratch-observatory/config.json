@@ -3063,7 +3063,21 @@
         "name": "Familjefilm",
         "color": "gold"
       }
-    ]
+    ],
+    "bins": {
+      "calendar": "calendar.gemensam",
+      "days": 45,
+      "items": [
+        {
+          "name": "Soptunna 1",
+          "match": "tömning soptunna 1"
+        },
+        {
+          "name": "Soptunna 2",
+          "match": "tömning soptunna 2"
+        }
+      ]
+    }
   },
   "radiators": {
     "title": "Element och golvvärme.",

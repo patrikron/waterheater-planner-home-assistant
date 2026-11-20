@@ -281,8 +281,21 @@ async function calendar() {
         .map(f => ({ t: f.datetime, cond: f.condition, hi: f.temperature, lo: f.templow, rain: f.precipitation }));
     } catch (e) { errors.push('Väder: ' + e.message); }
   }
+  // Soptunnor: nästa tömning per tunna, sökt längre fram än kalenderns dagar (Patrik 2026-11-20)
+  let bins = null;
+  const B = CAL.bins;
+  if (B && ID_RE.test(B.calendar || '') && Array.isArray(B.items)) {
+    try {
+      const bd = Math.max(7, Math.min(120, Number(B.days) || 45));
+      const ev = await calEvents(B.calendar, start, new Date(t0 + bd * 864e5).toISOString());
+      bins = B.items.map(it => {
+        const m = String(it.match || '').toLowerCase(), hit = m && ev.filter(e => e.title.toLowerCase().includes(m)).sort((a, b) => String(a.start).localeCompare(String(b.start)))[0];
+        return { name: String(it.name || ''), next: hit ? hit.start : null };
+      });
+    } catch (e) { errors.push('Soptunnor: ' + e.message); }
+  }
   const data = { days, calendars: (CAL.calendars || []).filter(c => CAL_IDS.has(c.entity)).map(c => ({ entity: c.entity, name: c.name || c.entity, color: c.color || 'blue' })),
-    namedays: CAL.namedays || null, events: events.sort((a, b) => String(a.start).localeCompare(String(b.start))), forecast, errors };
+    namedays: CAL.namedays || null, events: events.sort((a, b) => String(a.start).localeCompare(String(b.start))), forecast, bins, errors };
   if (!errors.length || events.length) calCache = { at: Date.now(), data };
   return data;
 }

@@ -179,7 +179,7 @@
   const POST_SVG = '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6.5L20.5 7"/></svg>';
   const BOX_SVG = '<svg viewBox="0 0 24 24"><path d="M6 9a4 4 0 0 1 8 0v9H3V12a3 3 0 0 1 3-3zM14 9h4a3 3 0 0 1 3 3v6h-7M7 13h3M17 4v6M17 4h3v2h-3"/></svg>';
   function postHtml() {
-    const H = window.ObsHouse, C = H && H.cfg && H.cfg(), M = C && C.mail; if (!M) return '';
+    const H = window.ObsHouse, C = H && H.cfg && H.cfg(), M = C && C.mail; if (!M) return binsHtml();
     const d = H.st(M.delivery), o = H.st(M.opened);
     let post = '';
     if (d && d.attributes && d.attributes.next_delivery) {
@@ -191,7 +191,19 @@
     // Brevlådan: bara ikon och antal öppningar idag, längst till höger på samma rad
     const n = o ? parseInt(o.state, 10) : NaN;
     const box = Number.isFinite(n) ? `<span class="kbox${n > 0 ? ' opened' : ''}" title="Brevlådan öppnad ${n} ${n === 1 ? 'gång' : 'gånger'} idag">${BOX_SVG}<b>${n}</b></span>` : '';
-    return post || box ? `<div class="kprow">${post || '<span></span>'}${box}</div>` : '';
+    return (post || box ? `<div class="kprow">${post || '<span></span>'}${box}</div>` : '') + binsHtml();
+  }
+  // Soptunnor: dagar kvar till nästa tömning, på en rad under posten (från kalendern)
+  const BIN_SVG = '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+  function binsHtml() {
+    const B = cal && cal.bins; if (!B || !B.length) return '';
+    const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+    const items = B.filter(b => b.next).map(b => {
+      const t = new Date(b.next.length <= 10 ? b.next + 'T00:00:00' : b.next); t.setHours(0, 0, 0, 0);
+      const n = Math.round((t - d0) / 864e5);
+      return `<span class="kbin${n <= 1 ? ' soon' : ''}">${BIN_SVG}<span>${esc(b.name)} <b>${n <= 0 ? 'idag' : n === 1 ? 'imorgon' : n + ' dagar'}</b></span></span>`;
+    });
+    return items.length ? `<div class="kbins">${items.join('')}</div>` : '';
   }
   let lastPost = '';
   window.addEventListener('obs-render', () => { const el = document.getElementById('kpost'), h = postHtml(); if (el && h !== lastPost) { el.innerHTML = h; lastPost = h; } });
