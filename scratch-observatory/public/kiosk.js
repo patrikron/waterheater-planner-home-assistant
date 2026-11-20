@@ -196,7 +196,7 @@
       return `<span class="kperson ${home ? 'home' : 'away'}"><span class="kpic"><i>${esc((p.name || '?').slice(0, 1))}</i><img src="/api/person_img?entity=${encodeURIComponent(p.entity)}" alt=""></span><span class="kpn"><b>${esc(p.name)}</b><span>${where}</span></span></span>`;
     }).join('')}</div>`;
   }
-  function postHtml() { return peopleHtml() + postRow(); }
+  function postHtml() { return postRow(); }
   function postRow() {
     const H = window.ObsHouse, C = H && H.cfg && H.cfg(), M = C && C.mail; if (!M) return binsHtml();
     const d = H.st(M.delivery), o = H.st(M.opened);
@@ -226,6 +226,8 @@
   }
   let lastPost = '';
   window.addEventListener('obs-render', () => { const el = document.getElementById('kpost'), h = postHtml(); if (el && h !== lastPost) { el.innerHTML = h; lastPost = h; } });
+  let lastPeople = '';
+  window.addEventListener('obs-render', () => { const el = document.getElementById('kfoot'), h = peopleHtml(); if (el && h !== lastPeople) { el.innerHTML = h; lastPeople = h; } });
   function renderCal() {
     if (!kcal) return;
     const now = new Date();
@@ -260,7 +262,7 @@
         html += '</div>';
       }
     }
-    kcal.innerHTML = html + '</div>';
+    kcal.innerHTML = html + `</div><div class="kfoot" id="kfoot">${(lastPeople = peopleHtml())}</div>`;
   }
   async function loadCal() {
     try { const r = await fetch('api/calendar', { cache: 'no-store' }); if (!r.ok) throw new Error(r.statusText); cal = await r.json(); calErr = null; }

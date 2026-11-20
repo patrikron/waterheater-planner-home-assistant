@@ -171,7 +171,10 @@ body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
 .kcal .kbin.soon svg{stroke:var(--gold)}.kcal .kbin.soon b{color:var(--gold)}
 
 /* Hemma/borta (0.55): ring i stället för badge, i kioskens egen stil */
-.kcal .kpeople{display:flex;flex-wrap:wrap;gap:10px 22px;padding:2px 0 8px}
+.kcal .kpeople{display:flex;flex-wrap:wrap;gap:10px 22px}
+/* Personerna som footer längst ned i kalenderkolumnen */
+.kcal .kfoot{flex:none;border-top:1px solid var(--line);padding:14px 0 18px}
+.kcal .kfoot:empty{display:none}
 .kcal .kperson{display:flex;align-items:center;gap:11px;min-width:0}
 .kcal .kpic{position:relative;width:42px;height:42px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--panel);
   box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--sage)}
