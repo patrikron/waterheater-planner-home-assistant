@@ -185,6 +185,7 @@ body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
 .kcal .kperson.away .kpic img{filter:grayscale(1) brightness(.7)}
 .kcal .kpn{display:flex;flex-direction:column;min-width:0;line-height:1.25}
 .kcal .kpn b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kcal .kpn>span{color:var(--text);font-size:.85em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kcal .kpn>span{color:var(--text);font-size:.85em;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow-wrap:anywhere}
+.kcal .kpn small{white-space:nowrap}
 .kcal .kpn small{color:var(--muted);font-size:1em}
 .kcal .kperson.away .kpn b,.kcal .kperson.away .kpn>span{color:var(--muted)}
