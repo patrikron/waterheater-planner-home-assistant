@@ -736,3 +736,18 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .fxp.fxboot path.ar{animation:fxFade 1.3s ease .25s both}
 .fxp main.wgrid,.fxp .frame,.fxp .content > header{transition:opacity .2s ease,filter .2s ease,transform .2s ease}
 .fxp.fxleave main.wgrid,.fxp.fxleave .frame{opacity:0;filter:blur(10px);transform:scale(.99)}
+
+/* ---------- Mätare i Import/Huset/Solpaneler ---------- */
+.gbar{position:relative;height:6px;margin:7px 0 11px;border-radius:3px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:visible}
+.gbar .gz{position:absolute;inset:0;border-radius:3px;overflow:hidden}
+.gbar .gz b{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--text) 14%,transparent)}
+.gbar .gz b.c-low{background:color-mix(in srgb,var(--sage) 22%,transparent)}.gbar .gz b.c-warn{background:color-mix(in srgb,var(--orange) 22%,transparent)}
+.gbar .gz b.c-high{background:color-mix(in srgb,var(--red) 24%,transparent)}.gbar .gz b.c-sun{background:color-mix(in srgb,var(--gold) 16%,transparent)}
+.gbar .gf{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--text);transition:left .8s cubic-bezier(.3,.7,.2,1),width .8s cubic-bezier(.3,.7,.2,1)}
+.gbar.c-sun .gf{background:linear-gradient(90deg,color-mix(in srgb,var(--gold) 55%,transparent),var(--gold));box-shadow:0 0 8px color-mix(in srgb,var(--gold) 55%,transparent)}
+.gbar.c-low .gf{background:var(--sage);box-shadow:0 0 8px color-mix(in srgb,var(--sage) 50%,transparent)}
+.gbar.c-mid .gf{background:color-mix(in srgb,var(--text) 80%,transparent)}
+.gbar.c-warn .gf{background:var(--orange);box-shadow:0 0 8px color-mix(in srgb,var(--orange) 55%,transparent)}
+.gbar.c-high .gf{background:var(--red);box-shadow:0 0 8px color-mix(in srgb,var(--red) 55%,transparent)}
+.gbar .gtk{position:absolute;top:-2px;bottom:-2px;width:1px;background:color-mix(in srgb,var(--text) 45%,transparent)}
+.gbar .g0{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--text);border-radius:1px}

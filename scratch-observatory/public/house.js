@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.47.1';
+  const VERSION = '0.48.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -143,17 +143,40 @@
     if (id === 'nat') return w < -30 ? 'c-low' : level(w / 1000, -Infinity, SET.import_high_kw, SET.import_max_kw);
     return '';
   };
+  // Mätare i Import/Huset/Solpaneler (Patrik 2026-11-20): hur mycket effekten är i förhållande till skalan.
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  function gaugeSpec(id, w) {
+    if (w == null) return null;
+    const k = w / 1000, kwp = +cfg.solar_kwp || 14;
+    if (id === 'sol') return { max: kwp, val: Math.max(0, k), ticks: [], zones: [['c-sun', 0, kwp]], cls: k > 0.05 ? 'c-sun' : '' };
+    if (id === 'hus') { const max = SET.house_max_kw * 1.25; return { max, val: Math.max(0, k), ticks: [SET.house_low_kw, SET.house_high_kw, SET.house_max_kw], zones: [['c-low', 0, SET.house_low_kw], ['', SET.house_low_kw, SET.house_high_kw], ['c-warn', SET.house_high_kw, SET.house_max_kw], ['c-high', SET.house_max_kw, max]], cls: vcol('hus', w) || 'c-mid' }; }
+    if (id === 'nat') { const imax = SET.import_max_kw * 1.25, emax = kwp * 0.8;
+      return { bi: true, emax, imax, val: k, ticks: [SET.import_high_kw, SET.import_max_kw], zones: [['', 0, SET.import_high_kw], ['c-warn', SET.import_high_kw, SET.import_max_kw], ['c-high', SET.import_max_kw, imax]], cls: k < -0.03 ? 'c-low' : (vcol('nat', w) || 'c-mid') }; }
+    return null;
+  }
+  function gaugeHtml(id, w) {
+    const g = gaugeSpec(id, w); if (!g) return '';
+    // Stapel: zonfärgad spår + fyllning + markör
+    if (g.bi) {
+      const fe = clamp01(-g.val / g.emax), fi = clamp01(g.val / g.imax);
+      const ticks = g.ticks.map(t => `<i class="gtk" style="left:${(50 + 50 * t / g.imax).toFixed(1)}%"></i>`).join('');
+      return `<div class="gbar bi ${g.cls}"><span class="gz">${g.zones.map(([c, a, b]) => `<b class="${c}" style="left:${(50 + 50 * a / g.imax).toFixed(1)}%;width:${(50 * (b - a) / g.imax).toFixed(1)}%"></b>`).join('')}<b class="c-low" style="left:0;width:50%"></b></span>` +
+        (g.val < 0 ? `<span class="gf" style="left:${(50 - 50 * fe).toFixed(1)}%;width:${(50 * fe).toFixed(1)}%"></span>` : `<span class="gf" style="left:50%;width:${(50 * fi).toFixed(1)}%"></span>`) + `<i class="g0"></i>${ticks}</div>`;
+    }
+    const f = clamp01(g.val / g.max);
+    return `<div class="gbar ${g.cls}"><span class="gz">${g.zones.map(([c, a, b]) => `<b class="${c}" style="left:${(100 * a / g.max).toFixed(1)}%;width:${(100 * (b - a) / g.max).toFixed(1)}%"></b>`).join('')}</span><span class="gf" style="left:0;width:${(100 * f).toFixed(1)}%"></span>${g.ticks.map(t => `<i class="gtk" style="left:${(100 * t / g.max).toFixed(1)}%"></i>`).join('')}</div>`;
+  }
   const BOX = {
     sol: { title: 'Solpaneler', cls: 'key', drawer: 'solar', wire: 'sol', render() {
       const w = num(cfg.solar), today = num(cfg.pv_today);
       const rem = num(cfg.fc_remaining), tom = num(cfg.fc_tomorrow);
-      return { v: kw(w), u: 'kW', io: [['sun', today, 'Producerat', 'sun']], vc: vcol('sol', w),
+      return { v: kw(w), u: 'kW', g: gaugeHtml('sol', w), io: [['sun', today, 'Producerat', 'sun']], vc: vcol('sol', w),
         flow: w > 20 ? { cls: 'sol', dir: 'out', w } : null };
     } },
     hus: { title: 'Huset', cls: 'key', drawer: 'house', render() {
       const load = num(cfg.load), ch = num(cfg.charger);
       const house = load != null && ch != null && ch <= load ? load - ch : load;
-      return { v: kw(house), u: 'kW', vc: vcol('hus', house), io: [['use', num(cfg.load_today), 'Förbrukat', 'use']], flow: house > 30 ? { cls: '', dir: 'in', w: house } : null };
+      return { v: kw(house), u: 'kW', g: gaugeHtml('hus', house), vc: vcol('hus', house), io: [['use', num(cfg.load_today), 'Förbrukat', 'use']], flow: house > 30 ? { cls: '', dir: 'in', w: house } : null };
     } },
     vv: { title: 'Varmvatten', drawer: 'hotwater', render() {
       const t = num(cfg.hot_water, 'temperature'), s = st(cfg.hot_water);
@@ -163,7 +186,7 @@
     nat: { title: 'Elnät', cls: 'key', drawer: 'grid', wire: 'grid', render() {
       const g = num(cfg.grid);
       const lbl = g == null ? 'okänt' : g > 30 ? 'Köper från nätet' : g < -30 ? 'Säljer till nätet' : 'I balans';
-      return { v: kw(g), u: 'kW', vc: vcol('nat', g), io: [['in', num(cfg.grid_in_today), 'Köpt', 'in'], ['out', num(cfg.grid_out_today), 'Sålt', 'out']], title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
+      return { v: kw(g), u: 'kW', g: gaugeHtml('nat', g), vc: vcol('nat', g), io: [['in', num(cfg.grid_in_today), 'Köpt', 'in'], ['out', num(cfg.grid_out_today), 'Sålt', 'out']], title: g < -30 ? 'Export' : 'Import', flow: g != null && Math.abs(g) > 30 ? { cls: 'grid', dir: g > 0 ? 'in' : 'out', w: g } : null };
     } },
     vp: { title: 'Värmepump', drawer: 'heatpump', render() {
       const w = num(cfg.heatpump), inne = num(cfg.indoor);
@@ -545,7 +568,7 @@
       el._flow = r.flow || null;
       el.hidden = !!r.hide && !editing;
       if (r.custom) el.innerHTML = r.custom;
-      else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v${r.vc ? ' ' + r.vc : ''}">${r.v}<small>${r.u}</small></div>${r.io ? ioRow(r.io) : `<div class="s">${esc(r.s || '')}</div>`}${r.s2 ? `<div class="s s2">${esc(r.s2)}</div>` : ''}` +
+      else el.innerHTML = `<div class="k">${esc(r.title || def.title)}</div><div class="v${r.vc ? ' ' + r.vc : ''}">${r.v}<small>${r.u}</small></div>${r.g || ''}${r.io ? ioRow(r.io) : `<div class="s">${esc(r.s || '')}</div>`}${r.s2 ? `<div class="s s2">${esc(r.s2)}</div>` : ''}` +
         (r.soc != null ? `<div class="soc"><span style="width:${Math.max(0, Math.min(100, r.soc))}%"></span></div>${r.socLabel === false ? '' : `<div class="s">EV6 ${Math.round(r.soc)} %</div>`}` : '');
       // Liten ikon framför rubriken; väderrutan får ikonen för aktuellt väder
       const k = el.querySelector('.k'), id = el.dataset.id;
