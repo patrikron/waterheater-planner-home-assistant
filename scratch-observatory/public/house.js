@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.48.4';
+  const VERSION = '0.49.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -471,14 +471,36 @@
     const savedToday = save != null && sb != null ? Math.max(0, save - sb) : null;
     const pv = num(cfg.pv_today), out = num(cfg.grid_out_today);
     const self = pv != null && out != null ? Math.max(0, pv - out) : null;
-    return { self, inn, sold, fixed, transfer, tax, energy, spent, savedToday, y: moneyData && moneyData.year };
+    return { self, inn, sold, fixed, transfer, tax, energy, spent, savedToday, y: moneyData && moneyData.year, fc: forecast(costIn, sold) };
+  }
+  // Prognos för hela dagen: det som redan kostat + resten av dagens timmar, där varje timme får
+  // snittförbrukningen för samma timme senaste veckan gånger dagens timpris (Nord Pool).
+  function forecast(costIn, sold) {
+    const P = moneyData && moneyData.profile;
+    if (!P || !P.days || costIn == null) return null;
+    const s = st(cfg.price), a = s ? s.attributes : {};
+    const arr = Array.isArray(a.today) ? a.today.map(Number) : [];
+    if (arr.length < 24) return null;
+    const per = arr.length / 24, price = Array.from({ length: 24 }, (_, h) => {
+      const xs = arr.slice(h * per, (h + 1) * per).filter(Number.isFinite); return xs.length ? xs.reduce((x, y) => x + y, 0) / xs.length : null; });
+    // Hur väl priset stämmer mot kostnadssensorn idag (påslag, avrundning). Nära 1 om båda bygger på samma pris.
+    let c = 0, e = 0; for (const h of P.done || []) if (price[h] != null) { c += P.today_cost[h] || 0; e += (P.today_in[h] || 0) * price[h]; }
+    const k = e > 1 ? Math.min(1.6, Math.max(0.6, c / e)) : 1;
+    const now = new Date(), cur = now.getHours(), left = 1 - (now.getMinutes() * 60 + now.getSeconds()) / 3600;
+    let restKr = 0, restKwh = 0, restComp = 0;
+    for (let h = cur; h < 24; h++) {
+      const f = h === cur ? left : 1, kwh = (P.in[h] || 0) * f;
+      restKwh += kwh; restKr += kwh * (price[h] ?? (price.filter(x => x != null).reduce((x, y) => x + y, 0) / 24)) * k; restComp += (P.comp[h] || 0) * f;
+    }
+    const total = costIn - (sold || 0) + restKr - restComp;
+    return { total, restKr, restKwh, restComp, days: P.days, avg: P.day_avg, min: P.day_min, max: P.day_max, k };
   }
   function moneyPage() {
     const m = moneyCalc();
     return `<div class="k">Idag</div>
       <div class="money-top"><div class="ml">Faktisk kostnad</div><div class="v money">${kr(num(cfg.cost_today))}<small>kr</small></div></div>
       <div class="money-sub three">
-        <div><span>Uppskattad</span><b class="money">${kr(m.spent)} <small>kr</small></b></div>
+        <div><span>Prognos idag</span><b class="money">${m.fc ? kr(m.fc.total, 0) : kr(m.spent)} <small>kr</small></b></div>
         <div><span>Sparat sol</span><b class="saved">${kr(m.savedToday)} <small>kr</small></b></div>
         <div><span>Egen sol</span><b class="saved">${nf(m.self)} <small>kWh</small></b></div>
       </div>`;
@@ -495,6 +517,14 @@
         ${m.fixed != null ? row('Fasta avgifter', `${kr(m.fixed)} <small>kr</small>`) : ''}
         ${row('Såld el', `${m.sold ? '−' + kr(m.sold) : kr(m.sold)} <small>kr</small>`, 'neg')}
       </div>
+      ${m.fc ? `<div class="mfc"><div class="eyebrow">Prognos för hela dagen</div><div class="mrows two">
+        ${row('Kostat hittills', `${kr(num(cfg.cost_today))} <small>kr</small>`)}
+        ${row(`Kvar idag ≈ ${nf(m.fc.restKwh, 0)} kWh`, `+${kr(m.fc.restKr - m.fc.restComp)} <small>kr</small>`)}
+        ${row('Prognos hela dagen', `${kr(m.fc.total, 0)} <small>kr</small>`)}
+        ${m.fixed != null ? row('Med fasta avgifter', `${kr(m.fc.total + m.fixed, 0)} <small>kr</small>`) : ''}
+        ${m.fc.avg != null ? row(`Snitt per dag, ${m.fc.days} dagar`, `${kr(m.fc.avg, 0)} <small>kr</small>`) : ''}
+        ${m.fc.min != null ? row('Billigast / dyrast dag', `${kr(m.fc.min, 0)} / ${kr(m.fc.max, 0)} <small>kr</small>`) : ''}
+      </div><div class="mnote">Resten av dagen räknas med hur mycket ni brukar köpa varje timme (snitt senaste ${m.fc.days} dagarna) gånger dagens timpris.</div></div>` : ''}
       <div class="myear"><span>Solen har gett i år</span><b>${y ? nf(y.total_kr, 0) : '–'} <small>kr</small></b></div>
       <div class="mnote">${y ? `${y.year} · använd ${nf(y.self_kr, 0)} + såld ${nf(y.sold_kr, 0)} kr` : 'Räknas från statistiken …'}</div>`;
   }
@@ -911,7 +941,7 @@
     chores: { eyebrow: 'Barnen / sysslor', title: 'Poäng', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: choresCtl },
     money: { eyebrow: 'Idag', title: 'Kostnad och energi', stats: () => {
       const m = moneyCalc();
-      return [['Faktisk kostnad', kr(num(cfg.cost_today)), 'kr'], ['Uppskattad elkostnad', kr(m.spent), 'kr'], ['Sparat med solel', kr(m.savedToday), 'kr'],
+      return [['Faktisk kostnad', kr(num(cfg.cost_today)), 'kr'], ['Prognos hela dagen', m.fc ? kr(m.fc.total, 0) : '–', 'kr'], ['Sparat med solel', kr(m.savedToday), 'kr'],
         ['Förbrukat', nf(num(cfg.load_today)), 'kWh'], ['Sol', nf(num(cfg.pv_today)), 'kWh'], ['Egen sol använd', nf(m.self), 'kWh'],
         ['Köpt', nf(num(cfg.grid_in_today)), 'kWh'], ['Sålt', nf(num(cfg.grid_out_today)), 'kWh']];
     }, extra: () => `<div class="dmoney">${detailPage()}</div>`, charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']] },
@@ -1789,6 +1819,34 @@
       });
     }
   }
+  // Rubriken "Fastighet / status": flyttas i redigeringsläget, kan döljas
+  const fhead = $('frame-head'), frame = fhead.parentElement;
+  function placeTitle() {
+    const t = layout.title || {};
+    const moved = t.x != null && t.y != null;
+    fhead.classList.toggle('moved', moved);
+    fhead.style.left = moved ? t.x + '%' : ''; fhead.style.top = moved ? t.y + '%' : '';
+    fhead.classList.toggle('thide', !!t.hide);
+    $('title-hide').textContent = t.hide ? 'Visa rubriken' : 'Dölj rubriken';
+  }
+  fhead.addEventListener('pointerdown', e => {
+    if (!editing || e.target.closest('button')) return;
+    e.preventDefault(); fhead.setPointerCapture(e.pointerId);
+    const r = frame.getBoundingClientRect(), f = fhead.getBoundingClientRect();
+    const t = layout.title = Object.assign({}, layout.title);
+    const ox = (f.left - r.left) / r.width * 100, oy = (f.top - r.top) / r.height * 100, sx = e.clientX, sy = e.clientY;
+    const lim = (v, max) => Math.max(0, Math.min(max, v));
+    const move = ev => {
+      t.x = round(lim(ox + (ev.clientX - sx) / r.width * 100, 100 - f.width / r.width * 100));
+      t.y = round(lim(oy + (ev.clientY - sy) / r.height * 100, 100 - f.height / r.height * 100)); placeTitle();
+    };
+    const up = () => { fhead.removeEventListener('pointermove', move); fhead.removeEventListener('pointerup', up); };
+    fhead.addEventListener('pointermove', move); fhead.addEventListener('pointerup', up);
+  });
+  $('title-hide').addEventListener('click', () => {
+    const t = layout.title = Object.assign({}, layout.title);
+    if (t.hide) delete t.hide; else t.hide = true; placeTitle();
+  });
   function setEditing(on) {
     editing = on;
     document.body.classList.toggle('edit', on);
@@ -1798,8 +1856,8 @@
     buildHandles();
   }
   $('edit-btn').addEventListener('click', () => setEditing(!editing));
-  $('edit-cancel').addEventListener('click', () => { layout = clone(saved); buildHot(); placeBoxes(); placeLocks(); placeTemps(); setEditing(false); drawWires(); });
-  $('edit-reset').addEventListener('click', () => { layout = clone(DEFAULT); delete layout.boxes.ev6.auto; buildHot(); placeBoxes(); placeLocks(); placeTemps(); buildHandles(); drawWires(); toast('Standardlayouten är tillbaka. Tryck Spara för att behålla den.'); });
+  $('edit-cancel').addEventListener('click', () => { layout = clone(saved); placeTitle(); buildHot(); placeBoxes(); placeLocks(); placeTemps(); setEditing(false); drawWires(); });
+  $('edit-reset').addEventListener('click', () => { layout = clone(DEFAULT); delete layout.boxes.ev6.auto; placeTitle(); buildHot(); placeBoxes(); placeLocks(); placeTemps(); buildHandles(); drawWires(); toast('Standardlayouten är tillbaka. Tryck Spara för att behålla den.'); });
   $('edit-save').addEventListener('click', async () => {
     try {
       const r = await fetch('api/layout', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(layout) });
@@ -1915,6 +1973,8 @@
     for (const [id, h] of Object.entries(l.hotspots || {})) if (layout.hotspots[id] && h.points && !(oldHot && id === 'house')) layout.hotspots[id].points = h.points;
     if (l.locks && typeof l.locks === 'object') layout.locks = l.locks;
     if (l.temps && typeof l.temps === 'object') layout.temps = l.temps;
+    if (l.title && typeof l.title === 'object') layout.title = l.title;
+    placeTitle();
     applyFx();
     if (fxOn()) { document.body.classList.add('fxboot'); setTimeout(() => document.body.classList.remove('fxboot'), 2600); }
     buildBoxes(); buildHot(); refresh();

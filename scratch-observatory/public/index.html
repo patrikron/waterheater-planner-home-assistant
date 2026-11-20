@@ -41,13 +41,14 @@
       <div class="seg" role="group" aria-label="Ljus">
         <button data-mode="auto" aria-pressed="true">Auto</button><button data-mode="day">Dag</button><button data-mode="night">Natt</button>
       </div>
+      <a id="kiosk-btn" class="btn" href="kiosk.html" title="Öppna kioskläget">Kiosk</a>
       <button id="edit-btn">Redigera layout</button>
     </div>
   </div>
 </header>
 
 <div id="edit-bar" class="edit-bar" hidden>
-  <span>Dra rutorna och de runda punkterna. Dra hörnen på klickytorna, dra en liten mittpunkt för att lägga till ett hörn och dubbelklicka på ett hörn för att ta bort det.</span>
+  <span>Dra rutorna, rubriken och de runda punkterna. Dra hörnen på klickytorna, dra en liten mittpunkt för att lägga till ett hörn och dubbelklicka på ett hörn för att ta bort det.</span>
   <span class="edit-actions">
     <button id="edit-reset">Återställ standard</button>
     <button id="edit-cancel">Avbryt</button>
@@ -57,8 +58,9 @@
 
 <main>
   <section class="frame">
-    <div class="frame-head">
+    <div id="frame-head" class="frame-head">
       <div><div class="eyebrow">DITT HEM / LIVE</div><h2>Fastighet / status.</h2></div>
+      <button id="title-hide" class="title-hide" type="button">Dölj rubriken</button>
     </div>
     <div id="stage" class="stage">
       <img id="photo" src="foto/hus.jpg" alt="Foto av huset" draggable="false">

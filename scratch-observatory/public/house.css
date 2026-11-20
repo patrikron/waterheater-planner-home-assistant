@@ -139,6 +139,13 @@ main{max-width:1700px;margin:0 auto;padding:0 28px 28px}
 .frame-head{top:clamp(80px,14%,110px)}
 /* Rubriken ligger på husfotot på stora skärmar, så den har alltid ljus text oavsett tema */
 .frame-head{color:#e7eadf}.frame-head .eyebrow{color:#98a48d}
+/* Rubriken på bilden: flyttbar och döljbar i redigeringsläget */
+.frame-head .title-hide{display:none;margin-top:8px;pointer-events:auto;font-size:11px;padding:4px 9px;text-shadow:none}
+.frame-head.thide{display:none}
+body.edit .frame-head{pointer-events:auto;cursor:move;outline:1px dashed color-mix(in srgb,var(--sage,#98a48d) 70%,transparent);outline-offset:-4px;border-radius:6px;touch-action:none;user-select:none}
+body.edit .frame-head .title-hide{display:inline-flex}
+body.edit .frame-head.thide{display:block;opacity:.45}
+.mfc{margin-top:10px}.mfc .eyebrow{margin-bottom:2px}
 .money-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:0 16px;margin-top:6px}
 .money-grid .ml{font-size:12px;color:var(--text);opacity:.85}
 .money-grid .ml.year{margin-top:12px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--text) 18%,transparent);font-size:11px;color:var(--muted);opacity:1}

@@ -283,6 +283,11 @@ function validLayout(l) {
     if (typeof l.locks !== 'object' || Array.isArray(l.locks) || Object.keys(l.locks).length > 20) return false;
     for (const [k, p] of Object.entries(l.locks)) if (!/^lock\.[a-z0-9_]+$/.test(k) || !pt(p)) return false;
   }
+  if (l.title != null) {
+    const t = l.title;
+    if (!t || typeof t !== 'object' || Array.isArray(t) || Object.keys(t).some(k => !['x', 'y', 'hide'].includes(k))) return false;
+    if ((t.x != null && !num(t.x)) || (t.y != null && !num(t.y)) || (t.hide != null && typeof t.hide !== 'boolean')) return false;
+  }
   if (l.temps != null) {
     if (typeof l.temps !== 'object' || Array.isArray(l.temps) || Object.keys(l.temps).length > 40) return false;
     for (const [k, p] of Object.entries(l.temps)) if (!/^sensor\.[a-z0-9_]+$/.test(k) || !pt(p)) return false;
@@ -628,6 +633,31 @@ async function money() {
       data.year = { year: yr.year, self_kwh: selfKwh, self_kr: selfKr, sold_kr: soldKr, total_kr: selfKr + soldKr, months: byStart.size };
     } catch (e) { console.warn('Kunde inte räkna årets intjäning:', e.message); }
   }
+  // Förbrukningsprofil: köpt el och såld ersättning per timme de senaste 7 hela dygnen, plus dagens hela timmar.
+  // Webbsidan räknar en prognos för resten av dagen med profilen och dagens timpriser.
+  if (Y && Y.grid_in && Y.cost) {
+    try {
+      const DAYS = 7, start = today.t - DAYS * 864e5;
+      const sids = [Y.grid_in, Y.cost, Y.compensation].filter(Boolean);
+      const r = await haCall({ type: 'recorder/statistics_during_period', start_time: new Date(start).toISOString(),
+        statistic_ids: sids, period: 'hour', types: ['change'] });
+      const hourOf = t => Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hourCycle: 'h23' }).format(t));
+      const z = () => Array(24).fill(0);
+      const week = { in: z(), cost: z(), comp: z() }, cnt = z(), todayH = { in: z(), cost: z() }, perDay = {};
+      const done = new Set(); let lastEnd = today.t;
+      for (const [key, id] of [['in', Y.grid_in], ['cost', Y.cost], ['comp', Y.compensation]]) for (const row of (id && r[id]) || []) {
+        const t = typeof row.start === 'number' ? row.start : Date.parse(row.start), v = Number(row.change) || 0, h = hourOf(t);
+        if (t >= today.t) { if (todayH[key]) todayH[key][h] += v; if (key === 'in') { done.add(h); lastEnd = Math.max(lastEnd, t + 36e5); } continue; }
+        week[key][h] += v; if (key === 'in') cnt[h]++;
+        if (key === 'cost' || key === 'comp') { const d = Math.floor((t - start) / 864e5); perDay[d] = (perDay[d] || 0) + (key === 'cost' ? v : -v); }
+      }
+      const avg = a => a.map((v, h) => cnt[h] ? v / cnt[h] : 0);
+      const days = Object.values(perDay);
+      data.profile = { days: Math.round(cnt.reduce((a, b) => a + b, 0) / 24), in: avg(week.in), cost: avg(week.cost), comp: avg(week.comp),
+        today_in: todayH.in, today_cost: todayH.cost, done: [...done].sort((a, b) => a - b), stats_until: lastEnd,
+        day_avg: days.length ? days.reduce((a, b) => a + b, 0) / days.length : null, day_min: days.length ? Math.min(...days) : null, day_max: days.length ? Math.max(...days) : null };
+    } catch (e) { console.warn('Kunde inte läsa förbrukningsprofilen:', e.message); }
+  }
   moneyCache = { at: Date.now(), day: today.day, data };
   return data;
 }
@@ -722,7 +752,7 @@ const server = http.createServer(async (req, res) => {
       if (!validLayout(layout)) return json(res, 400, { error: 'Ogiltig layout' });
       await mkdir(DATA_DIR, { recursive: true });
       const tmp = LAYOUT_FILE + '.tmp';
-      await writeFile(tmp, JSON.stringify({ boxes: layout.boxes || {}, hotspots: layout.hotspots || {}, locks: layout.locks || {}, temps: layout.temps || {}, saved: new Date().toISOString() }, null, 1));
+      await writeFile(tmp, JSON.stringify({ boxes: layout.boxes || {}, hotspots: layout.hotspots || {}, locks: layout.locks || {}, temps: layout.temps || {}, ...(layout.title ? { title: layout.title } : {}), saved: new Date().toISOString() }, null, 1));
       await rename(tmp, LAYOUT_FILE);
       return json(res, 200, { ok: true });
     }
