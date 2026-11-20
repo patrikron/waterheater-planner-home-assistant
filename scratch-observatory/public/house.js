@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.51.0';
+  const VERSION = '0.52.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -104,7 +104,7 @@
   const wxIcon = (cond, cls = 'wxi') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${WX_SVG[cond] || WX_SVG.cloudy}</svg>`;
   window.ObsIcons = { box: BOX_ICON, wx: wxIcon, label: c => WX[c] || c };
   // Aktuellt väder för kiosksidans klocka
-  window.ObsHouse = { open: id => openDrawer(id), cfg: () => cfg, rads: () => radList().filter(radHeating).length, media: () => mediaHtml(), mediaPlaying: () => ((cfg.media && cfg.media.players) || []).filter(p => (st(p.entity) || {}).state === 'playing').length, alarm: () => { const A = cfg.alarm, s = A && st(A.entity); return s ? { state: s.state, label: ALARM_L[s.state] || s.state, cls: alarmCls(s.state) } : null; }, st: id => st(id), alerts: () => { const I = cfg.info; if (!I) return 0; const on = id => (st(id) || {}).state === 'on';
+  window.ObsHouse = { open: id => openDrawer(id), cfg: () => cfg, rads: () => radList().filter(radHeating).length, media: () => mediaHtml(), mediaPlaying: () => ((cfg.media && cfg.media.players) || []).filter(p => !(SET.media_hidden || []).includes(p.entity) && (st(p.entity) || {}).state === 'playing').length, alarm: () => { const A = cfg.alarm, s = A && st(A.entity); return s ? { state: s.state, label: ALARM_L[s.state] || s.state, cls: alarmCls(s.state) } : null; }, st: id => st(id), alerts: () => { const I = cfg.info; if (!I) return 0; const on = id => (st(id) || {}).state === 'on';
       return (I.doors || []).filter(d => on(d.entity)).length + (I.leaks || []).filter(d => on(d.entity)).length + (I.smoke || []).filter(d => on(d.entity)).length; }, lightsOn: () => cfg.lights ? cfg.lights.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on').length : 0, weather: () => {
     const s = st(cfg.outdoor), sun = st(cfg.sun); if (!s) return null;
     const a = s.attributes || {};
@@ -114,7 +114,7 @@
 
   // ---------- Rutornas innehåll ----------
   // Inställningar från inställningssidan (gäller alla skärmar), hämtas vid start och varje minut
-  let SET = { value_colors: true, solar_shimmer: true, effects: true, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5 };
+  let SET = { value_colors: true, solar_shimmer: true, effects: true, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5, media_hidden: [] };
   async function loadSettings() {
     try { const r = await fetch('api/settings', { cache: 'no-store' }); if (r.ok) { SET = { ...SET, ...(await r.json()) }; applyFx(); refresh(); } } catch {}
   }
@@ -1342,7 +1342,7 @@
     // tv-apparaterna först, sedan det som spelar, sist pausade
     const rank = p => { const s = st(p.entity); return (p.tv ? 0 : 2) + (s && s.state === 'playing' ? 0 : 1); };
     const now = Date.now();
-    return [...M.players].sort((a, b) => rank(a) - rank(b)).map(p => {
+    return [...M.players].filter(p => !(SET.media_hidden || []).includes(p.entity)).sort((a, b) => rank(a) - rank(b)).map(p => {
       const s = st(p.entity); if (!s) return '';
       // nyss avstängd: döljs direkt i stället för att vänta på att tv:n rapporterar off
       const off = mediaOff[p.entity];
@@ -1363,6 +1363,7 @@
   const msave = () => { try { localStorage.setItem(MSEL_KEY, JSON.stringify(msel)); } catch {} };
   const M_ICON = { tv: '<rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 21h8M12 17v4"/>', spk: '<rect x="6" y="3" width="12" height="18" rx="2"/><circle cx="12" cy="14" r="3.5"/><circle cx="12" cy="7" r="1"/>', grp: '<rect x="2.5" y="6" width="8" height="13" rx="1.5"/><rect x="13.5" y="6" width="8" height="13" rx="1.5"/><circle cx="6.5" cy="14" r="2"/><circle cx="17.5" cy="14" r="2"/>' };
   const M_STATE = { playing: 'Spelar', paused: 'Pausad', idle: 'Ledig', on: 'På', off: 'Av', standby: 'Av', unavailable: 'Går inte att nå', unknown: 'Okänt', buffering: 'Laddar' };
+  const mShown = p => !(SET.media_hidden || []).includes(p.entity);
   function mediaRow(p) {
     const s = st(p.entity); if (!s) return '';
     const a = s.attributes || {}, active = ['playing', 'paused', 'buffering'].includes(s.state) || (p.tv && s.state === 'on');
@@ -1377,7 +1378,7 @@
   }
   function mediaCtl() {
     const M = cfg.media; if (!M) return '<p class="dnote">Inga mediaspelare i config.</p>';
-    const stations = M.stations || [], targets = [...(M.groups || []).map(g => ({ ...g, grp: true })), ...M.players.filter(p => !p.tv)];
+    const stations = M.stations || [], targets = [...(M.groups || []).map(g => ({ ...g, grp: true })), ...M.players.filter(p => !p.tv)].filter(mShown);
     const ok = new Set(targets.map(t => t.entity)); msel.targets = msel.targets.filter(t => ok.has(t));
     if (!stations.some(x => x.id === msel.station)) msel.station = stations[0] ? stations[0].id : null;
     const stn = stations.find(x => x.id === msel.station), n = msel.targets.length;
@@ -1393,7 +1394,7 @@
   function mediaList() {
     const M = cfg.media; if (!M) return '';
     const rank = p => { const s = (st(p.entity) || {}).state; return s === 'playing' ? 0 : s === 'paused' || (p.tv && s === 'on') ? 1 : s === 'unavailable' ? 3 : 2; };
-    const list = [...M.players].sort((a, b) => rank(a) - rank(b) || (b.tv ? 1 : 0) - (a.tv ? 1 : 0)).map(mediaRow).join('');
+    const list = [...M.players].filter(mShown).sort((a, b) => rank(a) - rank(b) || (b.tv ? 1 : 0) - (a.tv ? 1 : 0)).map(mediaRow).join('');
     return `<section class="sx"><div class="sh">Alla enheter</div><div class="kmlist">${list}</div></section>`;
   }
   // ---------- Music Assistant: Radio / Spellistor / Sök, spela på valda högtalare (0.51.0) ----------
@@ -1425,7 +1426,7 @@
   }
   function musicCtl() {
     const M = cfg.media, A = M.ma;
-    const targets = [...(A.groups || []).map(g => ({ ...g, grp: true })), ...(A.players || [])];
+    const targets = [...(A.groups || []).map(g => ({ ...g, grp: true })), ...(A.players || [])].filter(mShown);
     const ok = new Set(targets.map(t => t.entity)); mus.targets = mus.targets.filter(t => ok.has(t));
     const stations = (M.stations || []).filter(x => !(mus.lib.radio || []).some(r => r.name === x.name)).map(x => ({ uri: x.url, name: x.name, type: 'radio', img: null, by: '' }));
     let body;

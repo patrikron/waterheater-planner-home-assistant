@@ -27,3 +27,11 @@
 .snote{margin:16px 0 0;font-size:12px;color:var(--dim)}
 @media (max-width:520px){.lscale{grid-template-columns:1fr 1fr}.lgrid{grid-template-columns:1fr}}
 #set .btns button:disabled{opacity:.45;cursor:default}
+
+/* Mediaenheter */
+.mset{display:grid;gap:14px}
+.mgrp h4{margin:0 0 2px;font-size:14px}
+.mgrp small{display:block;color:var(--muted);font-size:12px;margin-bottom:8px}
+.mtgs{display:flex;flex-wrap:wrap;gap:6px}
+.mtg{border-radius:999px;font-size:12.5px;padding:7px 12px;opacity:.55}
+.mtg.on{opacity:1;border-color:var(--sage);background:color-mix(in srgb,var(--sage) 18%,var(--panel))}

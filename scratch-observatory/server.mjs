@@ -329,6 +329,8 @@ const SETTINGS_DEF = {
   value_colors: { type: 'bool', def: true }, solar_shimmer: { type: 'bool', def: true }, effects: { type: 'bool', def: true },
   house_low_kw: { type: 'num', def: 1, min: 0, max: 50 }, house_high_kw: { type: 'num', def: 3, min: 0, max: 50 }, house_max_kw: { type: 'num', def: 6, min: 0, max: 50 },
   import_high_kw: { type: 'num', def: 2, min: 0, max: 50 }, import_max_kw: { type: 'num', def: 5, min: 0, max: 50 },
+  // dolda mediaenheter (Patrik 2026-11-20): bara entiteter från house.media i config
+  media_hidden: { type: 'ids', def: [] },
 };
 function cleanSettings(o) {
   const out = {};
@@ -336,6 +338,10 @@ function cleanSettings(o) {
     const v = o && o[k];
     if (d.type === 'bool' && typeof v === 'boolean') out[k] = v;
     if (d.type === 'num' && typeof v === 'number' && Number.isFinite(v) && v >= d.min && v <= d.max) out[k] = Math.round(v * 10) / 10;
+    if (d.type === 'ids' && Array.isArray(v)) {
+      const M = (CONFIG.house && CONFIG.house.media) || {}, ok = new Set([...(M.players || []), ...(M.groups || []), ...((M.ma && M.ma.players) || []), ...((M.ma && M.ma.groups) || [])].map(p => p.entity));
+      out[k] = [...new Set(v.filter(x => typeof x === 'string' && ok.has(x)))].slice(0, 100);
+    }
   }
   return out;
 }

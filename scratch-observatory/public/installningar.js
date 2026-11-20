@@ -39,10 +39,25 @@
       <div class="lgrid${S.value_colors ? '' : ' off'}">${LIMITS.map(g => `<div class="lcard"><h4>${esc(g.title)}</h4>
         <div class="lfl">${g.keys.map((k, i) => `<label class="fld"><span>${esc(g.labels[i])}</span><span class="nin"><input type="number" inputmode="decimal" min="0" max="50" step="0.1" data-num="${k}" value="${S[k]}"><em>kW</em></span></label>`).join('')}</div>
         <div class="lscale">${g.scale(S).map(([c, t, n]) => `<div class="ls"><b class="v ${c}">${esc(n)}</b><small>${esc(t)}</small></div>`).join('')}</div></div>`).join('')}</div>
+      ${mediaHtml()}
       ${err ? `<div class="serr">${esc(err)}</div>` : ''}
       <p class="snote">Sparade inställningar gäller alla skärmar. Översikten och kiosken hämtar dem inom en minut.</p>`;
   }
+  // Mediaenheter: vilka som visas i mediapanelen och kiosken (dolda sparas i media_hidden)
+  let MED = null;
+  function mediaHtml() {
+    if (!MED) return '';
+    const hid = new Set(S.media_hidden || []);
+    const chip = p => { const on = !hid.has(p.entity); return `<button class="mtg${on ? ' on' : ''}" data-mhide="${esc(p.entity)}" aria-pressed="${on}">${on ? '✓ ' : ''}${esc(p.name)}</button>`; };
+    const grp = (t, d, list) => list && list.length ? `<div class="mgrp"><h4>${esc(t)}</h4><small>${esc(d)}</small><div class="mtgs">${list.map(chip).join('')}</div></div>` : '';
+    const A = MED.ma || {};
+    return `<div class="eyebrow sgap">Mediaenheter</div><div class="mset">
+      ${grp('Enheter i listan', 'Visas under Alla enheter i mediapanelen och i kioskens rad längst upp när de spelar.', MED.players)}
+      ${grp('Grupper att spela på', 'Grupperna i Music Assistant som går att välja under Spela på.', A.groups || MED.groups)}
+      ${grp('Högtalare att spela på', 'Högtalarna i Music Assistant som går att välja under Spela på.', A.players)}</div>`;
+  }
   async function load() {
+    try { const h = await fetch('api/house', { cache: 'no-store' }).then(r => r.json()); MED = h.media || null; } catch {}
     const r = await fetch('api/settings', { cache: 'no-store' }); if (!r.ok) throw new Error(r.statusText);
     saved = await r.json(); delete saved.saved; S = { ...saved }; render();
   }
@@ -54,6 +69,8 @@
   }
   document.addEventListener('click', e => {
     const t = e.target.closest('[data-tgl]'), a = e.target.closest('[data-act]');
+    const mh = e.target.closest('[data-mhide]');
+    if (mh) { const x = mh.dataset.mhide, l = S.media_hidden || []; S.media_hidden = l.includes(x) ? l.filter(y => y !== x) : [...l, x]; render(); }
     if (t) { S[t.dataset.tgl] = !S[t.dataset.tgl]; render(); }
     if (a && a.dataset.act === 'save') save();
     if (a && a.dataset.act === 'reset') { S = { ...saved }; render(); }
