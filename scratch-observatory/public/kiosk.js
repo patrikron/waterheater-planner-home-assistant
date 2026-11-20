@@ -249,6 +249,8 @@
       const H = window.ObsHouse;
       const vac = document.getElementById('kmenu-vac'), vs = H && H.st && H.st('vacuum.l20_ultra');
       if (vac) { const t = vs && vs.state === 'cleaning' ? 'städar' : vs && vs.state === 'error' ? 'fel' : ''; vac.textContent = t; vac.hidden = !t; }
+      const mb = document.getElementById('kmenu-media');
+      if (mb && H && H.mediaPlaying) { const n = H.mediaPlaying(); mb.textContent = n ? String(n) : ''; mb.hidden = !n; }
       const rb = document.getElementById('kmenu-rads');
       if (rb && H && H.rads) { const n = H.rads(); rb.textContent = n ? String(n) : ''; rb.hidden = !n; }
       const inf = document.getElementById('kmenu-info');

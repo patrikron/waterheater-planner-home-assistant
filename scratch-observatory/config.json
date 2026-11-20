@@ -606,6 +606,136 @@
     ],
     "select.l20_ultra_auto_empty_mode": [
       "options"
+    ],
+    "media_player.vardagsrum": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.ultra_slim_soundbar": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.lenovosmartclock6312": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.uterum": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.garage": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.garage_home_mini": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.chromecast_musik": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.receiver": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.alla": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.grupp_kok": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.grupp_kok_och_baksida": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.grupp_baksida": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
+    ],
+    "media_player.grupp_barnens_rum": [
+      "media_title",
+      "media_artist",
+      "media_series_title",
+      "app_name",
+      "source",
+      "volume_level",
+      "is_volume_muted",
+      "media_content_type"
     ]
   },
   "house": {
@@ -1335,6 +1465,82 @@
         {
           "entity": "media_player.nestaudio0095",
           "name": "Ludvigs rum"
+        },
+        {
+          "entity": "media_player.vardagsrum",
+          "name": "Vardagsrum"
+        },
+        {
+          "entity": "media_player.ultra_slim_soundbar",
+          "name": "Soundbar"
+        },
+        {
+          "entity": "media_player.lenovosmartclock6312",
+          "name": "Sovrum"
+        },
+        {
+          "entity": "media_player.uterum",
+          "name": "Samsung Sovrum"
+        },
+        {
+          "entity": "media_player.garage",
+          "name": "Garage"
+        },
+        {
+          "entity": "media_player.garage_home_mini",
+          "name": "Garage mini"
+        },
+        {
+          "entity": "media_player.chromecast_musik",
+          "name": "Chromecast musik"
+        },
+        {
+          "entity": "media_player.receiver",
+          "name": "Förstärkare"
+        }
+      ],
+      "groups": [
+        {
+          "entity": "media_player.alla",
+          "name": "Hela huset"
+        },
+        {
+          "entity": "media_player.grupp_kok",
+          "name": "Kök"
+        },
+        {
+          "entity": "media_player.grupp_kok_och_baksida",
+          "name": "Kök och baksida"
+        },
+        {
+          "entity": "media_player.grupp_baksida",
+          "name": "Baksida"
+        },
+        {
+          "entity": "media_player.grupp_barnens_rum",
+          "name": "Barnens rum"
+        }
+      ],
+      "stations": [
+        {
+          "id": "bandit",
+          "name": "Bandit Rock",
+          "url": "https://fm02-ice.stream.khz.se/fm02_mp3"
+        },
+        {
+          "id": "p1",
+          "name": "SR P1",
+          "url": "https://http-live.sr.se/p1-mp3-192"
+        },
+        {
+          "id": "p2",
+          "name": "SR P2",
+          "url": "https://http-live.sr.se/p2-mp3-192"
+        },
+        {
+          "id": "p3",
+          "name": "SR P3",
+          "url": "https://http-live.sr.se/p3-mp3-192"
         }
       ]
     },

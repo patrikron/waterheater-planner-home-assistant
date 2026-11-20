@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.49.2';
+  const VERSION = '0.50.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -104,7 +104,7 @@
   const wxIcon = (cond, cls = 'wxi') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${WX_SVG[cond] || WX_SVG.cloudy}</svg>`;
   window.ObsIcons = { box: BOX_ICON, wx: wxIcon, label: c => WX[c] || c };
   // Aktuellt väder för kiosksidans klocka
-  window.ObsHouse = { open: id => openDrawer(id), cfg: () => cfg, rads: () => radList().filter(radHeating).length, media: () => mediaHtml(), alarm: () => { const A = cfg.alarm, s = A && st(A.entity); return s ? { state: s.state, label: ALARM_L[s.state] || s.state, cls: alarmCls(s.state) } : null; }, st: id => st(id), alerts: () => { const I = cfg.info; if (!I) return 0; const on = id => (st(id) || {}).state === 'on';
+  window.ObsHouse = { open: id => openDrawer(id), cfg: () => cfg, rads: () => radList().filter(radHeating).length, media: () => mediaHtml(), mediaPlaying: () => ((cfg.media && cfg.media.players) || []).filter(p => (st(p.entity) || {}).state === 'playing').length, alarm: () => { const A = cfg.alarm, s = A && st(A.entity); return s ? { state: s.state, label: ALARM_L[s.state] || s.state, cls: alarmCls(s.state) } : null; }, st: id => st(id), alerts: () => { const I = cfg.info; if (!I) return 0; const on = id => (st(id) || {}).state === 'on';
       return (I.doors || []).filter(d => on(d.entity)).length + (I.leaks || []).filter(d => on(d.entity)).length + (I.smoke || []).filter(d => on(d.entity)).length; }, lightsOn: () => cfg.lights ? cfg.lights.groups.flatMap(g => g.lights).filter(l => (st(l.entity) || {}).state === 'on').length : 0, weather: () => {
     const s = st(cfg.outdoor), sun = st(cfg.sun); if (!s) return null;
     const a = s.attributes || {};
@@ -924,7 +924,7 @@
     // Laddbox och EV6 visar sina egna sidor i en bredare panel
     charger: { eyebrow: 'Garage / laddbox', title: 'Laddbox', frame: 'laddbox.html' },
     car: { eyebrow: 'Garage / bil', title: 'Kia EV6', frame: 'ev6.html' },
-    media: { eyebrow: 'Media / spelar nu', title: 'Media', rich: () => '', stats: () => [], charts: () => [], ctl: () => { const h = mediaHtml(); return h ? `<div class="kmlist">${h}</div>` : '<p class="dnote">Inget spelar just nu.</p>'; } },
+    media: { eyebrow: 'Media / alla enheter', title: 'Media', rich: () => '', stats: () => [], charts: () => [], ctl: mediaCtl },
     access: { eyebrow: 'Säkerhet / lås och portar', title: 'Lås och garageportar', rich: () => '', stats: () => [], charts: () => [], ctl: accessCtl },
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl, after: vacuumAfter,
       extra: () => cfg.vacuum && cfg.vacuum.map ? '<div class="sx vmap"><div class="eyebrow">Karta</div><div class="vmapbox"><img id="vmapimg" alt="Dammsugarens karta"><span class="camwait">Hämtar karta …</span></div></div>' : '',
@@ -1357,6 +1357,53 @@
         <span class="kmb">${b('volume_down', '<path d="M5 12h14"/>', 'Sänk')}${b('media_play_pause', play ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>', play ? 'Paus' : 'Spela')}${b('volume_up', '<path d="M5 12h14M12 5v14"/>', 'Höj')}${p.tv ? b('turn_off', '<path d="M12 3v8M6.3 7.3a8 8 0 1 0 11.4 0"/>', 'Stäng av') : b('media_next_track', '<path d="M6 5l9 7-9 7zM18 5v14"/>', 'Nästa')}</span></div>`;
     }).join('');
   }
+  // Mediapanelen: alla enheter (även avstängda) och radio på valda högtalare (Patrik 2026-11-20)
+  const MSEL_KEY = 'obs-media-sel';
+  let msel = (() => { try { const v = JSON.parse(localStorage.getItem(MSEL_KEY)); if (v && Array.isArray(v.targets)) return v; } catch {} return { station: null, targets: [] }; })();
+  const msave = () => { try { localStorage.setItem(MSEL_KEY, JSON.stringify(msel)); } catch {} };
+  const M_ICON = { tv: '<rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 21h8M12 17v4"/>', spk: '<rect x="6" y="3" width="12" height="18" rx="2"/><circle cx="12" cy="14" r="3.5"/><circle cx="12" cy="7" r="1"/>', grp: '<rect x="2.5" y="6" width="8" height="13" rx="1.5"/><rect x="13.5" y="6" width="8" height="13" rx="1.5"/><circle cx="6.5" cy="14" r="2"/><circle cx="17.5" cy="14" r="2"/>' };
+  const M_STATE = { playing: 'Spelar', paused: 'Pausad', idle: 'Ledig', on: 'På', off: 'Av', standby: 'Av', unavailable: 'Går inte att nå', unknown: 'Okänt', buffering: 'Laddar' };
+  function mediaRow(p) {
+    const s = st(p.entity); if (!s) return '';
+    const a = s.attributes || {}, active = ['playing', 'paused', 'buffering'].includes(s.state) || (p.tv && s.state === 'on');
+    const title = active ? (a.media_title || a.app_name || a.source || M_STATE[s.state]) : M_STATE[s.state] || s.state;
+    const sub = active ? [a.media_artist || a.media_series_title, a.media_title ? a.app_name : ''].filter(Boolean).join(' · ') : '';
+    const vol = Number.isFinite(+a.volume_level) && active ? ` · ${Math.round(a.volume_level * 100)} %` : '';
+    const play = s.state === 'playing';
+    const b = (cmd, svg, t) => `<button data-mcmd="${cmd}" data-ment="${esc(p.entity)}" aria-label="${t}"><svg viewBox="0 0 24 24">${svg}</svg></button>`;
+    const btns = active ? `${b('volume_down', '<path d="M5 12h14"/>', 'Sänk')}${b('media_play_pause', play ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>', play ? 'Paus' : 'Spela')}${b('volume_up', '<path d="M5 12h14M12 5v14"/>', 'Höj')}${p.tv ? b('turn_off', '<path d="M12 3v8M6.3 7.3a8 8 0 1 0 11.4 0"/>', 'Stäng av') : b('media_stop', '<rect x="6" y="6" width="12" height="12" rx="1.5"/>', 'Stoppa')}` : '';
+    return `<div class="kmp mrow2 ${play ? 'play' : ''} ${active ? '' : 'idle'}${s.state === 'unavailable' ? ' gone' : ''}"><span class="kmi"><svg viewBox="0 0 24 24">${p.tv ? M_ICON.tv : M_ICON.spk}</svg></span>
+      <div class="kmt"><b>${esc(p.name)}</b><small>${esc(title)}${sub ? ' · ' + esc(sub) : ''}${vol}</small></div><span class="kmb">${btns}</span></div>`;
+  }
+  function mediaCtl() {
+    const M = cfg.media; if (!M) return '<p class="dnote">Inga mediaspelare i config.</p>';
+    const stations = M.stations || [], targets = [...(M.groups || []).map(g => ({ ...g, grp: true })), ...M.players.filter(p => !p.tv)];
+    const ok = new Set(targets.map(t => t.entity)); msel.targets = msel.targets.filter(t => ok.has(t));
+    if (!stations.some(x => x.id === msel.station)) msel.station = stations[0] ? stations[0].id : null;
+    const stn = stations.find(x => x.id === msel.station), n = msel.targets.length;
+    const chip = t => { const s = st(t.entity) || {}, on = msel.targets.includes(t.entity), gone = s.state === 'unavailable';
+      return `<button class="mchip${on ? ' on' : ''}${s.state === 'playing' ? ' live' : ''}" data-mtgt="${esc(t.entity)}" ${gone ? 'disabled' : ''} aria-pressed="${on}"><svg viewBox="0 0 24 24">${t.grp ? M_ICON.grp : M_ICON.spk}</svg>${esc(t.name)}</button>`; };
+    const radio = stations.length ? `<section class="sx mradio"><div class="sh">Starta radio</div>
+      <div class="mchips">${stations.map(x => `<button class="mchip stn${x.id === msel.station ? ' on' : ''}" data-mstn="${esc(x.id)}" aria-pressed="${x.id === msel.station}">${esc(x.name)}</button>`).join('')}</div>
+      <div class="msub">Spela på</div>
+      <div class="mchips">${targets.map(chip).join('')}</div>
+      <button class="mgo" data-mradio ${stn && n ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>${stn && n ? `Spela ${esc(stn.name)} på ${n === 1 ? esc(targets.find(t => t.entity === msel.targets[0]).name) : n + ' högtalare'}` : 'Välj minst en högtalare'}</button></section>` : '';
+    const rank = p => { const s = (st(p.entity) || {}).state; return s === 'playing' ? 0 : s === 'paused' || (p.tv && s === 'on') ? 1 : s === 'unavailable' ? 3 : 2; };
+    const list = [...M.players].sort((a, b) => rank(a) - rank(b) || (b.tv ? 1 : 0) - (a.tv ? 1 : 0)).map(mediaRow).join('');
+    return radio + `<section class="sx"><div class="sh">Alla enheter</div><div class="kmlist">${list}</div></section>`;
+  }
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-mstn],[data-mtgt],[data-mradio]'); if (!t) return;
+    e.stopPropagation();
+    if (t.dataset.mstn) msel.station = t.dataset.mstn;
+    else if (t.dataset.mtgt) { const x = t.dataset.mtgt; msel.targets = msel.targets.includes(x) ? msel.targets.filter(y => y !== x) : [...msel.targets, x]; }
+    else if (t.hasAttribute('data-mradio')) {
+      if (!msel.station || !msel.targets.length) return;
+      t.disabled = true;
+      sendCtl({ action: 'radio', value: { station: msel.station, targets: msel.targets } }, true).then(ok => { if (ok) toast('Startar radion …'); renderDrawerStats(); });
+    }
+    msave(); renderDrawerStats();
+  }, true);
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-mcmd]'); if (!b) return;
     e.stopPropagation();
@@ -1820,8 +1867,10 @@
     }
   }
   // Rubriken "Fastighet / status": flyttas i redigeringsläget, kan döljas
-  const fhead = $('frame-head'), frame = fhead.parentElement;
+  // Kiosken har ingen rubrik på bilden (0.49.0 kraschade där utan den här kontrollen)
+  const fhead = $('frame-head') || document.createElement('div'), frame = fhead.parentElement || document.body;
   function placeTitle() {
+    if (!fhead.isConnected) return;
     const t = layout.title || {};
     const moved = t.x != null && t.y != null;
     fhead.classList.toggle('moved', moved);
@@ -1843,7 +1892,7 @@
     const up = () => { fhead.removeEventListener('pointermove', move); fhead.removeEventListener('pointerup', up); };
     fhead.addEventListener('pointermove', move); fhead.addEventListener('pointerup', up);
   });
-  $('title-hide').addEventListener('click', () => {
+  if ($('title-hide')) $('title-hide').addEventListener('click', () => {
     const t = layout.title = Object.assign({}, layout.title);
     if (t.hide) delete t.hide; else t.hide = true; placeTitle();
   });

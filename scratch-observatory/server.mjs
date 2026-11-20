@@ -358,10 +358,13 @@ const ALARM = CONFIG.house && CONFIG.house.alarm && CONFIG.house.alarm.controls 
 const ALARM_MODES = ['arm_home', 'arm_away', 'arm_night', 'arm_vacation'];
 // fel kod: efter 3 fel inom 10 min spärras larmet från kiosken i 5 min (koden loggas aldrig)
 const alarmFails = []; let alarmLockUntil = 0;
-const MEDIA = CONFIG.house && CONFIG.house.media && CONFIG.house.media.controls ? { controls: true, media: CONFIG.house.media.players.map(p => p.entity) } : null;
+const MCFG = CONFIG.house && CONFIG.house.media;
+const MEDIA = MCFG && MCFG.controls ? { controls: true, media: [...MCFG.players, ...(MCFG.groups || [])].map(p => p.entity) } : null;
+// Radio: bara stationer som står i config, och bara högtalare/grupper (inte tv) från config
+const MEDIA_TARGETS = new Set(MCFG ? [...MCFG.players.filter(p => !p.tv), ...(MCFG.groups || [])].map(p => p.entity) : []);
 const COVER_CMD = { open: 'open_cover', close: 'close_cover', stop: 'stop_cover' };
 const VAC_CMD = ['return_to_base', 'pause', 'stop', 'locate'];
-const MEDIA_CMD = ['media_play_pause', 'media_next_track', 'media_previous_track', 'volume_up', 'volume_down', 'turn_off'];
+const MEDIA_CMD = ['media_play_pause', 'media_next_track', 'media_previous_track', 'volume_up', 'volume_down', 'turn_off', 'media_stop'];
 async function control(body) {
   // Sidor med egen styrning (FTX, laddbox, bilen, spabad, varmvatten): bara entiteter som står i respektive vitlista
   const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa, CONFIG.water, CONFIG.radiators, CONFIG.house && CONFIG.house.door, CONFIG.house && CONFIG.house.lights, CONFIG.house && CONFIG.house.vacuum, MEDIA].filter(x => x && x.controls);
@@ -371,6 +374,7 @@ async function control(body) {
     || (act0 === 'script' && allow('scripts').has(ent0)) || (act0 === 'lock' && allow('locks').has(ent0))
     || ((act0 === 'climate_mode' || act0 === 'climate_temp') && allow('climates').has(ent0))
     || (act0 === 'cover' && allow('covers').has(ent0)) || (act0 === 'media' && allow('media').has(ent0))
+    || (act0 === 'radio' && !!MEDIA)
     || (act0 === 'vacuum' && !!(VAC && VAC.controls && VAC.entity === ent0))
     || (act0 === 'lights_off' && !!(LIGHTS && LIGHTS.controls && LIGHTS.all_off)) || (act0 === 'chore' && !!(CHORES && CHORES.controls && CHORES.script))
     || (act0 === 'alarm' && !!(ALARM && ALARM.entity === ent0))
@@ -439,6 +443,12 @@ async function control(body) {
   }
   else if (action === 'button' && ftxOk) call = ['button', 'press', entity, {}];
   else if (action === 'media' && ftxOk && MEDIA_CMD.includes(value)) call = ['media_player', value, entity, {}];
+  else if (action === 'radio' && ftxOk) {
+    const v = value || {}, stn = (MCFG.stations || []).find(x => x.id === v.station);
+    const to = Array.isArray(v.targets) ? [...new Set(v.targets)] : [];
+    if (!stn || !to.length || to.length > 20 || !to.every(t => MEDIA_TARGETS.has(t))) throw Object.assign(new Error('Ogiltig station eller högtalare'), { code: 400 });
+    call = ['media_player', 'play_media', to, { media_content_id: stn.url, media_content_type: 'music' }];
+  }
   else if (action === 'lights_off' && ftxOk) {
     // släck alla: bara lamporna i house.lights.toggles
     call = ['light', 'turn_off', LIGHTS.toggles.filter(x => x.startsWith('light.')), {}];
