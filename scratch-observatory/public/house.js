@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.46.3';
+  const VERSION = '0.47.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -114,9 +114,25 @@
 
   // ---------- Rutornas innehåll ----------
   // Inställningar från inställningssidan (gäller alla skärmar), hämtas vid start och varje minut
-  let SET = { value_colors: true, solar_shimmer: true, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5 };
+  let SET = { value_colors: true, solar_shimmer: true, effects: true, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5 };
   async function loadSettings() {
-    try { const r = await fetch('api/settings', { cache: 'no-store' }); if (r.ok) { SET = { ...SET, ...(await r.json()) }; refresh(); } } catch {}
+    try { const r = await fetch('api/settings', { cache: 'no-store' }); if (r.ok) { SET = { ...SET, ...(await r.json()) }; applyFx(); refresh(); } } catch {}
+  }
+  // Effekter (Patrik 2026-11-20, inspirerat av Sorvo): rutor och panelinnehåll tonar fram ur oskärpa,
+  // glasad panel, grafer som ritas fram och ett kort sken när ett värde ändras. Av i kioskens lite-läge,
+  // när systemet ber om mindre rörelse eller när det stängs av under Inställningar.
+  let fxT = null;
+  const fxOn = () => document.body.classList.contains('fx');
+  function applyFx() {
+    const rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.body.classList.toggle('fx', SET.effects !== false && !document.body.classList.contains('lite') && !rm);
+  }
+  function fxDrawer() {
+    const dr = $('drawer'); if (!fxOn() || !dr) return;
+    let i = 0;
+    for (const el of [...$('drawer-stats').children, ...$('drawer-charts').children]) el.style.setProperty('--i', Math.min(i++, 10));
+    dr.classList.remove('fxin'); void dr.offsetWidth; dr.classList.add('fxin');
+    clearTimeout(fxT); fxT = setTimeout(() => dr.classList.remove('fxin'), 1700);
   }
   // Färg på värdet: sol = gul när panelerna producerar, huset och nätet efter hur mycket det är
   const level = (kwv, low, high, max) => kwv == null ? '' : kwv < low ? 'c-low' : kwv < high ? '' : kwv < max ? 'c-warn' : 'c-high';
@@ -491,6 +507,7 @@
       const el = document.createElement('div');
       el.className = 'box ' + (BOX[id].cls || '');
       el.dataset.id = id;
+      el.style.setProperty('--i', boxesEl.children.length);
       el.tabIndex = 0;
       el.addEventListener('click', () => { if (!editing && !el._dragged && BOX[id].drawer) openDrawer(BOX[id].drawer); el._dragged = false; });
       el.addEventListener('keydown', e => { if (e.key === 'Enter' && BOX[id].drawer && !editing) openDrawer(BOX[id].drawer); });
@@ -524,7 +541,7 @@
   }
   function renderBoxes() {
     for (const el of boxesEl.children) {
-      const def = BOX[el.dataset.id], r = def.render();
+      const def = BOX[el.dataset.id], r = def.render(), oldV = fxOn() && el.querySelector('.v') ? el.querySelector('.v').textContent : null;
       el._flow = r.flow || null;
       el.hidden = !!r.hide && !editing;
       if (r.custom) el.innerHTML = r.custom;
@@ -534,6 +551,9 @@
       const k = el.querySelector('.k'), id = el.dataset.id;
       const ic = id === 'vader' ? (st(cfg.outdoor) ? wxIcon(st(cfg.outdoor).state, 'bi wx') : '') : BOX_ICON[id];
       if (k && ic) k.insertAdjacentHTML('afterbegin', ic);
+      // Kort sken på värdet när det ändras
+      const nv = el.querySelector('.v');
+      if (oldV != null && nv && nv.textContent !== oldV) { el.classList.remove('fxtick'); void el.offsetWidth; el.classList.add('fxtick'); clearTimeout(el._fxT); el._fxT = setTimeout(() => el.classList.remove('fxtick'), 1000); }
     }
     fitBoxes(); drawWires(); renderLocks(); renderTemps(); renderSmoke();
     window.dispatchEvent(new CustomEvent('obs-render'));
@@ -1574,6 +1594,7 @@
     body.innerHTML = (d.ctl ? `<div id="dctl" class="dctl">${(lastCtl = d.ctl())}</div>` : '') + (d.extra ? d.extra() : '') + charts.map((c, i) => `<div class="dchart" id="dc${i}"><div class="eyebrow">${esc(c.title)} · senaste 24 h</div><div class="empty">Hämtar historik …</div></div>`).join('') +
       (d.after ? `<div id="dafter">${(lastAfter = d.after())}</div>` : '') + (d.note ? `<p class="dnote">${esc(d.note)}</p>` : '');
     if (d.open) d.open();
+    fxDrawer();
     charts.forEach(async (c, i) => {
       const box = $('dc' + i);
       try {
@@ -1657,7 +1678,7 @@
     const base = y(Math.max(lo, 0));
     return `<div class="dchart"><div class="eyebrow">${esc(title)} <span style="float:right">${esc(unit)}</span></div>
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${g}
-      <path class="ar" fill="${color}" d="${d}L${x(t1)},${base}L${x(t0)},${base}Z"/><path class="ln" stroke="${color}" d="${d}"/></svg></div>`;
+      <path class="ar" fill="${color}" d="${d}L${x(t1)},${base}L${x(t0)},${base}Z"/><path class="ln" pathLength="1" stroke="${color}" d="${d}"/></svg></div>`;
   }
 
   function chartMulti(title, series, div, unit) {
@@ -1680,7 +1701,7 @@
       if (!pts.length) return '';
       const d = pts.map(([t, v], i) => `${i ? 'L' : 'M'}${x(t).toFixed(1)},${y(v).toFixed(1)}`).join('');
       const area = k === 0 ? `<path class="ar" fill="${sr.color}" d="${d}L${x(pts[pts.length - 1][0])},${y(0)}L${x(pts[0][0])},${y(0)}Z"/>` : '';
-      return area + `<path class="ln${sr.style === 'dash' ? ' dash' : ''}" stroke="${sr.color}" d="${d}"/>`;
+      return area + `<path class="ln${sr.style === 'dash' ? ' dash' : ''}"${sr.style === 'dash' ? '' : ' pathLength="1"'} stroke="${sr.color}" d="${d}"/>`;
     }).join('');
     const legend = series.map(sr => `<span><i style="background:${sr.color}"></i>${esc(sr.label)}</span>`).join('');
     return `<div class="dchart"><div class="eyebrow">${esc(title)} <span style="float:right">${esc(unit)}</span></div>
@@ -1869,6 +1890,8 @@
     for (const [id, h] of Object.entries(l.hotspots || {})) if (layout.hotspots[id] && h.points && !(oldHot && id === 'house')) layout.hotspots[id].points = h.points;
     if (l.locks && typeof l.locks === 'object') layout.locks = l.locks;
     if (l.temps && typeof l.temps === 'object') layout.temps = l.temps;
+    applyFx();
+    if (fxOn()) { document.body.classList.add('fxboot'); setTimeout(() => document.body.classList.remove('fxboot'), 2600); }
     buildBoxes(); buildHot(); refresh();
     loadMoney(); setInterval(loadMoney, 10 * 60 * 1000);
     loadSettings(); setInterval(loadSettings, 60 * 1000);

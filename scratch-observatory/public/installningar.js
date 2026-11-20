@@ -10,6 +10,7 @@
 
   const TOGGLES = [
     ['value_colors', 'Färgade värden', 'Solpaneler blir gul när de producerar. Huset och Import/Export färgas efter hur stor effekten är.'],
+    ['effects', 'Effekter', 'Rutor och paneler tonar fram ur oskärpa, glasad panel, grafer som ritas fram och ett kort sken när ett värde ändras. Alltid av i kioskens lite-läge.'],
     ['solar_shimmer', 'Skimmer på solpanelerna', 'Ett svagt sken och en ljusstrimma över taket på bilden när panelerna producerar.'],
   ];
   const LIMITS = [
