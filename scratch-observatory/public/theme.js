@@ -165,11 +165,29 @@
     document.addEventListener('DOMContentLoaded', function () {
       var main = document.querySelector('main.wgrid');
       if (!main || !window.MutationObserver) return;
-      var cards = main.children;
-      for (var i = 0; i < cards.length; i++) cards[i].style.setProperty('--fi', Math.min(i, 12));
-      var mo = new MutationObserver(function (ms) { for (var a = 0; a < ms.length; a++) for (var b = 0; b < ms[a].addedNodes.length; b++) mark(ms[a].addedNodes[b]); });
-      mo.observe(main, { childList: true, subtree: true });
-      setTimeout(function () { mo.disconnect(); }, 4000);
+      var cards = main.children, t0 = Date.now();
+      // Rutor som är tomma när sidan laddas visas först som glasade platshållare. När innehållet
+      // kommer (första gången) tonar det fram ur oskärpa, i rutornas ordning, som på Sorvo.
+      for (var i = 0; i < cards.length; i++) {
+        cards[i].style.setProperty('--fi', Math.min(i, 12));
+        if (!filled(cards[i])) cards[i].classList.add('fxwait'); else reveal(cards[i]);
+      }
+      function filled(c) { return !!(c.textContent || '').replace(/Hämtar[^.]*…?|Laddar[^.]*…?/g, '').trim() || c.querySelector('svg,img,canvas,button,input'); }
+      function check(n) {
+        var c = n; while (c && c.parentNode !== main) c = c.parentNode;
+        if (!c || !c.classList.contains('fxwait') || !filled(c)) return;
+        c.classList.remove('fxwait');
+        reveal(c);
+      }
+      function reveal(c) {
+        var idx = +c.style.getPropertyValue('--fi') || 0, wait = Math.max(0, idx * 70 + 120 - (Date.now() - t0));
+        c.style.setProperty('--fd', wait + 'ms');
+        c.classList.add('fxfill');
+        setTimeout(function () { c.classList.remove('fxfill'); }, wait + 750);
+      }
+      var mo = new MutationObserver(function (ms) { for (var a = 0; a < ms.length; a++) { check(ms[a].target); for (var b = 0; b < ms[a].addedNodes.length; b++) mark(ms[a].addedNodes[b]); } });
+      mo.observe(main, { childList: true, subtree: true, characterData: true });
+      setTimeout(function () { mo.disconnect(); for (var j = 0; j < cards.length; j++) cards[j].classList.remove('fxwait'); }, 6000);
       mark(main);
     });
     // Byte till en annan sida: innehållet tonar ut i oskärpa innan nästa sida laddas

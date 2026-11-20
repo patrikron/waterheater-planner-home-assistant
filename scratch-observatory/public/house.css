@@ -727,7 +727,16 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .fx #drawer-charts .dchart path.ar{animation:fxFade 1.2s ease both}
 
 /* ---------- Effekter på undersidorna (html.fxp, sätts av theme.js) ---------- */
-.fxp.fxboot main.wgrid > *{animation:fxIn .7s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--fi,0) * 65ms + 60ms)}
+.fxp.fxboot main.wgrid > *{animation:fxShell .55s ease backwards;animation-delay:calc(var(--fi,0) * 55ms)}
+@keyframes fxShell{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+/* Tom ruta = glasad platshållare med ett svagt svep tills innehållet kommer */
+@keyframes fxSweep{from{background-position:-150% 0}to{background-position:250% 0}}
+.fxp main.wgrid > .fxwait{position:relative;overflow:hidden;min-height:120px}
+.fxp main.wgrid > .fxwait::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--text) 6%,transparent) 50%,transparent 70%) no-repeat;background-size:60% 100%;animation:fxSweep 1.3s ease-in-out infinite}
+.fxp main.wgrid > .fxwait > *{opacity:0}
+/* Innehållet tonar fram ur oskärpa när det kommer, ruta för ruta */
+.fxp main.wgrid > .fxfill > *{animation:fxIn .65s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:var(--fd,0ms)}
+
 .fxp.fxboot path.ln[pathLength]{stroke-dasharray:1;animation:fxDraw 1.3s cubic-bezier(.3,.6,.2,1) .25s both}
 .fxp.fxboot path.ar{animation:fxFade 1.3s ease .25s both}
 .fxp main.wgrid,.fxp .frame,.fxp .content > header{transition:opacity .2s ease,filter .2s ease,transform .2s ease}
