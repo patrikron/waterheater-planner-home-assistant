@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.48.2';
+  const VERSION = '0.48.3';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -121,7 +121,7 @@
   // Effekter (Patrik 2026-11-20, inspirerat av Sorvo): rutor och panelinnehåll tonar fram ur oskärpa,
   // glasad panel, grafer som ritas fram och ett kort sken när ett värde ändras. Av i kioskens lite-läge,
   // när systemet ber om mindre rörelse eller när det stängs av under Inställningar.
-  let fxT = null;
+  let fxT = null, fxOpenAt = 0;
   const fxOn = () => document.body.classList.contains('fx');
   function applyFx() {
     const rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -132,6 +132,7 @@
     let i = 0;
     // Bara det som finns när panelen öppnas tonar fram. Det som ritas om eller laddas in efteråt
     // (grafer, liveuppdateringar) visas direkt, annars ser det ut som att panelen laddas om.
+    fxOpenAt = performance.now();
     const els = [...$('drawer-stats').children, ...$('drawer-charts').children];
     for (const el of els) { el.style.setProperty('--i', Math.min(i++, 10)); el.classList.add('fxa'); }
     clearTimeout(fxT); fxT = setTimeout(() => els.forEach(el => el.classList.remove('fxa')), 1700);
@@ -1631,8 +1632,10 @@
           const todayPts = res[0].points.map(([t, v]) => [typeof t === 'string' ? Date.parse(t) : t, v]).filter(p => p[0] >= mid.getTime());
           if (todayPts.length) { const m = todayPts.reduce((a, p) => p[1] > a[1] ? p : a); solarPeak = { t: m[0], v: m[1] }; renderDrawerStats(); }
         }
-        box.outerHTML = res.length > 1 ? chartMulti(`${c.title} · senaste 24 h`, res, c.div, c.unit)
-          : chartBlock(`${c.title} · senaste 24 h`, res[0] && res[0].points, res[0] && res[0].color, c.div, c.unit);
+        // Grafen ritas fram först när rutan tonat in klart (Patrik 2026-11-20)
+        const bi = +box.style.getPropertyValue('--i') || 0, dd = Math.max(0, Math.round(bi * 60 + 140 + 600 + 120 - (performance.now() - fxOpenAt)));
+        box.outerHTML = (res.length > 1 ? chartMulti(`${c.title} · senaste 24 h`, res, c.div, c.unit)
+          : chartBlock(`${c.title} · senaste 24 h`, res[0] && res[0].points, res[0] && res[0].color, c.div, c.unit)).replace('class="dchart"', `class="dchart" style="--dd:${dd}ms"`);
       } catch (e) { if (box.isConnected) box.querySelector('.empty').textContent = 'Kunde inte hämta historik (' + e.message + ').'; }
     });
   }

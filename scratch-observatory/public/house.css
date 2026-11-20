@@ -711,7 +711,7 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 @media (max-width:520px){.drawer .wxd{grid-template-columns:52px 24px 28px minmax(40px,1fr) 30px 54px}.drawer .wxdw{display:none}}
 
 /* ---------- Effekter (Inställningar → Effekter, body.fx) ---------- */
-@keyframes fxIn{from{opacity:0;filter:blur(14px);transform:translateY(10px) scale(.975)}to{opacity:1;filter:none;transform:none}}
+@keyframes fxIn{from{opacity:0;filter:blur(14px);transform:translateY(6px) scale(.9)}to{opacity:1;filter:none;transform:none}}
 @keyframes fxFade{from{opacity:0}to{opacity:1}}
 @keyframes fxDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 /* Rutorna på bilden tonar fram en och en när sidan laddas */
@@ -723,12 +723,12 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 /* Panelinnehållet växer fram ur oskärpa, del för del */
 .fx .drawer :is(#drawer-stats,#drawer-charts) > .fxa{animation:fxIn .6s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--i,0) * 60ms + 140ms)}
 /* Grafer ritas fram */
-.fx #drawer-charts .dchart path.ln[pathLength]{stroke-dasharray:1;animation:fxDraw 1.2s cubic-bezier(.3,.6,.2,1) both}
-.fx #drawer-charts .dchart path.ar{animation:fxFade 1.2s ease both}
+.fx #drawer-charts .dchart path.ln[pathLength]{stroke-dasharray:1;animation:fxDraw 1.2s cubic-bezier(.3,.6,.2,1) var(--dd,0ms) both}
+.fx #drawer-charts .dchart path.ar{animation:fxFade 1.2s ease var(--dd,0ms) both}
 
 /* ---------- Effekter på undersidorna (html.fxp, sätts av theme.js) ---------- */
 .fxp.fxboot main.wgrid > *{animation:fxShell .55s ease backwards;animation-delay:calc(var(--fi,0) * 55ms)}
-@keyframes fxShell{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+@keyframes fxShell{from{opacity:0;transform:scale(.86);border-radius:18px}to{opacity:1;transform:none}}
 /* Tom ruta = glasad platshållare med ett svagt svep tills innehållet kommer */
 @keyframes fxSweep{from{background-position:-150% 0}to{background-position:250% 0}}
 .fxp main.wgrid > .fxwait{position:relative;overflow:hidden;min-height:120px}
@@ -737,8 +737,8 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 /* Innehållet tonar fram ur oskärpa när det kommer, ruta för ruta */
 .fxp main.wgrid > .fxfill > *{animation:fxIn .65s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:var(--fd,0ms)}
 
-.fxp.fxboot path.ln[pathLength]{stroke-dasharray:1;animation:fxDraw 1.3s cubic-bezier(.3,.6,.2,1) .25s both}
-.fxp.fxboot path.ar{animation:fxFade 1.3s ease .25s both}
+.fxp.fxboot path.ln[pathLength]{stroke-dasharray:1;animation:fxDraw 1.3s cubic-bezier(.3,.6,.2,1) calc(var(--fd,0ms) + 750ms) both}
+.fxp.fxboot path.ar{animation:fxFade 1.3s ease calc(var(--fd,0ms) + 750ms) both}
 .fxp main.wgrid,.fxp .frame,.fxp .content > header{transition:opacity .2s ease,filter .2s ease,transform .2s ease}
 .fxp.fxleave main.wgrid,.fxp.fxleave .frame{opacity:0;filter:blur(10px);transform:scale(.99)}
 
