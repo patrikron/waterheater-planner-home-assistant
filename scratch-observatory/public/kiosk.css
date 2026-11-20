@@ -171,12 +171,12 @@ body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
 .kcal .kbin.soon svg{stroke:var(--gold)}.kcal .kbin.soon b{color:var(--gold)}
 
 /* Hemma/borta (0.55): ring i stället för badge, i kioskens egen stil */
-.kcal .kpeople{display:flex;flex-wrap:wrap;gap:10px 22px}
+.kcal .kpeople{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}
 /* Personerna som footer längst ned i kalenderkolumnen */
 .kcal .kfoot{flex:none;border-top:1px solid var(--line);padding:14px 0 18px}
 .kcal .kfoot:empty{display:none}
-.kcal .kperson{display:flex;align-items:center;gap:11px;min-width:0}
-.kcal .kpic{position:relative;width:42px;height:42px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--panel);
+.kcal .kperson{display:flex;align-items:center;gap:9px;min-width:0}
+.kcal .kpic{position:relative;width:clamp(30px,2.6vw,42px);height:clamp(30px,2.6vw,42px);flex:none;border-radius:50%;display:grid;place-items:center;background:var(--panel);
   box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--sage)}
 .kcal .kpic i{font-style:normal;font-weight:600;color:var(--muted)}
 .kcal .kpic img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover}
@@ -184,7 +184,7 @@ body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
 .kcal .kperson.away .kpic{box-shadow:none;outline:1.5px dashed var(--line2);outline-offset:3px}
 .kcal .kperson.away .kpic img{filter:grayscale(1) brightness(.7)}
 .kcal .kpn{display:flex;flex-direction:column;min-width:0;line-height:1.25}
-.kcal .kpn b{font-weight:600;white-space:nowrap}
-.kcal .kpn>span{color:var(--text);font-size:.9em;white-space:nowrap}
+.kcal .kpn b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kcal .kpn>span{color:var(--text);font-size:.85em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kcal .kpn small{color:var(--muted);font-size:1em}
 .kcal .kperson.away .kpn b,.kcal .kperson.away .kpn>span{color:var(--muted)}

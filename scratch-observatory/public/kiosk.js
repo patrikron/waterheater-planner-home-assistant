@@ -192,7 +192,7 @@
       const s = H.st(p.entity), st = s ? s.state : 'unknown';
       const home = st === 'home', known = st && st !== 'unknown' && st !== 'unavailable';
       const t = since(s && (s.last_changed || s.last_updated));
-      const where = home ? `hemma${t ? ` <small>sedan ${t.at}</small>` : ''}` : st === 'not_home' ? `borta${t && t.min >= 1 ? ` <small>${dur(t.min)}</small>` : ''}` : known ? `${esc(st)}${t && t.min >= 1 ? ` <small>${dur(t.min)}</small>` : ''}` : 'okänt';
+      const where = home ? `hemma${t ? ` <small>${t.at}</small>` : ''}` : st === 'not_home' ? `borta${t && t.min >= 1 ? ` <small>${dur(t.min)}</small>` : ''}` : known ? `${esc(st)}${t && t.min >= 1 ? ` <small>${dur(t.min)}</small>` : ''}` : 'okänt';
       return `<span class="kperson ${home ? 'home' : 'away'}"><span class="kpic"><i>${esc((p.name || '?').slice(0, 1))}</i><img src="/api/person_img?entity=${encodeURIComponent(p.entity)}" alt=""></span><span class="kpn"><b>${esc(p.name)}</b><span>${where}</span></span></span>`;
     }).join('')}</div>`;
   }
