@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.58.0';
+  const VERSION = '0.58.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -961,7 +961,7 @@
     // Laddbox och EV6 visar sina egna sidor i en bredare panel
     charger: { eyebrow: 'Garage / laddbox', title: 'Laddbox', frame: 'laddbox.html' },
     car: { eyebrow: 'Garage / bil', title: 'Kia EV6', frame: 'ev6.html' },
-    media: { eyebrow: 'Media / alla enheter', title: 'Media', rich: () => '', stats: () => [], charts: () => [], ctl: () => cfg.media && cfg.media.ma ? musicCtl() : mediaCtl(), after: () => cfg.media && cfg.media.ma ? mediaList() : '', open: () => { if (cfg.media && cfg.media.ma) musLoad(); } },
+    media: { eyebrow: 'Media / alla enheter', title: 'Media', rich: () => '', stats: () => [], charts: () => [], ctl: () => cfg.media && cfg.media.ma ? musicCtl() : mediaCtl(), after: () => cfg.media && cfg.media.ma ? mediaList() : '', open: () => { if (cfg.media && cfg.media.ma) { mus.tab = 'radio'; mus.sel = null; musRender(); musLoad(); } } },
     access: { eyebrow: 'Säkerhet / lås och portar', title: 'Lås och garageportar', rich: () => '', stats: () => [], charts: () => [], ctl: accessCtl },
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl, after: vacuumAfter,
       extra: () => cfg.vacuum && cfg.vacuum.map ? '<div class="sx vmap"><div class="eyebrow">Karta</div><div class="vmapbox"><img id="vmapimg" alt="Dammsugarens karta"><span class="camwait">Hämtar karta …</span></div></div>' : '',
@@ -1436,8 +1436,8 @@
   }
   // ---------- Music Assistant: Radio / Spellistor / Sök, spela på valda högtalare (0.51.0) ----------
   const MUS_KEY = 'obs-music-sel';
-  const mus = { tab: 'playlist', q: '', lib: {}, libAt: 0, res: null, busy: false, err: '', sel: null, targets: [] };
-  try { const v = JSON.parse(localStorage.getItem(MUS_KEY)); if (v) { if (Array.isArray(v.targets)) mus.targets = v.targets; if (v.tab) mus.tab = v.tab; } } catch {}
+  const mus = { tab: 'radio', q: '', lib: {}, libAt: 0, res: null, busy: false, err: '', sel: null, targets: [] };
+  try { const v = JSON.parse(localStorage.getItem(MUS_KEY)); if (v) { if (Array.isArray(v.targets)) mus.targets = v.targets; } } catch {}
   const musSave = () => { try { localStorage.setItem(MUS_KEY, JSON.stringify({ targets: mus.targets, tab: mus.tab })); } catch {} };
   const musRender = () => { if (drawerOpen === 'media') renderDrawerStats(); };
   async function musLoad(force) {
@@ -1482,7 +1482,7 @@
     const chip = t => { const on = mus.targets.includes(t.entity); return `<button class="mchip${on ? ' on' : ''}" data-mtgt2="${esc(t.entity)}" aria-pressed="${on}"><svg viewBox="0 0 24 24">${t.grp ? M_ICON.grp : M_ICON.spk}</svg>${esc(t.name)}</button>`; };
     const n = mus.targets.length, one = n === 1 ? targets.find(t => t.entity === mus.targets[0]) : null;
     return `<section class="sx mmusic"><div class="sh">Spela musik</div>
-      <div class="mtabs">${tab('playlist', 'Spellistor')}${tab('radio', 'Radio')}${tab('search', 'Sök')}</div>
+      <div class="mtabs">${tab('radio', 'Radio')}${tab('playlist', 'Spellistor')}${tab('search', 'Sök')}</div>
       <form class="msearch" data-msearch><input type="search" name="q" value="${esc(mus.q)}" placeholder="Sök låt, artist, album, spellista …" autocomplete="off" enterkeyhint="search"><button type="submit">Sök</button></form>
       ${mus.err ? `<p class="dnote warn">${esc(mus.err)}</p>` : ''}
       <div class="mbody" data-tab="${mus.tab}">${body}</div>

@@ -487,7 +487,9 @@ async function maLibrary(type) {
   if (!MA || !['playlist', 'radio'].includes(type)) throw Object.assign(new Error('Okänd typ'), { code: 400 });
   const hit = maCache.get(type); if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.data;
   const r = await shared('ma|' + type, () => maService('get_library', { media_type: type, limit: 300, order_by: type === 'playlist' ? 'last_played_desc' : 'name' }));
-  const data = { items: (r.items || []).filter(x => MA_URI.test(x.uri || '')).map(maItem) };
+  const items = (r.items || []).filter(x => MA_URI.test(x.uri || '')).map(maItem);
+  if (type === 'playlist') items.reverse(); // Patrik 2026-11-20: spellistorna i omvänd ordning mot tidigare
+  const data = { items };
   maCache.set(type, { at: Date.now(), data });
   return data;
 }
