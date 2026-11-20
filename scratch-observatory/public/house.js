@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.49.1';
+  const VERSION = '0.49.2';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1663,7 +1663,7 @@
           if (todayPts.length) { const m = todayPts.reduce((a, p) => p[1] > a[1] ? p : a); solarPeak = { t: m[0], v: m[1] }; renderDrawerStats(); }
         }
         // Grafen ritas fram först när rutan tonat in klart (Patrik 2026-11-20)
-        const bi = +box.style.getPropertyValue('--i') || 0, dd = Math.max(0, Math.round(bi * 60 + 140 + 600 + 120 - (performance.now() - fxOpenAt)));
+        const bi = +box.style.getPropertyValue('--i') || 0, dd = Math.max(0, Math.round(bi * 60 + 140 + 320 - (performance.now() - fxOpenAt)));
         box.outerHTML = (res.length > 1 ? chartMulti(`${c.title} · senaste 24 h`, res, c.div, c.unit)
           : chartBlock(`${c.title} · senaste 24 h`, res[0] && res[0].points, res[0] && res[0].color, c.div, c.unit)).replace('class="dchart"', `class="dchart" style="--dd:${dd}ms"`);
       } catch (e) { if (box.isConnected) box.querySelector('.empty').textContent = 'Kunde inte hämta historik (' + e.message + ').'; }

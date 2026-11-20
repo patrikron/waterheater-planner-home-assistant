@@ -746,8 +746,8 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .fxp main.wgrid > .fxfill > *{transition:opacity .6s cubic-bezier(.2,.7,.2,1) var(--fd,0ms),filter .6s cubic-bezier(.2,.7,.2,1) var(--fd,0ms)}
 
 /* Grafer ritas fram en gång per ruta (data-fxd sätts bara vid första ritningen) */
-.fxp path.ln[data-fxd]{stroke-dasharray:1;animation:fxDraw 1.3s cubic-bezier(.3,.6,.2,1) calc(var(--fd,0ms) + 600ms) both}
-.fxp path.ar[data-fxd]{animation:fxFade 1.3s ease calc(var(--fd,0ms) + 600ms) both}
+.fxp path.ln[data-fxd]{stroke-dasharray:1;animation:fxDraw 1.3s cubic-bezier(.3,.6,.2,1) calc(var(--fd,0ms) + 300ms) both}
+.fxp path.ar[data-fxd]{animation:fxFade 1.3s ease calc(var(--fd,0ms) + 300ms) both}
 
 /* ---------- Mätare i Import/Huset/Solpaneler ---------- */
 .gbar{position:relative;height:6px;margin:7px 0 11px;border-radius:3px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:visible}
