@@ -52,14 +52,25 @@ function slim(s) {
 
 function broadcast(event, data) {
   const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  for (const res of clients) res.write(msg);
+  for (const res of clients) {
+    // En ström som inte tar emot (stängd flik bakom en proxy som inte släppt anslutningen) stängs
+    // i stället för att buffra upp allt mer för varje sidbyte (0.49.1)
+    if (res.destroyed || res.writableLength > 512 * 1024) { dropClient(res); continue; }
+    res.write(msg);
+  }
 }
+function dropClient(res) { clients.delete(res); try { res.destroy(); } catch {} }
 
 // ---------- Home Assistant WebSocket ----------
 let ws = null, nextId = 1, retry = 1000;
 const pending = new Map();
 
+const haSlow = []; // de senaste långsamma HA-frågorna (typ och tid), för /api/diag
 function haCall(msg, timeout = 15000) {
+  const t0 = Date.now();
+  return haCall0(msg, timeout).finally(() => { const ms = Date.now() - t0; if (ms > 1500) { haSlow.push({ type: msg.type, ms, at: new Date().toISOString() }); if (haSlow.length > 30) haSlow.shift(); } });
+}
+function haCall0(msg, timeout) {
   return new Promise((resolve, reject) => {
     if (!ws || !connected) return reject(new Error('Inte ansluten till Home Assistant'));
     const id = nextId++;
@@ -133,7 +144,15 @@ async function stats(hours) {
 // ---------- Historik för en entitet (detaljpanelen) ----------
 const histCache = new Map();
 const HIST_ATTRS = Object.assign({}, ...[CONFIG.spa, CONFIG.radiators].filter(Boolean).map(x => x.history_attrs || {}));
-async function history(id, hours, attr) {
+// Samma fråga som redan är på väg till HA delas (snabba sidbyten ska inte köa upp frågor i HA)
+const inflight = new Map();
+function shared(key, fn) {
+  let p = inflight.get(key);
+  if (!p) { p = fn().finally(() => inflight.delete(key)); inflight.set(key, p); }
+  return p;
+}
+function history(id, hours, attr) { return shared('h|' + id + '|' + hours + '|' + (attr || ''), () => history0(id, hours, attr)); }
+async function history0(id, hours, attr) {
   if (!ALLOWED.has(id)) throw Object.assign(new Error('Entiteten är inte tillåten'), { code: 403 });
   if (attr) return attrHistory(id, hours, attr);
   const h = Math.max(1, Math.min(168, Math.round(hours) || 24));
@@ -188,7 +207,8 @@ async function attrHistory(id, hours, attr) {
 
 // ---------- Dygnsvis förändring (staplar per dag) ----------
 const dailyCache = new Map();
-async function daily(id, days, stat = 'change') {
+function daily(id, days, stat = 'change') { return shared('d|' + id + '|' + days + '|' + stat, () => daily0(id, days, stat)); }
+async function daily0(id, days, stat = 'change') {
   if (!['change', 'mean', 'max'].includes(stat)) stat = 'change';
   if (!ALLOWED.has(id)) throw Object.assign(new Error('Entiteten är inte tillåten'), { code: 403 });
   const n = Math.max(1, Math.min(60, Math.round(days) || 14));
@@ -793,14 +813,20 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/history') return json(res, 200, await history(url.searchParams.get('entity') || '', Number(url.searchParams.get('hours')), url.searchParams.get('attr') || ''));
     if (url.pathname === '/api/config') return json(res, 200, CONFIG.card);
     if (url.pathname === '/api/states') return json(res, 200, snapshot());
+    // Felsökning av seghet: bara antal och tider, inga värden
+    if (url.pathname === '/api/diag') return json(res, 200, { streams: clients.size, ha_pending: pending.size, shared_inflight: inflight.size,
+      hist_cache: histCache.size, uptime_s: Math.round(process.uptime()), rss_mb: Math.round(process.memoryUsage().rss / 1e6), ha_slow: haSlow.slice(-10) });
     if (url.pathname === '/api/money') return json(res, 200, await money());
     if (url.pathname === '/api/stats') return json(res, 200, await stats(Number(url.searchParams.get('hours'))));
     if (url.pathname === '/api/stream') {
       res.writeHead(200, { ...SEC, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
       res.write(`event: snapshot\ndata: ${JSON.stringify(snapshot())}\n\n`);
       clients.add(res);
-      const ping = setInterval(() => res.write(': ping\n\n'), 25000);
-      req.on('close', () => { clearInterval(ping); clients.delete(res); });
+      // Högst 40 strömmar: de äldsta stängs först (en skärm som fortfarande lever kopplar upp sig igen)
+      while (clients.size > 40) dropClient(clients.values().next().value);
+      const ping = setInterval(() => { if (res.destroyed) return dropClient(res); res.write(': ping\n\n'); }, 25000);
+      const done = () => { clearInterval(ping); clients.delete(res); };
+      req.on('close', done); res.on('close', done); res.on('error', done);
       return;
     }
     if (url.pathname === '/api/camera_stream') return await cameraStream(req, res, url.searchParams.get('entity') || '');

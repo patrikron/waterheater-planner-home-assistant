@@ -740,12 +740,14 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 @keyframes fxSweep{from{background-position:-150% 0}to{background-position:250% 0}}
 .fxp main.wgrid > .fxwait{position:relative;overflow:hidden;min-height:120px}
 .fxp main.wgrid > .fxwait::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--text) 6%,transparent) 50%,transparent 70%) no-repeat;background-size:60% 100%;animation:fxSweep 1.3s ease-in-out infinite}
-.fxp main.wgrid > .fxwait > *{opacity:0}
-/* Innehållet tonar fram ur oskärpa när det kommer, ruta för ruta */
-.fxp main.wgrid > .fxfill > *{animation:fxIn .65s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:var(--fd,0ms)}
+.fxp main.wgrid > .fxwait > *{opacity:0;filter:blur(8px)}
+/* Innehållet tonar fram ur oskärpa när det kommer, ruta för ruta. Övergång i stället för animation:
+   delar som ritas om av liveuppdateringar under tiden dyker upp direkt i stället för att börja om (0.49.1). */
+.fxp main.wgrid > .fxfill > *{transition:opacity .6s cubic-bezier(.2,.7,.2,1) var(--fd,0ms),filter .6s cubic-bezier(.2,.7,.2,1) var(--fd,0ms)}
 
-.fxp.fxboot path.ln[pathLength]{stroke-dasharray:1;animation:fxDraw 1.3s cubic-bezier(.3,.6,.2,1) calc(var(--fd,0ms) + 750ms) both}
-.fxp.fxboot path.ar{animation:fxFade 1.3s ease calc(var(--fd,0ms) + 750ms) both}
+/* Grafer ritas fram en gång per ruta (data-fxd sätts bara vid första ritningen) */
+.fxp path.ln[data-fxd]{stroke-dasharray:1;animation:fxDraw 1.3s cubic-bezier(.3,.6,.2,1) calc(var(--fd,0ms) + 600ms) both}
+.fxp path.ar[data-fxd]{animation:fxFade 1.3s ease calc(var(--fd,0ms) + 600ms) both}
 
 /* ---------- Mätare i Import/Huset/Solpaneler ---------- */
 .gbar{position:relative;height:6px;margin:7px 0 11px;border-radius:3px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:visible}

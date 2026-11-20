@@ -157,10 +157,16 @@
       }).catch(function () {});
     }
     // Grafer som ritas under de första sekunderna får pathLength så att linjen kan ritas fram
+    // Bara första gången en ruta ritar sina grafer (inom 300 ms); omritningar från liveuppdateringar ritas inte fram igen
     function mark(n) {
       if (!root.classList.contains('fxboot') || !n.querySelectorAll) return;
-      var ps = n.matches && n.matches('path.ln') ? [n] : n.querySelectorAll('path.ln');
-      for (var i = 0; i < ps.length; i++) if (!ps[i].classList.contains('dash') && !ps[i].hasAttribute('stroke-dasharray')) ps[i].setAttribute('pathLength', '1');
+      var ps = n.matches && n.matches('path.ln,path.ar') ? [n] : n.querySelectorAll('path.ln,path.ar');
+      for (var i = 0; i < ps.length; i++) {
+        var p = ps[i], card = p.closest('main.wgrid > *'); if (!card) continue;
+        var now = Date.now(); if (card._fxd == null) card._fxd = now; else if (now - card._fxd > 300) continue;
+        if (p.classList.contains('ar')) { p.setAttribute('data-fxd', ''); continue; }
+        if (!p.classList.contains('dash') && !p.hasAttribute('stroke-dasharray')) { p.setAttribute('pathLength', '1'); p.setAttribute('data-fxd', ''); }
+      }
     }
     document.addEventListener('DOMContentLoaded', function () {
       var main = document.querySelector('main.wgrid');
@@ -170,32 +176,35 @@
       // kommer (första gången) tonar det fram ur oskärpa, i rutornas ordning, som på Sorvo.
       for (var i = 0; i < cards.length; i++) {
         cards[i].style.setProperty('--fi', Math.min(i, 12));
-        if (!filled(cards[i])) cards[i].classList.add('fxwait'); else reveal(cards[i]);
+        cards[i].classList.add('fxwait');
+        if (filled(cards[i])) reveal(cards[i]);
       }
       function filled(c) { return !!(c.textContent || '').replace(/Hämtar[^.]*…?|Laddar[^.]*…?/g, '').trim() || c.querySelector('svg,img,canvas,button,input'); }
       function check(n) {
         var c = n; while (c && c.parentNode !== main) c = c.parentNode;
-        if (!c || !c.classList.contains('fxwait') || !filled(c)) return;
-        c.classList.remove('fxwait');
+        if (!c || !c.classList.contains('fxwait') || c._fxr || !filled(c)) return;
         reveal(c);
       }
+      // Rutan har dolt innehåll (fxwait); fxfill ger en övergång och fxwait tas bort i nästa bildruta
       function reveal(c) {
+        c._fxr = true;
         var idx = +c.style.getPropertyValue('--fi') || 0, wait = Math.max(0, idx * 70 + 120 - (Date.now() - t0));
         c.style.setProperty('--fd', wait + 'ms');
         c.classList.add('fxfill');
-        setTimeout(function () { c.classList.remove('fxfill'); }, wait + 750);
+        requestAnimationFrame(function () { requestAnimationFrame(function () { c.classList.remove('fxwait'); }); });
+        setTimeout(function () { c.classList.remove('fxfill'); }, wait + 800);
       }
       var mo = new MutationObserver(function (ms) { for (var a = 0; a < ms.length; a++) { check(ms[a].target); for (var b = 0; b < ms[a].addedNodes.length; b++) mark(ms[a].addedNodes[b]); } });
       mo.observe(main, { childList: true, subtree: true, characterData: true });
-      setTimeout(function () { mo.disconnect(); for (var j = 0; j < cards.length; j++) cards[j].classList.remove('fxwait'); }, 6000);
+      setTimeout(function () { mo.disconnect(); for (var j = 0; j < cards.length; j++) if (!cards[j]._fxr) cards[j].classList.remove('fxwait'); }, 6000);
       mark(main);
     });
     // Byte till en annan sida: webbläsarens egen sidövergång (view transitions) låter den gamla sidan
     // ligga kvar tills den nya kan visas och tonar sedan över. Ingen fördröjning och ingen tom sida emellan.
     // Webbläsare utan stöd byter sida som vanligt.
     var vt = document.createElement('style');
-    vt.textContent = '@view-transition{navigation:auto}::view-transition-old(root){animation:obsVtOut .22s ease both}::view-transition-new(root){animation:obsVtIn .3s ease both}' +
-      '@keyframes obsVtOut{to{opacity:0}}@keyframes obsVtIn{from{opacity:0}}';
+    vt.textContent = '@view-transition{navigation:auto}::view-transition-old(root){animation:obsVtOut .25s ease both;z-index:1;mix-blend-mode:normal}::view-transition-new(root){animation:none;mix-blend-mode:normal}' +
+      '@keyframes obsVtOut{to{opacity:0}}';
     document.head.appendChild(vt);
   })();
 })();
