@@ -711,7 +711,7 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 @media (max-width:520px){.drawer .wxd{grid-template-columns:52px 24px 28px minmax(40px,1fr) 30px 54px}.drawer .wxdw{display:none}}
 
 /* ---------- Effekter (Inställningar → Effekter, body.fx) ---------- */
-@keyframes fxIn{from{opacity:0;filter:blur(14px);transform:translateY(6px) scale(.9)}to{opacity:1;filter:none;transform:none}}
+@keyframes fxIn{from{opacity:0;filter:blur(8px);transform:translateY(6px) scale(.9)}to{opacity:1;filter:none;transform:none}}
 @keyframes fxFade{from{opacity:0}to{opacity:1}}
 @keyframes fxDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 /* Rutorna på bilden tonar fram en och en när sidan laddas */
@@ -739,8 +739,6 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 
 .fxp.fxboot path.ln[pathLength]{stroke-dasharray:1;animation:fxDraw 1.3s cubic-bezier(.3,.6,.2,1) calc(var(--fd,0ms) + 750ms) both}
 .fxp.fxboot path.ar{animation:fxFade 1.3s ease calc(var(--fd,0ms) + 750ms) both}
-.fxp main.wgrid,.fxp .frame,.fxp .content > header{transition:opacity .2s ease,filter .2s ease,transform .2s ease}
-.fxp.fxleave main.wgrid,.fxp.fxleave .frame{opacity:0;filter:blur(10px);transform:scale(.99)}
 
 /* ---------- Mätare i Import/Huset/Solpaneler ---------- */
 .gbar{position:relative;height:6px;margin:7px 0 11px;border-radius:3px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:visible}

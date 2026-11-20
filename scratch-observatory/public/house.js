@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.48.3';
+  const VERSION = '0.48.4';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';

@@ -190,20 +190,12 @@
       setTimeout(function () { mo.disconnect(); for (var j = 0; j < cards.length; j++) cards[j].classList.remove('fxwait'); }, 6000);
       mark(main);
     });
-    // Byte till en annan sida: innehållet tonar ut i oskärpa innan nästa sida laddas
-    if (!EMBED) document.addEventListener('click', function (e) {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      var a = e.target.closest && e.target.closest('a[href]');
-      if (!a || a.target || a.hasAttribute('download')) return;
-      var href = a.getAttribute('href');
-      if (!href || href.charAt(0) === '#' || /^(mailto|tel|javascript):/i.test(href)) return;
-      var u; try { u = new URL(a.href, location.href); } catch (x) { return; }
-      if (u.origin !== location.origin || (u.pathname === location.pathname && u.search === location.search)) return;
-      if (!root.classList.contains('fxp')) return;
-      e.preventDefault();
-      root.classList.add('fxleave');
-      setTimeout(function () { location.href = u.href; }, 200);
-    });
-    window.addEventListener('pageshow', function () { root.classList.remove('fxleave'); });
+    // Byte till en annan sida: webbläsarens egen sidövergång (view transitions) låter den gamla sidan
+    // ligga kvar tills den nya kan visas och tonar sedan över. Ingen fördröjning och ingen tom sida emellan.
+    // Webbläsare utan stöd byter sida som vanligt.
+    var vt = document.createElement('style');
+    vt.textContent = '@view-transition{navigation:auto}::view-transition-old(root){animation:obsVtOut .22s ease both}::view-transition-new(root){animation:obsVtIn .3s ease both}' +
+      '@keyframes obsVtOut{to{opacity:0}}@keyframes obsVtIn{from{opacity:0}}';
+    document.head.appendChild(vt);
   })();
 })();
