@@ -178,7 +178,21 @@
   // Post: nästa utdelning (PostNord) och hur många gånger brevlådan öppnats idag (Patrik 2026-11-20)
   const POST_SVG = '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6.5L20.5 7"/></svg>';
   const BOX_SVG = '<svg viewBox="0 0 24 24"><path d="M6 9a4 4 0 0 1 8 0v9H3V12a3 3 0 0 1 3-3zM14 9h4a3 3 0 0 1 3 3v6h-7M7 13h3M17 4v6M17 4h3v2h-3"/></svg>';
-  function postHtml() {
+  // Vilka som är hemma (Patrik 2026-11-20): bild, namn och Hemma/Borta/zon, som HA:s personkort
+  const HOME_SVG = '<svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20h-6v-5H9v5H3z"/></svg>';
+  const AWAY_SVG = '<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+  function peopleHtml() {
+    const H = window.ObsHouse, C = H && H.cfg && H.cfg(), P = C && C.people; if (!P || !P.length) return '';
+    return `<div class="kpeople">${P.map(p => {
+      const s = H.st(p.entity), st = s ? s.state : 'unknown';
+      const home = st === 'home', known = st && st !== 'unknown' && st !== 'unavailable';
+      const where = home ? 'Hemma' : st === 'not_home' ? 'Borta' : known ? st : 'Okänt';
+      const ini = esc((p.name || '?').slice(0, 1));
+      return `<span class="kperson${home ? ' home' : ' away'}"><span class="kpic"><i>${ini}</i><img src="/api/person_img?entity=${encodeURIComponent(p.entity)}" alt=""><em>${home ? HOME_SVG : AWAY_SVG}</em></span><span class="kpn"><b>${esc(p.name)}</b><small>${esc(where)}</small></span></span>`;
+    }).join('')}</div>`;
+  }
+  function postHtml() { return peopleHtml() + postRow(); }
+  function postRow() {
     const H = window.ObsHouse, C = H && H.cfg && H.cfg(), M = C && C.mail; if (!M) return binsHtml();
     const d = H.st(M.delivery), o = H.st(M.opened);
     let post = '';

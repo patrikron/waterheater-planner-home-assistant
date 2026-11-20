@@ -2262,6 +2262,7 @@
       "now": "sensor.netatmo_station_regnmatare_rain",
       "battery": "sensor.netatmo_station_regnmatare_battery_percent"
     },
+    "people": [{"entity": "person.patrik_2", "name": "Patrik"}, {"entity": "person.helena_2", "name": "Helena"}],
     "mail": {
       "delivery": "sensor.postnord_delivery_62275",
       "opened": "sensor.brevlada_oppnats_idag"

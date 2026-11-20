@@ -169,3 +169,19 @@ body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
 .kcal .kbin svg{flex:none;width:18px;height:18px;fill:none;stroke:var(--dim);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .kcal .kbin b{color:var(--text);font-weight:600}
 .kcal .kbin.soon svg{stroke:var(--gold)}.kcal .kbin.soon b{color:var(--gold)}
+
+/* Hemma/borta (0.55) */
+.kcal .kpeople{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:4px}
+.kcal .kperson{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:999px;background:color-mix(in srgb,var(--text) 6%,transparent);min-width:0}
+.kcal .kpic{position:relative;width:40px;height:40px;flex:none;border-radius:50%;background:var(--line2);display:grid;place-items:center}
+.kcal .kpic i{font-style:normal;font-weight:600;color:var(--muted)}
+.kcal .kpic img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.kcal .kpic em{position:absolute;top:-4px;right:-5px;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:#6b7280;border:2px solid var(--c-111612,#111612)}
+.kcal .kperson.home .kpic em{background:#4caf50}
+.kcal .kpic em svg{width:11px;height:11px;fill:#fff;stroke:#fff;stroke-width:1}
+.kcal .kperson.away .kpic em svg{fill:none;stroke-width:2.2}
+.kcal .kperson.away .kpic img{filter:grayscale(.6) brightness(.8)}
+.kcal .kpn{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.kcal .kpn b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kcal .kpn small{color:var(--muted);font-size:.85em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kcal .kperson.home .kpn small{color:var(--text)}

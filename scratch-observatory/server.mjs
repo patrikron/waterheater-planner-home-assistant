@@ -41,6 +41,10 @@ const states = new Map();
 let connected = false;
 const clients = new Set();
 
+// Personernas bildsökväg stannar på servern (skickas inte till webbläsaren), se personImage
+const PEOPLE = new Set(((CONFIG.house && CONFIG.house.people) || []).map(p => p.entity));
+const PICS = new Map();
+function keepPic(s) { if (s && PEOPLE.has(s.entity_id)) PICS.set(s.entity_id, s.attributes && s.attributes.entity_picture); }
 function slim(s) {
   if (!s) return null;
   const keep = [...BASE_ATTRS, ...(ATTR_ALLOW[s.entity_id] || [])];
@@ -92,7 +96,7 @@ function connect() {
       console.log(`Ansluten till Home Assistant ${m.ha_version || ''}`);
       try {
         const all = await haCall({ type: 'get_states' });
-        for (const s of all) if (ALLOWED.has(s.entity_id)) states.set(s.entity_id, slim(s));
+        for (const s of all) if (ALLOWED.has(s.entity_id)) { states.set(s.entity_id, slim(s)); keepPic(s); }
         await haCall({ type: 'subscribe_events', event_type: 'state_changed' });
         broadcast('snapshot', snapshot());
       } catch (e) { console.error('Startfel:', e.message); }
@@ -102,7 +106,7 @@ function connect() {
     } else if (m.type === 'event' && m.event && m.event.event_type === 'state_changed') {
       const d = m.event.data;
       if (!ALLOWED.has(d.entity_id)) return;
-      const s = slim(d.new_state);
+      const s = slim(d.new_state); keepPic(d.new_state);
       if (s) states.set(d.entity_id, s); else states.delete(d.entity_id);
       broadcast('state', s || { entity_id: d.entity_id, state: 'unavailable', attributes: {} });
     }
@@ -827,6 +831,24 @@ async function cameraStream(req, res, entity) {
     body.pipe(res);
   } catch (e) { end(); if (e.code) throw e; if (!res.headersSent) throw Object.assign(new Error('Ingen liveström'), { code: 404 }); res.destroy(); }
 }
+// Profilbilder för personerna i house.people (Patrik 2026-11-20). Hämtas från HA med token här,
+// bara för entiteterna i config och bara sökvägar under /api/image/serve/.
+const personCache = new Map();
+async function personImage(res, entity) {
+  if (!PEOPLE.has(entity)) throw Object.assign(new Error('Okänd person'), { code: 404 });
+  const pic = PICS.get(entity);
+  if (typeof pic !== 'string' || !/^\/api\/image\/serve\/[0-9a-f]{8,64}\/\d{2,4}x\d{2,4}$/.test(pic)) throw Object.assign(new Error('Ingen bild'), { code: 404 });
+  let c = personCache.get(entity);
+  if (!c || c.pic !== pic || Date.now() - c.at > 3600e3) {
+    const r = await fetch(HA_URL + pic.replace(/\/\d+x\d+$/, '/256x256'), { headers: { Authorization: `Bearer ${HA_TOKEN}` }, signal: AbortSignal.timeout(8000) });
+    const type = r.headers.get('content-type') || '';
+    if (!r.ok || !/^image\//.test(type)) throw Object.assign(new Error('Kunde inte hämta bilden'), { code: 404 });
+    c = { pic, at: Date.now(), type, body: Buffer.from(await r.arrayBuffer()) };
+    personCache.set(entity, c);
+  }
+  res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'private, max-age=3600', 'Content-Length': c.body.length });
+  res.end(c.body);
+}
 function sendImg(res, c) {
   if (!/^image\//.test(c.type || '')) throw Object.assign(new Error('Ingen bild'), { code: 404 });
   res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'no-store', 'Content-Length': c.body.length });
@@ -934,6 +956,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (url.pathname === '/api/camera_stream') return await cameraStream(req, res, url.searchParams.get('entity') || '');
+    if (url.pathname === '/api/person_img') return await personImage(res, url.searchParams.get('entity') || '');
     if (url.pathname === '/api/camera') return await cameraImage(res, url.searchParams.get('entity') || '', Number(url.searchParams.get('w')) || 640);
     if (url.pathname === '/healthz') return json(res, connected ? 200 : 503, { connected });
     // Statiska filer från public/
