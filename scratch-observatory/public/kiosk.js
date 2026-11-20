@@ -178,17 +178,22 @@
   // Post: nästa utdelning (PostNord) och hur många gånger brevlådan öppnats idag (Patrik 2026-11-20)
   const POST_SVG = '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6.5L20.5 7"/></svg>';
   const BOX_SVG = '<svg viewBox="0 0 24 24"><path d="M6 9a4 4 0 0 1 8 0v9H3V12a3 3 0 0 1 3-3zM14 9h4a3 3 0 0 1 3 3v6h-7M7 13h3M17 4v6M17 4h3v2h-3"/></svg>';
-  // Vilka som är hemma (Patrik 2026-11-20): bild, namn och Hemma/Borta/zon, som HA:s personkort
-  const HOME_SVG = '<svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20h-6v-5H9v5H3z"/></svg>';
-  const AWAY_SVG = '<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+  // Vilka som är hemma (Patrik 2026-11-20): rund bild med statusring, namn och sedan när.
+  // Hemma = grön ring + "hemma sedan 17:42", borta = streckad ring, nedtonad bild + "borta 2 h" eller zonen.
+  function since(t) {
+    const d = t ? new Date(t) : null; if (!d || isNaN(d)) return '';
+    const min = Math.round((Date.now() - d) / 6e4), today = new Date().toDateString() === d.toDateString();
+    return { min, at: today ? d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('sv-SE', { weekday: 'short' }).replace(/\.$/, '') + ' ' + d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) };
+  }
+  const dur = m => m < 60 ? m + ' min' : m < 48 * 60 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' dagar';
   function peopleHtml() {
     const H = window.ObsHouse, C = H && H.cfg && H.cfg(), P = C && C.people; if (!P || !P.length) return '';
     return `<div class="kpeople">${P.map(p => {
       const s = H.st(p.entity), st = s ? s.state : 'unknown';
       const home = st === 'home', known = st && st !== 'unknown' && st !== 'unavailable';
-      const where = home ? 'Hemma' : st === 'not_home' ? 'Borta' : known ? st : 'Okänt';
-      const ini = esc((p.name || '?').slice(0, 1));
-      return `<span class="kperson${home ? ' home' : ' away'}"><span class="kpic"><i>${ini}</i><img src="/api/person_img?entity=${encodeURIComponent(p.entity)}" alt=""><em>${home ? HOME_SVG : AWAY_SVG}</em></span><span class="kpn"><b>${esc(p.name)}</b><small>${esc(where)}</small></span></span>`;
+      const t = since(s && (s.last_changed || s.last_updated));
+      const where = home ? `hemma${t ? ` <small>sedan ${t.at}</small>` : ''}` : st === 'not_home' ? `borta${t && t.min >= 1 ? ` <small>${dur(t.min)}</small>` : ''}` : known ? `${esc(st)}${t && t.min >= 1 ? ` <small>${dur(t.min)}</small>` : ''}` : 'okänt';
+      return `<span class="kperson ${home ? 'home' : 'away'}"><span class="kpic"><i>${esc((p.name || '?').slice(0, 1))}</i><img src="/api/person_img?entity=${encodeURIComponent(p.entity)}" alt=""></span><span class="kpn"><b>${esc(p.name)}</b><span>${where}</span></span></span>`;
     }).join('')}</div>`;
   }
   function postHtml() { return peopleHtml() + postRow(); }

@@ -51,7 +51,7 @@ function slim(s) {
   const attributes = {};
   if (keep.includes('*')) Object.assign(attributes, s.attributes || {});
   else for (const k of keep) if (s.attributes && k in s.attributes) attributes[k] = s.attributes[k];
-  return { entity_id: s.entity_id, state: s.state, attributes, last_updated: s.last_updated };
+  return { entity_id: s.entity_id, state: s.state, attributes, last_updated: s.last_updated, last_changed: s.last_changed };
 }
 
 function broadcast(event, data) {
