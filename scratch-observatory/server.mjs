@@ -343,7 +343,7 @@ function validPlan(p) {
 // Inställningar som gäller alla skärmar (data/settings.json). Bara kända nycklar med giltiga värden sparas.
 const SETTINGS_FILE = join(DATA_DIR, 'settings.json');
 const SETTINGS_DEF = {
-  value_colors: { type: 'bool', def: true }, solar_shimmer: { type: 'bool', def: true }, effects: { type: 'bool', def: true },
+  value_colors: { type: 'bool', def: true }, solar_shimmer: { type: 'bool', def: true }, effects: { type: 'bool', def: true }, kiosk_people: { type: 'bool', def: true },
   house_low_kw: { type: 'num', def: 1, min: 0, max: 50 }, house_high_kw: { type: 'num', def: 3, min: 0, max: 50 }, house_max_kw: { type: 'num', def: 6, min: 0, max: 50 },
   import_high_kw: { type: 'num', def: 2, min: 0, max: 50 }, import_max_kw: { type: 'num', def: 5, min: 0, max: 50 },
   // dolda mediaenheter (Patrik 2026-11-20): bara entiteter från house.media i config

@@ -187,7 +187,7 @@
   }
   const dur = m => m < 60 ? m + ' min' : m < 48 * 60 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' dagar';
   function peopleHtml() {
-    const H = window.ObsHouse, C = H && H.cfg && H.cfg(), P = C && C.people; if (!P || !P.length) return '';
+    const H = window.ObsHouse, C = H && H.cfg && H.cfg(), P = C && C.people; if (!P || !P.length || (H.set && H.set().kiosk_people === false)) return '';
     return `<div class="kpeople">${P.map(p => {
       const s = H.st(p.entity), st = s ? s.state : 'unknown';
       const home = st === 'home', known = st && st !== 'unknown' && st !== 'unavailable';
