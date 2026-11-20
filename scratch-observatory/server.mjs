@@ -280,10 +280,12 @@ async function weatherForecast() {
 }
 async function calendar() { return withSports(await calendar0()); }
 // Nästa match per sensor som kalenderhändelse, byggs vid varje anrop så att resultat under match är färska
-function withSports(data) {
+function withSports(data) { const d0 = localStart('day').t; return withSportsIn(data, d0, d0 + data.days * 864e5); }
+function withSportsRange(data) { return withSportsIn(data, Date.UTC(data.y, data.m - 1, 1) - 8 * 864e5, Date.UTC(data.y, data.m, 1) + 15 * 864e5); }
+function withSportsIn(data, from, until) {
   if (!SPORT_CFG || !SPORT_IDS.size) return data;
   const id = 'sport.' + String(SPORT_CFG.name || 'lag').toLowerCase().replace(/[^a-z0-9]+/g, '_');
-  const now = Date.now(), d0 = localStart('day').t, until = d0 + data.days * 864e5, ev = [];
+  const dl = localStart('day').t, d0 = Math.max(from, dl), ev = [];
   for (const sc of SPORT_CFG.sensors) {
     const s = SPORT.get(sc.entity), a = s && s.attributes; if (!a || !a.date) continue;
     const t = Date.parse(a.date); if (!Number.isFinite(t) || t > until || t < d0) continue;
@@ -294,12 +296,28 @@ function withSports(data) {
     const score = st === 'IN' || st === 'POST' ? ` ${hs ?? 0}–${as ?? 0} ` : ' – ';
     const extra = st === 'IN' ? ' · pågår' + (a.clock ? ' ' + String(a.clock).slice(0, 12) : '') : st === 'POST' ? ' · slut' : (a.venue ? ' · ' + String(a.venue).slice(0, 60) : '');
     const logo = k => `/api/sport_img?e=${encodeURIComponent(sc.entity)}&k=${k}`;
-    ev.push({ cal: id, title: (h + score + aw).slice(0, 120), all_day: false, start: new Date(t).toISOString(), end: new Date(Math.min(t + 2 * 3600e3, d0 + Math.floor((t - d0) / 864e5 + 1) * 864e5 - 60e3)).toISOString(), // slutar senast samma dag
+    ev.push({ cal: id, title: (h + score + aw).slice(0, 120), all_day: false, start: new Date(t).toISOString(), end: new Date(Math.min(t + 2 * 3600e3, dl + Math.floor((t - dl) / 864e5 + 1) * 864e5 - 60e3)).toISOString(), // slutar senast samma dag
       location: String(sc.label || a.league || '').slice(0, 40) + extra, logos: home ? [logo('team'), logo('opponent')] : [logo('opponent'), logo('team')] });
   }
   if (!ev.length) return data;
   return { ...data, calendars: [...data.calendars, { entity: id, name: SPORT_CFG.name || 'Sport', color: SPORT_CFG.color || 'red' }],
     events: [...data.events, ...ev].sort((x, y) => String(x.start).localeCompare(String(y.start))) };
+}
+// Månadsvy (Patrik 2026-11-20): alla kalendrar för en hel månad plus en vecka före och två efter (rutnätet visar hela veckor)
+const monthCache = new Map();
+async function calendarMonth(y, m) {
+  y = Number(y); m = Number(m);
+  const nowY = new Date().getFullYear();
+  if (!Number.isInteger(y) || !Number.isInteger(m) || m < 1 || m > 12 || Math.abs(y - nowY) > 2) throw Object.assign(new Error('Fel månad'), { code: 400 });
+  const key = y + '-' + m, hit = monthCache.get(key);
+  if (hit && Date.now() - hit.at < 5 * 60 * 1000) return hit.data;
+  const start = new Date(Date.UTC(y, m - 1, 1) - 8 * 864e5).toISOString(), end = new Date(Date.UTC(y, m, 1) + 15 * 864e5).toISOString();
+  const events = [], errors = [];
+  await Promise.all([...CAL_IDS].map(id => calEvents(id, start, end).then(ev => events.push(...ev)).catch(e => errors.push(e.message))));
+  const base = { days: 0, calendars: (CAL.calendars || []).filter(c => CAL_IDS.has(c.entity)).map(c => ({ entity: c.entity, name: c.name || c.entity, color: c.color || 'blue' })),
+    namedays: CAL.namedays || null, events: events.sort((a, b) => String(a.start).localeCompare(String(b.start))), errors, y, m };
+  if (!errors.length || events.length) { monthCache.set(key, { at: Date.now(), data: base }); if (monthCache.size > 8) monthCache.delete(monthCache.keys().next().value); }
+  return base;
 }
 async function calendar0() {
   if (calCache && Date.now() - calCache.at < 5 * 60 * 1000) return calCache.data;
@@ -986,6 +1004,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/radiators') return json(res, 200, CONFIG.radiators || {});
     if (url.pathname === '/api/themes') return json(res, 200, await listThemes());
     if (url.pathname === '/api/calendar') return json(res, 200, await calendar());
+    if (url.pathname === '/api/calendar/month') return json(res, 200, withSportsRange(await calendarMonth(url.searchParams.get('y'), url.searchParams.get('m'))));
     if (url.pathname === '/api/weather') return json(res, 200, await weatherForecast());
     if (url.pathname === '/api/monthly') return json(res, 200, await monthly(url.searchParams.get('entity') || '', Number(url.searchParams.get('months')), url.searchParams.get('stat') || 'change'));
     if (url.pathname === '/api/daily') return json(res, 200, await daily(url.searchParams.get('entity') || '', Number(url.searchParams.get('days')), url.searchParams.get('stat') || 'change'));

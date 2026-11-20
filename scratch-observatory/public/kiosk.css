@@ -193,3 +193,55 @@ body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
 /* Matcher i kalendern: lagloggor (0.57) */
 .kev .kmatch{display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap}
 .kev .kmatch img{width:20px;height:20px;object-fit:contain;flex:none}
+
+/* Månadskalender (0.58): stor ruta över allt, öppnas från kalenderkolumnen */
+.kcal .kdays{cursor:pointer}
+.kmonth{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:2vh 2vw;background:color-mix(in srgb,#000 55%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;transition:opacity .22s}
+.kmonth.open{opacity:1}
+.kmonth[hidden]{display:none}
+.kmbox{width:min(1500px,96vw);height:min(940px,94vh);display:flex;flex-direction:column;background:var(--c-111612,var(--panel));border:1px solid var(--line2);border-radius:10px;padding:18px 20px 16px;box-shadow:0 30px 80px rgba(0,0,0,.5);transform:translateY(10px) scale(.985);transition:transform .22s}
+.kmonth.open .kmbox{transform:none}
+.kmhead{display:flex;align-items:flex-end;gap:18px;margin-bottom:12px;flex-wrap:wrap}
+.kmhead .eyebrow{color:var(--gold)}
+.kmhead h2{margin:2px 0 0;font-size:clamp(22px,2.4vw,34px);font-weight:600;letter-spacing:-.5px;text-transform:capitalize}
+.kmleg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-left:8px;padding-bottom:6px}
+.kmleg span{display:inline-flex;align-items:center;gap:6px}
+.kmleg span::before{content:"";width:10px;height:10px;border-radius:2px;background:var(--c)}
+.kmnav{margin-left:auto;display:flex;gap:6px}
+.kmnav button{min-width:42px;height:38px;padding:0 12px;border-radius:6px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:15px;cursor:pointer}
+.kmnav button:hover{border-color:var(--text)}
+.kmnav .kmx{font-size:20px}
+.kmbody{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(240px,22vw,340px);gap:16px}
+.kmgrid{display:grid;grid-template-columns:26px repeat(7,minmax(0,1fr));grid-template-rows:auto repeat(var(--weeks),minmax(0,1fr));gap:4px;min-height:0}
+.kmgrid.loading .kmd{opacity:.5}
+.kmwd{font:11px var(--mono);letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:0 6px 4px}
+.kmw{font:10px var(--mono);color:var(--dim,var(--muted));display:flex;align-items:flex-start;justify-content:center;padding-top:8px}
+.kmd{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;min-width:0;min-height:0;overflow:hidden;padding:5px 6px;border-radius:6px;background:color-mix(in srgb,var(--text) 4%,transparent);border:1px solid transparent;cursor:pointer}
+.kmd:hover{border-color:var(--line2)}
+.kmd.we{background:color-mix(in srgb,var(--text) 7%,transparent)}
+.kmd.out{opacity:.38}
+.kmd.sel{border-color:var(--gold)}
+.kmd .kmn{font-size:13px;font-weight:600;line-height:1.2;margin-bottom:1px}
+.kmd.today .kmn{align-self:flex-start;background:var(--gold);color:var(--bg);border-radius:999px;padding:0 7px}
+.kme{font-size:11.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:6px;border-left:2px solid var(--c)}
+.kme i{font:10px var(--mono);font-style:normal;color:var(--muted);margin-right:4px}
+.kme i:empty{display:none}
+.kmd .kmmore{font-size:10.5px;color:var(--muted);padding-left:8px}
+.kmside{min-height:0;overflow:auto;border-left:1px solid var(--line);padding-left:16px}
+.kmsh{font-size:17px;font-weight:600;text-transform:capitalize;margin-bottom:4px}
+.kmname{font-size:12px;color:var(--muted);margin-bottom:10px}
+.kmname b{color:var(--gold);font-weight:600}
+.kmside .knone{color:var(--muted);font-size:13px;margin-top:6px}
+@media (max-width:900px){
+  .kmbody{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+  .kmside{border-left:0;border-top:1px solid var(--line);padding:10px 0 0;max-height:34vh}
+  .kme i{display:none}
+  .kme{font-size:10px}
+}
+@media (max-width:600px){
+  .kmd{gap:3px;padding:4px}
+  .kme{font-size:0;height:4px;border-left:0;padding:0;border-radius:2px;background:var(--c)}
+  .kmd .kmmore{font-size:9px;padding:0}
+  .kmhead{gap:8px}
+  .kmleg{margin-left:0}
+}

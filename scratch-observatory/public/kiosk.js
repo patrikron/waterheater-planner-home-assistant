@@ -283,6 +283,82 @@
     setTimeout(tickCal, 60000 - Date.now() % 60000 + 50);
   }
 
+  // ---------- Månadskalender (Patrik 2026-11-20) ----------
+  // Tryck i kalenderkolumnen: stor ruta med hela månaden, alla kalendrar och matcher. Tryck på en dag för detaljer.
+  const MONTHS = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+  const WD = ['Mån', 'Tis', 'Ons', 'Tors', 'Fre', 'Lör', 'Sön'];
+  let mon = null, monY = 0, monM = 0, monSel = null, monData = null, monErr = null, monIdle = null, monReq = 0;
+  const isoWeek = d => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const n = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - n); const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - y0) / 864e5 + 1) / 7); };
+  function monEvents(day) {
+    if (!monData) return [];
+    const next = new Date(day); next.setDate(day.getDate() + 1);
+    return (monData.events || []).filter(e => e.cal !== monData.namedays && startOf(e) < next && endOf(e) > day);
+  }
+  function monName(day) {
+    if (!monData) return '';
+    const e = (monData.events || []).find(e => e.cal === monData.namedays && dayKey(startOf(e)) === dayKey(day));
+    return e ? e.title : '';
+  }
+  function monTime(e, day) {
+    const next = new Date(day); next.setDate(day.getDate() + 1);
+    const s = startOf(e), en = endOf(e);
+    return e.all_day || (s <= day && en >= next) ? 'Heldag' : s < day ? 'till ' + hm(en) : hm(s);
+  }
+  function renderMonth() {
+    if (!mon) return;
+    const colors = Object.fromEntries(((monData && monData.calendars) || []).map(c => [c.entity, COL[c.color] || c.color]));
+    const first = new Date(monY, monM - 1, 1), start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7));
+    const todayK = dayKey(new Date());
+    const weeks = Math.ceil(((first.getDay() + 6) % 7 + new Date(monY, monM, 0).getDate()) / 7);
+    let grid = `<div class="kmw"></div>` + WD.map(w => `<div class="kmwd">${w}</div>`).join('');
+    for (let w = 0; w < weeks; w++) {
+      const wk = new Date(start); wk.setDate(start.getDate() + w * 7);
+      grid += `<div class="kmw">${isoWeek(wk)}</div>`;
+      for (let i = 0; i < 7; i++) {
+        const day = new Date(start); day.setDate(start.getDate() + w * 7 + i);
+        const k = dayKey(day), evs = monEvents(day), out = day.getMonth() !== monM - 1;
+        const items = evs.slice(0, 4).map(e => `<div class="kme" style="--c:${colors[e.cal] || 'var(--blue)'}"><i>${esc(monTime(e, day) === 'Heldag' ? '' : monTime(e, day))}</i>${esc(e.title)}</div>`).join('');
+        grid += `<button type="button" class="kmd${out ? ' out' : ''}${k === todayK ? ' today' : ''}${k === monSel ? ' sel' : ''}${i > 4 ? ' we' : ''}" data-mday="${k}"><span class="kmn">${day.getDate()}</span>${items}${evs.length > 4 ? `<div class="kmmore">+${evs.length - 4} till</div>` : ''}</button>`;
+      }
+    }
+    const selD = monSel ? new Date(monSel + 'T00:00:00') : null, selE = selD ? monEvents(selD) : [];
+    const side = selD ? `<div class="kmsh">${esc(selD.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' }))}</div>${monName(selD) ? `<div class="kmname">Namnsdag: <b>${esc(monName(selD))}</b></div>` : ''}` +
+      (selE.length ? selE.map(e => `<div class="kev" style="border-left-color:${colors[e.cal] || 'var(--blue)'}"><div class="kt">${esc(monTime(e, selD))}</div><div class="kx">${matchTitle(e)}${e.location ? `<small>${esc(e.location)}</small>` : ''}</div></div>`).join('') : '<div class="knone">Inget inplanerat</div>')
+      : '<div class="knone">Tryck på en dag för att se allt den dagen.</div>';
+    const legend = ((monData && monData.calendars) || []).map(c => `<span style="--c:${COL[c.color] || c.color}">${esc(c.name)}</span>`).join('');
+    mon.innerHTML = `<div class="kmbox" role="dialog" aria-modal="true" aria-label="Månadskalender">
+      <div class="kmhead"><div><div class="eyebrow">Kalender</div><h2>${MONTHS[monM - 1]} ${monY}</h2></div>
+        <div class="kmleg">${legend}</div>
+        <div class="kmnav"><button type="button" data-mnav="-1" aria-label="Föregående månad">‹</button><button type="button" data-mnav="0">Idag</button><button type="button" data-mnav="1" aria-label="Nästa månad">›</button><button type="button" class="kmx" data-mclose aria-label="Stäng">×</button></div></div>
+      ${monErr ? `<div class="kerr">Kunde inte hämta kalendern (${esc(monErr)}).</div>` : ''}
+      <div class="kmbody"><div class="kmgrid${monData ? '' : ' loading'}" style="--weeks:${weeks}">${grid}</div><aside class="kmside">${side}</aside></div></div>`;
+  }
+  async function loadMonth() {
+    const req = ++monReq; monData = null; monErr = null; renderMonth();
+    try { const r = await fetch(`api/calendar/month?y=${monY}&m=${monM}`, { cache: 'no-store' }); if (!r.ok) throw new Error(r.statusText); const d = await r.json(); if (req === monReq) monData = d; }
+    catch (e) { if (req === monReq) monErr = e.message; }
+    if (req === monReq) renderMonth();
+  }
+  function monPoke() { clearTimeout(monIdle); if (body.classList.contains('kiosk')) monIdle = setTimeout(closeMonth, 180000); }
+  function openMonth() {
+    const now = new Date(); monY = now.getFullYear(); monM = now.getMonth() + 1; monSel = dayKey(now);
+    if (!mon) { mon = document.createElement('div'); mon.id = 'kmonth'; mon.className = 'kmonth'; body.appendChild(mon); }
+    mon.hidden = false; requestAnimationFrame(() => mon.classList.add('open')); monPoke(); loadMonth();
+  }
+  function closeMonth() { if (!mon) return; clearTimeout(monIdle); mon.classList.remove('open'); setTimeout(() => { if (!mon.classList.contains('open')) mon.hidden = true; }, 250); }
+  document.addEventListener('click', e => {
+    if (mon && !mon.hidden) {
+      monPoke();
+      const nav = e.target.closest('[data-mnav]'), day = e.target.closest('[data-mday]');
+      if (e.target.closest('[data-mclose]') || e.target === mon) return closeMonth();
+      if (nav) { const n = +nav.dataset.mnav; if (!n) { const t = new Date(); monY = t.getFullYear(); monM = t.getMonth() + 1; monSel = dayKey(t); } else { monM += n; if (monM < 1) { monM = 12; monY--; } if (monM > 12) { monM = 1; monY++; } monSel = null; } return loadMonth(); }
+      if (day) { monSel = day.dataset.mday; return renderMonth(); }
+      return;
+    }
+    if (kcal && e.target.closest('#kcal .kdays')) openMonth();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && mon && !mon.hidden) closeMonth(); });
+
   console.info('observatory kiosk', VERSION);
   // Media överst: alltid en rad. Får inte alla plats döljs de sista och en "+N"-knapp öppnar panelen med alla.
   function fitMedia() {
