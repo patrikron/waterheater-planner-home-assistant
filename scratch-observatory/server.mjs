@@ -855,7 +855,11 @@ function sendImg(res, c) {
   res.end(c.body);
 }
 
+const APP_VERSION = (() => { try { return (readFileSync(join(ROOT, 'public', 'house.js'), 'utf8').match(/VERSION = '([0-9.]+)'/) || [])[1] || '?'; } catch { return '?'; } })();
 const server = http.createServer(async (req, res) => {
+  // /healthz svarar utan inloggning (bara anslutningsstatus och version, inget om huset), så att
+  // installationen kan kontrollera att rätt version körs efter ombyggnad (0.56)
+  if (req.url === '/healthz') return json(res, connected ? 200 : 503, { connected, version: APP_VERSION });
   if (!authOk(req)) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Observatory"' }); return res.end('Inloggning krävs'); }
   const url = new URL(req.url, 'http://x');
   try {
@@ -958,7 +962,6 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/camera_stream') return await cameraStream(req, res, url.searchParams.get('entity') || '');
     if (url.pathname === '/api/person_img') return await personImage(res, url.searchParams.get('entity') || '');
     if (url.pathname === '/api/camera') return await cameraImage(res, url.searchParams.get('entity') || '', Number(url.searchParams.get('w')) || 640);
-    if (url.pathname === '/healthz') return json(res, connected ? 200 : 503, { connected });
     // Statiska filer från public/
     const rel = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
     const file = normalize(join(PUBLIC, rel));
