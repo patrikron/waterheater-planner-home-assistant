@@ -1526,21 +1526,6 @@
           "id": "bandit",
           "name": "Bandit Rock",
           "url": "https://fm02-ice.stream.khz.se/fm02_mp3"
-        },
-        {
-          "id": "p1",
-          "name": "SR P1",
-          "url": "https://http-live.sr.se/p1-mp3-192"
-        },
-        {
-          "id": "p2",
-          "name": "SR P2",
-          "url": "https://http-live.sr.se/p2-mp3-192"
-        },
-        {
-          "id": "p3",
-          "name": "SR P3",
-          "url": "https://http-live.sr.se/p3-mp3-192"
         }
       ],
       "ma": {
