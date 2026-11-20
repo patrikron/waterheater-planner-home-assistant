@@ -1542,7 +1542,86 @@
           "name": "SR P3",
           "url": "https://http-live.sr.se/p3-mp3-192"
         }
-      ]
+      ],
+      "ma": {
+        "entry": "01M7X611GMZE9GAJN2QQTVPNVB",
+        "groups": [
+          {
+            "entity": "media_player.grupp_alla",
+            "name": "Hela huset"
+          },
+          {
+            "entity": "media_player.grupp_kok_2",
+            "name": "Kök"
+          },
+          {
+            "entity": "media_player.grupp_kok_och_baksida_2",
+            "name": "Kök och baksida"
+          },
+          {
+            "entity": "media_player.grupp_baksida_2",
+            "name": "Baksida"
+          },
+          {
+            "entity": "media_player.grupp_barnens_rum_2",
+            "name": "Barnens rum"
+          }
+        ],
+        "players": [
+          {
+            "entity": "media_player.kok_nest_hub_3",
+            "name": "Kök Nest Hub"
+          },
+          {
+            "entity": "media_player.koksbord",
+            "name": "Köksbord"
+          },
+          {
+            "entity": "media_player.badrum_2",
+            "name": "Badrum"
+          },
+          {
+            "entity": "media_player.vardagsrum_2",
+            "name": "Vardagsrum"
+          },
+          {
+            "entity": "media_player.ultra_slim_soundbar_2",
+            "name": "Soundbar"
+          },
+          {
+            "entity": "media_player.olivers_rum",
+            "name": "Olivers rum"
+          },
+          {
+            "entity": "media_player.oliver_mini",
+            "name": "Oliver mini"
+          },
+          {
+            "entity": "media_player.ludvigs_rum",
+            "name": "Ludvigs rum"
+          },
+          {
+            "entity": "media_player.sovrum",
+            "name": "Sovrum"
+          },
+          {
+            "entity": "media_player.samsung_sovrum_2",
+            "name": "Samsung Sovrum"
+          },
+          {
+            "entity": "media_player.garage_audio",
+            "name": "Garage"
+          },
+          {
+            "entity": "media_player.garage_mini",
+            "name": "Garage mini"
+          },
+          {
+            "entity": "media_player.chromecast_musik_3",
+            "name": "Chromecast musik"
+          }
+        ]
+      }
     },
     "info": {
       "air": [

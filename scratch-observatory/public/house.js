@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.50.0';
+  const VERSION = '0.51.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -924,7 +924,7 @@
     // Laddbox och EV6 visar sina egna sidor i en bredare panel
     charger: { eyebrow: 'Garage / laddbox', title: 'Laddbox', frame: 'laddbox.html' },
     car: { eyebrow: 'Garage / bil', title: 'Kia EV6', frame: 'ev6.html' },
-    media: { eyebrow: 'Media / alla enheter', title: 'Media', rich: () => '', stats: () => [], charts: () => [], ctl: mediaCtl },
+    media: { eyebrow: 'Media / alla enheter', title: 'Media', rich: () => '', stats: () => [], charts: () => [], ctl: () => cfg.media && cfg.media.ma ? musicCtl() : mediaCtl(), after: () => cfg.media && cfg.media.ma ? mediaList() : '', open: () => { if (cfg.media && cfg.media.ma) musLoad(); } },
     access: { eyebrow: 'Säkerhet / lås och portar', title: 'Lås och garageportar', rich: () => '', stats: () => [], charts: () => [], ctl: accessCtl },
     vacuum: { eyebrow: 'Städning / robotdammsugare', title: 'Robotdammsugaren', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: vacuumCtl, after: vacuumAfter,
       extra: () => cfg.vacuum && cfg.vacuum.map ? '<div class="sx vmap"><div class="eyebrow">Karta</div><div class="vmapbox"><img id="vmapimg" alt="Dammsugarens karta"><span class="camwait">Hämtar karta …</span></div></div>' : '',
@@ -1388,10 +1388,88 @@
       <div class="msub">Spela på</div>
       <div class="mchips">${targets.map(chip).join('')}</div>
       <button class="mgo" data-mradio ${stn && n ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>${stn && n ? `Spela ${esc(stn.name)} på ${n === 1 ? esc(targets.find(t => t.entity === msel.targets[0]).name) : n + ' högtalare'}` : 'Välj minst en högtalare'}</button></section>` : '';
+    return radio + mediaList();
+  }
+  function mediaList() {
+    const M = cfg.media; if (!M) return '';
     const rank = p => { const s = (st(p.entity) || {}).state; return s === 'playing' ? 0 : s === 'paused' || (p.tv && s === 'on') ? 1 : s === 'unavailable' ? 3 : 2; };
     const list = [...M.players].sort((a, b) => rank(a) - rank(b) || (b.tv ? 1 : 0) - (a.tv ? 1 : 0)).map(mediaRow).join('');
-    return radio + `<section class="sx"><div class="sh">Alla enheter</div><div class="kmlist">${list}</div></section>`;
+    return `<section class="sx"><div class="sh">Alla enheter</div><div class="kmlist">${list}</div></section>`;
   }
+  // ---------- Music Assistant: Radio / Spellistor / Sök, spela på valda högtalare (0.51.0) ----------
+  const MUS_KEY = 'obs-music-sel';
+  const mus = { tab: 'playlist', q: '', lib: {}, libAt: 0, res: null, busy: false, err: '', sel: null, targets: [] };
+  try { const v = JSON.parse(localStorage.getItem(MUS_KEY)); if (v) { if (Array.isArray(v.targets)) mus.targets = v.targets; if (v.tab) mus.tab = v.tab; } } catch {}
+  const musSave = () => { try { localStorage.setItem(MUS_KEY, JSON.stringify({ targets: mus.targets, tab: mus.tab })); } catch {} };
+  const musRender = () => { if (drawerOpen === 'media') renderDrawerStats(); };
+  async function musLoad(force) {
+    if (!force && Date.now() - mus.libAt < 5 * 60 * 1000) return;
+    mus.libAt = Date.now();
+    await Promise.all(['playlist', 'radio'].map(async t => {
+      try { const r = await fetch('api/music/library?type=' + t, { cache: 'no-store' }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText); mus.lib[t] = (await r.json()).items; }
+      catch (e) { mus.lib[t] = mus.lib[t] || []; mus.err = 'Kunde inte hämta från Music Assistant (' + e.message + ').'; mus.libAt = 0; }
+    }));
+    musRender();
+  }
+  async function musSearch(q) {
+    mus.q = q; mus.tab = 'search'; mus.busy = true; mus.err = ''; musRender();
+    try { const r = await fetch('api/music/search?q=' + encodeURIComponent(q), { cache: 'no-store' }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText); mus.res = await r.json(); }
+    catch (e) { mus.err = 'Sökningen misslyckades (' + e.message + ').'; mus.res = null; }
+    mus.busy = false; musSave(); musRender();
+  }
+  const MUS_T = { track: 'Låt', album: 'Album', artist: 'Artist', playlist: 'Spellista', radio: 'Radio' };
+  function musItem(x) {
+    const on = mus.sel && mus.sel.uri === x.uri;
+    const pic = x.img ? `<img src="${esc(x.img)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>`;
+    return `<button class="mitem${on ? ' on' : ''}" data-muri="${esc(x.uri)}" data-mtype="${esc(x.type)}" data-mname="${esc(x.name)}"><span class="mpic${x.type === 'artist' ? ' round' : ''}">${pic}</span><span class="mtx"><b>${esc(x.name)}</b><small>${esc([MUS_T[x.type] || x.type, x.by].filter(Boolean).join(' · '))}</small></span></button>`;
+  }
+  function musicCtl() {
+    const M = cfg.media, A = M.ma;
+    const targets = [...(A.groups || []).map(g => ({ ...g, grp: true })), ...(A.players || [])];
+    const ok = new Set(targets.map(t => t.entity)); mus.targets = mus.targets.filter(t => ok.has(t));
+    const stations = (M.stations || []).filter(x => !(mus.lib.radio || []).some(r => r.name === x.name)).map(x => ({ uri: x.url, name: x.name, type: 'radio', img: null, by: '' }));
+    let body;
+    if (mus.tab === 'search') {
+      const g = mus.res && mus.res.groups;
+      body = mus.busy ? '<p class="dnote">Söker …</p>' : !g ? '<p class="dnote">Sök efter en låt, artist, album, spellista eller radiokanal.</p>'
+        : ['artist', 'track', 'album', 'playlist', 'radio'].filter(k => (g[k] || []).length).map(k => `<div class="msub">${{ artist: 'Artister', track: 'Låtar', album: 'Album', playlist: 'Spellistor', radio: 'Radio' }[k]}</div><div class="mitems">${g[k].map(musItem).join('')}</div>`).join('') || '<p class="dnote">Inga träffar.</p>';
+    } else if (mus.tab === 'radio') {
+      const items = [...(mus.lib.radio || []), ...stations];
+      body = `<div class="mitems">${items.map(musItem).join('')}</div>`;
+    } else {
+      const items = mus.lib.playlist;
+      body = !items ? '<p class="dnote">Hämtar spellistor …</p>' : items.length ? `<div class="mitems">${items.map(musItem).join('')}</div>` : '<p class="dnote">Inga spellistor i Music Assistant.</p>';
+    }
+    const tab = (id, label) => `<button class="${mus.tab === id ? 'on' : ''}" data-mtab="${id}">${label}</button>`;
+    const chip = t => { const on = mus.targets.includes(t.entity); return `<button class="mchip${on ? ' on' : ''}" data-mtgt2="${esc(t.entity)}" aria-pressed="${on}"><svg viewBox="0 0 24 24">${t.grp ? M_ICON.grp : M_ICON.spk}</svg>${esc(t.name)}</button>`; };
+    const n = mus.targets.length, one = n === 1 ? targets.find(t => t.entity === mus.targets[0]) : null;
+    return `<section class="sx mmusic"><div class="sh">Spela musik</div>
+      <div class="mtabs">${tab('playlist', 'Spellistor')}${tab('radio', 'Radio')}${tab('search', 'Sök')}</div>
+      <form class="msearch" data-msearch><input type="search" name="q" value="${esc(mus.q)}" placeholder="Sök låt, artist, album, spellista …" autocomplete="off" enterkeyhint="search"><button type="submit">Sök</button></form>
+      ${mus.err ? `<p class="dnote warn">${esc(mus.err)}</p>` : ''}
+      <div class="mbody" data-tab="${mus.tab}">${body}</div>
+      <div class="msub">Spela på</div>
+      <div class="mchips">${targets.map(chip).join('')}</div>
+      <button class="mgo" data-mplay ${mus.sel && n ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>${!mus.sel ? 'Välj något att spela' : !n ? 'Välj minst en högtalare' : `Spela ${esc(mus.sel.name)} på ${one ? esc(one.name) : n + ' högtalare'}`}</button></section>`;
+  }
+  document.addEventListener('submit', e => {
+    const f = e.target.closest('[data-msearch]'); if (!f) return;
+    e.preventDefault(); const q = f.q.value.trim(); if (q) { f.q.blur(); musSearch(q); }
+  }, true);
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-mtab],[data-muri],[data-mtgt2],[data-mplay]'); if (!t) return;
+    e.stopPropagation();
+    if (t.dataset.mtab) { mus.tab = t.dataset.mtab; if (t.dataset.mtab === 'search') setTimeout(() => { const i = document.querySelector('[data-msearch] input'); if (i) i.focus(); }, 30); }
+    else if (t.dataset.muri) mus.sel = mus.sel && mus.sel.uri === t.dataset.muri ? null : { uri: t.dataset.muri, type: t.dataset.mtype, name: t.dataset.mname };
+    else if (t.dataset.mtgt2) { const x = t.dataset.mtgt2; mus.targets = mus.targets.includes(x) ? mus.targets.filter(y => y !== x) : [...mus.targets, x]; }
+    else if (t.hasAttribute('data-mplay')) {
+      if (!mus.sel || !mus.targets.length) return;
+      t.disabled = true;
+      sendCtl({ action: 'music', value: { uri: mus.sel.uri, type: mus.sel.type, targets: mus.targets } }, true).then(ok => { if (ok) toast(`Startar ${mus.sel.name} …`); musRender(); });
+      return;
+    }
+    musSave(); musRender();
+  }, true);
   document.addEventListener('click', e => {
     const t = e.target.closest('[data-mstn],[data-mtgt],[data-mradio]'); if (!t) return;
     e.stopPropagation();
@@ -1720,7 +1798,7 @@
     if (!drawerOpen) return;
     const d = DRAWERS[drawerOpen];
     if (d.frame) return;
-    if (d.ctl && $('dctl')) { const h = d.ctl(); if (h !== lastCtl) { $('dctl').innerHTML = h; lastCtl = h; } }
+    if (d.ctl && $('dctl')) { const h = d.ctl(); if (h !== lastCtl) { const sc = $('dctl').querySelector('.mbody'), top = sc ? sc.scrollTop : 0; $('dctl').innerHTML = h; lastCtl = h; const sc2 = $('dctl').querySelector('.mbody'); if (sc2 && top && !(sc2.dataset.tab !== (sc && sc.dataset.tab))) sc2.scrollTop = top; } }
     if (d.after && $('dafter')) { const h = d.after(); if (h !== lastAfter) { $('dafter').innerHTML = h; lastAfter = h; } }
     if (d.rich) {
       // Rita bara om när innehållet ändrats, och behåll sidledsscroll (t.ex. timprognosen)

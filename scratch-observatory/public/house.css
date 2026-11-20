@@ -789,3 +789,25 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .kmlist .kmt small{font-size:11.5px;color:var(--muted)}
 .kmlist .kmb{display:flex;gap:4px}
 .kmlist .kmb button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--panel2,var(--panel));color:var(--text);display:grid;place-items:center;padding:0;cursor:pointer}
+
+/* ---------- Music Assistant i mediapanelen (0.51.0) ---------- */
+.mtabs{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.mtabs button{flex:1;border:0;border-radius:0;background:transparent;color:var(--muted);justify-content:center;padding:9px 6px;font-size:13px}
+.mtabs button+button{border-left:1px solid var(--line)}
+.mtabs button.on{background:color-mix(in srgb,var(--gold) 18%,var(--panel));color:var(--text)}
+.msearch{display:flex;gap:6px;margin-bottom:10px}
+.msearch input{flex:1;min-width:0;font:inherit;font-size:14px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.msearch button{border-radius:8px}
+.mbody{max-height:340px;overflow-y:auto;overscroll-behavior:contain;margin:0 -4px;padding:0 4px}
+.mitems{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.mitem{display:flex;align-items:center;gap:10px;text-align:left;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);min-width:0}
+.mitem.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 16%,var(--panel))}
+.mpic{flex:none;width:40px;height:40px;border-radius:5px;overflow:hidden;background:var(--panel2,var(--panel));display:grid;place-items:center}
+.mpic.round{border-radius:50%}
+.mpic img{width:100%;height:100%;object-fit:cover;display:block}
+.mpic svg{width:20px;height:20px;fill:none;stroke:var(--dim);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mtx{min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.mtx b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mtx small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mmusic .msub:first-of-type{margin-top:12px}
+.dnote.warn{color:var(--orange,#d07a4f)}

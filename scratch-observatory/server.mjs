@@ -362,6 +362,38 @@ const MCFG = CONFIG.house && CONFIG.house.media;
 const MEDIA = MCFG && MCFG.controls ? { controls: true, media: [...MCFG.players, ...(MCFG.groups || [])].map(p => p.entity) } : null;
 // Radio: bara stationer som står i config, och bara högtalare/grupper (inte tv) från config
 const MEDIA_TARGETS = new Set(MCFG ? [...MCFG.players.filter(p => !p.tv), ...(MCFG.groups || [])].map(p => p.entity) : []);
+// Music Assistant: bibliotek, sökning och uppspelning på MA:s egna spelare (Patrik 2026-11-20)
+const MA = MCFG && MCFG.ma && MCFG.ma.entry ? MCFG.ma : null;
+const MA_TARGETS = new Set(MA ? [...(MA.players || []), ...(MA.groups || [])].map(p => p.entity) : []);
+const MA_TYPES = ['track', 'album', 'artist', 'playlist', 'radio'];
+const MA_URI = /^[a-z0-9]+(--[A-Za-z0-9]+)?:\/\/[A-Za-z0-9_.\/%:=?&+-]{1,300}$/;
+const maCache = new Map();
+function maItem(x) {
+  const img = typeof x.image === 'string' && x.image.startsWith('https://') ? x.image : null; // MA:s egen bildproxy är http i hemnätet
+  const by = (x.artists || []).map(a => a.name).filter(Boolean).join(', ');
+  return { uri: x.uri, name: x.name, type: x.media_type, img, by, fav: !!x.favorite };
+}
+async function maService(service, data) {
+  const r = await haCall({ type: 'call_service', domain: 'music_assistant', service, service_data: { config_entry_id: MA.entry, ...data }, return_response: true }, 20000);
+  return (r && r.response) || {};
+}
+async function maLibrary(type) {
+  if (!MA || !['playlist', 'radio'].includes(type)) throw Object.assign(new Error('Okänd typ'), { code: 400 });
+  const hit = maCache.get(type); if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.data;
+  const r = await shared('ma|' + type, () => maService('get_library', { media_type: type, limit: 300, order_by: type === 'playlist' ? 'last_played_desc' : 'name' }));
+  const data = { items: (r.items || []).filter(x => MA_URI.test(x.uri || '')).map(maItem) };
+  maCache.set(type, { at: Date.now(), data });
+  return data;
+}
+async function maSearch(q) {
+  if (!MA) throw Object.assign(new Error('Music Assistant saknas'), { code: 404 });
+  q = String(q || '').trim().slice(0, 80); if (!q) return { items: [] };
+  const r = await maService('search', { name: q, media_type: MA_TYPES, limit: 6 });
+  const order = { artists: 'artist', tracks: 'track', albums: 'album', playlists: 'playlist', radio: 'radio' };
+  const groups = {};
+  for (const k of Object.keys(order)) groups[order[k]] = (r[k] || []).filter(x => MA_URI.test(x.uri || '')).map(maItem);
+  return { q, groups };
+}
 const COVER_CMD = { open: 'open_cover', close: 'close_cover', stop: 'stop_cover' };
 const VAC_CMD = ['return_to_base', 'pause', 'stop', 'locate'];
 const MEDIA_CMD = ['media_play_pause', 'media_next_track', 'media_previous_track', 'volume_up', 'volume_down', 'turn_off', 'media_stop'];
@@ -375,6 +407,7 @@ async function control(body) {
     || ((act0 === 'climate_mode' || act0 === 'climate_temp') && allow('climates').has(ent0))
     || (act0 === 'cover' && allow('covers').has(ent0)) || (act0 === 'media' && allow('media').has(ent0))
     || (act0 === 'radio' && !!MEDIA)
+    || (act0 === 'music' && !!(MEDIA && MA))
     || (act0 === 'vacuum' && !!(VAC && VAC.controls && VAC.entity === ent0))
     || (act0 === 'lights_off' && !!(LIGHTS && LIGHTS.controls && LIGHTS.all_off)) || (act0 === 'chore' && !!(CHORES && CHORES.controls && CHORES.script))
     || (act0 === 'alarm' && !!(ALARM && ALARM.entity === ent0))
@@ -448,6 +481,14 @@ async function control(body) {
     const to = Array.isArray(v.targets) ? [...new Set(v.targets)] : [];
     if (!stn || !to.length || to.length > 20 || !to.every(t => MEDIA_TARGETS.has(t))) throw Object.assign(new Error('Ogiltig station eller högtalare'), { code: 400 });
     call = ['media_player', 'play_media', to, { media_content_id: stn.url, media_content_type: 'music' }];
+  }
+  else if (action === 'music' && ftxOk) {
+    // Music Assistant: URI från MA (eller en radiostation i config), bara MA-spelare från config
+    const v = value || {}, to = Array.isArray(v.targets) ? [...new Set(v.targets)] : [];
+    const stn = (MCFG.stations || []).find(x => x.url === v.uri);
+    if (typeof v.uri !== 'string' || !(MA_URI.test(v.uri) || stn) || !MA_TYPES.includes(v.type) || !to.length || to.length > 20 || !to.every(t => MA_TARGETS.has(t)))
+      throw Object.assign(new Error('Ogiltigt val'), { code: 400 });
+    call = ['music_assistant', 'play_media', to, { media_id: v.uri, media_type: v.type, enqueue: 'replace' }];
   }
   else if (action === 'lights_off' && ftxOk) {
     // släck alla: bara lamporna i house.lights.toggles
@@ -827,6 +868,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/diag') return json(res, 200, { streams: clients.size, ha_pending: pending.size, shared_inflight: inflight.size,
       hist_cache: histCache.size, uptime_s: Math.round(process.uptime()), rss_mb: Math.round(process.memoryUsage().rss / 1e6), ha_slow: haSlow.slice(-10) });
     if (url.pathname === '/api/money') return json(res, 200, await money());
+    if (url.pathname === '/api/music/library') return json(res, 200, await maLibrary(url.searchParams.get('type') || ''));
+    if (url.pathname === '/api/music/search') return json(res, 200, await maSearch(url.searchParams.get('q')));
     if (url.pathname === '/api/stats') return json(res, 200, await stats(Number(url.searchParams.get('hours'))));
     if (url.pathname === '/api/stream') {
       res.writeHead(200, { ...SEC, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
