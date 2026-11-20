@@ -159,3 +159,8 @@ body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
 .kcal .kp small{font-size:11.5px;color:var(--muted)}
 .kcal .kp.due svg,.kcal .kp.due b{stroke:var(--gold);color:var(--gold)}
 .kcal .kp.opened svg{stroke:var(--sage)}
+.kcal .kprow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.kcal .kbox{display:flex;align-items:center;gap:6px;flex:none;font-size:15px}
+.kcal .kbox svg{width:19px;height:19px;fill:none;stroke:var(--dim);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.kcal .kbox.opened svg{stroke:var(--sage)}
+.kcal .kbox b{font-weight:600}

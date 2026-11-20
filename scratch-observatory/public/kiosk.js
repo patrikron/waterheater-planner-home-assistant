@@ -180,16 +180,18 @@
   const BOX_SVG = '<svg viewBox="0 0 24 24"><path d="M6 9a4 4 0 0 1 8 0v9H3V12a3 3 0 0 1 3-3zM14 9h4a3 3 0 0 1 3 3v6h-7M7 13h3M17 4v6M17 4h3v2h-3"/></svg>';
   function postHtml() {
     const H = window.ObsHouse, C = H && H.cfg && H.cfg(), M = C && C.mail; if (!M) return '';
-    const d = H.st(M.delivery), o = H.st(M.opened), out = [];
+    const d = H.st(M.delivery), o = H.st(M.opened);
+    let post = '';
     if (d && d.attributes && d.attributes.next_delivery) {
       const t = new Date(d.attributes.next_delivery + 'T12:00:00'), now = new Date(); now.setHours(12, 0, 0, 0);
       const days = Math.round((t - now) / 864e5);
       const when = days <= 0 ? 'idag' : days === 1 ? 'imorgon' : t.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/\.$/, '');
-      out.push(`<div class="kp${days <= 0 ? ' due' : ''}">${POST_SVG}<span>Post <b>${esc(when)}</b>${days > 1 ? ` <small>om ${days} dagar</small>` : ''}</span></div>`);
+      post = `<span class="kp${days <= 0 ? ' due' : ''}">${POST_SVG}<span>Post <b>${esc(when)}</b>${days > 1 ? ` <small>om ${days} dagar</small>` : ''}</span></span>`;
     }
+    // Brevlådan: bara ikon och antal öppningar idag, längst till höger på samma rad
     const n = o ? parseInt(o.state, 10) : NaN;
-    if (Number.isFinite(n)) out.push(`<div class="kp${n > 0 ? ' opened' : ''}">${BOX_SVG}<span>${n > 0 ? `Brevlådan öppnad <b>${n}</b> ${n === 1 ? 'gång' : 'gånger'}` : 'Brevlådan inte öppnad'} idag</span></div>`);
-    return out.join('');
+    const box = Number.isFinite(n) ? `<span class="kbox${n > 0 ? ' opened' : ''}" title="Brevlådan öppnad ${n} ${n === 1 ? 'gång' : 'gånger'} idag">${BOX_SVG}<b>${n}</b></span>` : '';
+    return post || box ? `<div class="kprow">${post || '<span></span>'}${box}</div>` : '';
   }
   let lastPost = '';
   window.addEventListener('obs-render', () => { const el = document.getElementById('kpost'), h = postHtml(); if (el && h !== lastPost) { el.innerHTML = h; lastPost = h; } });
