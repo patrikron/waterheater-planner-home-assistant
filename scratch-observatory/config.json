@@ -381,7 +381,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.65_qled": [
       "media_title",
@@ -391,7 +397,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.kok_nest_hub": [
       "media_title",
@@ -401,7 +413,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.google_home": [
       "media_title",
@@ -411,7 +429,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.badrum": [
       "media_title",
@@ -421,7 +445,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.stammen_vinyl_black_2": [
       "media_title",
@@ -431,7 +461,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.googlehome6023": [
       "media_title",
@@ -441,7 +477,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.nestaudio0095": [
       "media_title",
@@ -451,7 +493,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "alarm_control_panel.ha_alarm": [
       "code_format",
@@ -617,7 +665,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.ultra_slim_soundbar": [
       "media_title",
@@ -627,7 +681,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.lenovosmartclock6312": [
       "media_title",
@@ -637,7 +697,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.uterum": [
       "media_title",
@@ -647,7 +713,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.garage": [
       "media_title",
@@ -657,7 +729,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.garage_home_mini": [
       "media_title",
@@ -667,7 +745,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.chromecast_musik": [
       "media_title",
@@ -677,7 +761,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.receiver": [
       "media_title",
@@ -687,7 +777,13 @@
       "source",
       "volume_level",
       "is_volume_muted",
-      "media_content_type"
+      "media_content_type",
+      "media_album_name",
+      "source_list",
+      "supported_features",
+      "media_duration",
+      "media_position",
+      "media_position_updated_at"
     ],
     "media_player.alla": [
       "media_title",

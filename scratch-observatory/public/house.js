@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.58.1';
+  const VERSION = '0.59.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1389,7 +1389,7 @@
       const a = s.attributes || {}, title = a.media_title || a.app_name || a.source || (s.state === 'on' ? 'På' : ''), sub = [a.media_artist || a.media_series_title, a.media_title ? a.app_name : ''].filter(Boolean).join(' · ');
       const play = s.state === 'playing';
       const b = (cmd, svg, t) => `<button data-mcmd="${cmd}" data-ment="${esc(p.entity)}" aria-label="${t}"><svg viewBox="0 0 24 24">${svg}</svg></button>`;
-      return `<div class="kmp ${play ? 'play' : ''}"><span class="kmi"><svg viewBox="0 0 24 24">${p.tv ? '<rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 21h8M12 17v4"/>' : '<rect x="6" y="3" width="12" height="18" rx="2"/><circle cx="12" cy="14" r="3.5"/><circle cx="12" cy="7" r="1"/>'}</svg></span>
+      return `<div class="kmp ${play ? 'play' : ''}" data-mopen="${esc(p.entity)}"><span class="kmi"><svg viewBox="0 0 24 24">${p.tv ? '<rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 21h8M12 17v4"/>' : '<rect x="6" y="3" width="12" height="18" rx="2"/><circle cx="12" cy="14" r="3.5"/><circle cx="12" cy="7" r="1"/>'}</svg></span>
         <div class="kmt"><b>${esc(p.name)}</b><small>${esc(title)}${sub ? ' · ' + esc(sub) : ''}</small></div>
         <span class="kmb">${b('volume_down', '<path d="M5 12h14"/>', 'Sänk')}${b('media_play_pause', play ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>', play ? 'Paus' : 'Spela')}${b('volume_up', '<path d="M5 12h14M12 5v14"/>', 'Höj')}${p.tv ? b('turn_off', '<path d="M12 3v8M6.3 7.3a8 8 0 1 0 11.4 0"/>', 'Stäng av') : b('media_next_track', '<path d="M6 5l9 7-9 7zM18 5v14"/>', 'Nästa')}</span></div>`;
     }).join('');
@@ -1410,7 +1410,7 @@
     const play = s.state === 'playing';
     const b = (cmd, svg, t) => `<button data-mcmd="${cmd}" data-ment="${esc(p.entity)}" aria-label="${t}"><svg viewBox="0 0 24 24">${svg}</svg></button>`;
     const btns = active ? `${b('volume_down', '<path d="M5 12h14"/>', 'Sänk')}${b('media_play_pause', play ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>', play ? 'Paus' : 'Spela')}${b('volume_up', '<path d="M5 12h14M12 5v14"/>', 'Höj')}${p.tv ? b('turn_off', '<path d="M12 3v8M6.3 7.3a8 8 0 1 0 11.4 0"/>', 'Stäng av') : b('media_stop', '<rect x="6" y="6" width="12" height="12" rx="1.5"/>', 'Stoppa')}` : '';
-    return `<div class="kmp mrow2 ${play ? 'play' : ''} ${active ? '' : 'idle'}${s.state === 'unavailable' ? ' gone' : ''}"><span class="kmi"><svg viewBox="0 0 24 24">${p.tv ? M_ICON.tv : M_ICON.spk}</svg></span>
+    return `<div class="kmp mrow2 ${play ? 'play' : ''} ${active ? '' : 'idle'}${s.state === 'unavailable' ? ' gone' : ''}" data-mopen="${esc(p.entity)}"><span class="kmi"><svg viewBox="0 0 24 24">${p.tv ? M_ICON.tv : M_ICON.spk}</svg></span>
       <div class="kmt"><b>${esc(p.name)}</b><small>${esc(title)}${sub ? ' · ' + esc(sub) : ''}${vol}</small></div><span class="kmb">${btns}</span></div>`;
   }
   function mediaCtl() {
@@ -1434,6 +1434,70 @@
     const list = [...M.players].filter(mShown).sort((a, b) => rank(a) - rank(b) || (b.tv ? 1 : 0) - (a.tv ? 1 : 0)).map(mediaRow).join('');
     return `<section class="sx"><div class="sh">Alla enheter</div><div class="kmlist">${list}</div></section>`;
   }
+  // ---------- Spelarpopup (Patrik 2026-11-20): tryck på en mediaenhet för volym, uppspelning och ström ----------
+  let mpEnt = null, mpEl = null, mpHold = 0, mpLast = '';
+  const MP_SRC = e => 'api/media_img?e=' + encodeURIComponent(e);
+  function mpHtml() {
+    const M = cfg.media || {}, p = (M.players || []).find(x => x.entity === mpEnt); if (!p) return '';
+    const s = st(p.entity) || { state: 'unavailable', attributes: {} }, a = s.attributes || {};
+    const on = !['off', 'unavailable', 'unknown', 'standby'].includes(s.state), play = s.state === 'playing';
+    const active = ['playing', 'paused', 'buffering'].includes(s.state);
+    const vol = Number.isFinite(+a.volume_level) ? Math.round(a.volume_level * 100) : null, muted = !!a.is_volume_muted;
+    const title = active ? (a.media_title || a.app_name || a.source || M_STATE[s.state]) : (M_STATE[s.state] || s.state);
+    const sub = active ? [a.media_artist || a.media_series_title, a.media_album_name].filter(Boolean).join(' · ') : '';
+    const src = active ? [a.app_name, a.source].filter((x, i, arr) => x && arr.indexOf(x) === i).join(' · ') : '';
+    const b = (cmd, svg, t, cls = '') => `<button class="mpb ${cls}" data-mcmd="${cmd}" data-ment="${esc(p.entity)}" aria-label="${t}" title="${t}"><svg viewBox="0 0 24 24">${svg}</svg></button>`;
+    const art = active ? `<img src="${MP_SRC(p.entity)}&t=${encodeURIComponent(a.media_title || '')}" alt="">` : '';
+    const list = Array.isArray(a.source_list) ? a.source_list.slice(0, 40) : [];
+    return `<div class="mpbox" role="dialog" aria-modal="true" aria-label="${esc(p.name)}">
+      <div class="mphead"><span class="kmi"><svg viewBox="0 0 24 24">${p.tv ? M_ICON.tv : M_ICON.spk}</svg></span><div><div class="eyebrow">${esc(M_STATE[s.state] || s.state)}</div><h3>${esc(p.name)}</h3></div>
+        <button class="mpx" data-mpclose aria-label="Stäng">×</button></div>
+      <div class="mpart${art ? '' : ' none'}">${art}<svg viewBox="0 0 24 24">${p.tv ? M_ICON.tv : '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>'}</svg></div>
+      <div class="mpmeta"><b>${esc(title || '')}</b>${sub ? `<span>${esc(sub)}</span>` : ''}${src ? `<small>${esc(src)}</small>` : ''}</div>
+      ${on ? `<div class="mpctl">${b('media_previous_track', '<path d="M18 5l-9 7 9 7zM6 5v14"/>', 'Föregående')}${b('media_play_pause', play ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>', play ? 'Paus' : 'Spela', 'big')}${b('media_next_track', '<path d="M6 5l9 7-9 7zM18 5v14"/>', 'Nästa')}</div>` : ''}
+      ${on && vol == null ? `<div class="mpvol novol">${b('volume_down', '<path d="M5 12h14"/>', 'Sänk')}<span class="mpvl">Volym</span>${b('volume_up', '<path d="M5 12h14M12 5v14"/>', 'Höj')}</div>` : ''}
+      ${on && vol != null ? `<div class="mpvol"><button class="mpb${muted ? ' on' : ''}" data-mpmute="${muted ? 0 : 1}" aria-label="${muted ? 'Ljud på' : 'Ljud av'}" title="${muted ? 'Ljud på' : 'Ljud av'}"><svg viewBox="0 0 24 24">${muted ? '<path d="M4 9h4l5-4v14l-5-4H4zM17 9l5 6M22 9l-5 6"/>' : '<path d="M4 9h4l5-4v14l-5-4H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>'}</svg></button>
+        ${b('volume_down', '<path d="M5 12h14"/>', 'Sänk')}<input type="range" min="0" max="100" step="1" value="${vol}" data-mpvol aria-label="Volym" style="--v:${vol}%">${b('volume_up', '<path d="M5 12h14M12 5v14"/>', 'Höj')}<b class="mpv">${vol} %</b></div>` : ''}
+      ${on && list.length > 1 ? `<label class="mpsrc">Källa <select data-mpsrc>${list.map(x => `<option${x === a.source ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>` : ''}
+      <div class="mpfoot">${s.state === 'unavailable' ? '<span class="dnote">Enheten går inte att nå just nu.</span>' : on ? (p.tv ? b('turn_off', '<path d="M12 3v8M6.3 7.3a8 8 0 1 0 11.4 0"/>', 'Stäng av', 'wide') : active ? b('media_stop', '<rect x="6" y="6" width="12" height="12" rx="1.5"/>', 'Stoppa', 'wide') : '') : b('turn_on', '<path d="M12 3v8M6.3 7.3a8 8 0 1 0 11.4 0"/>', 'Slå på', 'wide')}</div>
+    </div>`;
+  }
+  function mpRender(force) {
+    if (!mpEl || mpEl.hidden) return;
+    if (!force && Date.now() < mpHold) return; // medan reglaget dras
+    const h = mpHtml(); if (!h) return mpClose();
+    if (h === mpLast) return; mpLast = h; mpEl.innerHTML = h;
+    // knapparna får text bredvid ikonen i foten
+    mpEl.querySelectorAll('.mpb.wide').forEach(x => x.insertAdjacentHTML('beforeend', `<span>${esc(x.getAttribute('aria-label'))}</span>`));
+  }
+  function mpOpen(ent) {
+    mpEnt = ent; mpLast = '';
+    if (!mpEl) { mpEl = document.createElement('div'); mpEl.className = 'mpmodal'; mpEl.hidden = true; document.body.appendChild(mpEl); }
+    mpEl.hidden = false; mpRender(true); requestAnimationFrame(() => mpEl.classList.add('open'));
+  }
+  function mpClose() { if (!mpEl) return; mpEl.classList.remove('open'); mpEnt = null; setTimeout(() => { if (!mpEnt) mpEl.hidden = true; }, 220); }
+  window.addEventListener('obs-render', () => mpRender());
+  document.addEventListener('error', e => { const i = e.target; if (i && i.tagName === 'IMG' && i.closest && i.closest('.mpart')) { i.remove(); const p = mpEl && mpEl.querySelector('.mpart'); if (p) p.classList.add('none'); } }, true);
+  document.addEventListener('click', e => {
+    if (mpEl && !mpEl.hidden) {
+      if (e.target === mpEl || e.target.closest('[data-mpclose]')) return mpClose();
+      const m = e.target.closest('[data-mpmute]'); if (m) { sendCtl({ action: 'media_mute', entity: mpEnt, value: m.dataset.mpmute === '1' }, true); return; }
+    }
+    if (e.target.closest('[data-mcmd],button,a,input,select')) return;
+    const row = e.target.closest('[data-mopen]'); if (row && !editing) { e.stopPropagation(); mpOpen(row.dataset.mopen); }
+  });
+  document.addEventListener('input', e => {
+    const r = e.target.closest && e.target.closest('[data-mpvol]'); if (!r) return;
+    mpHold = Date.now() + 4000; r.style.setProperty('--v', r.value + '%');
+    const v = mpEl.querySelector('.mpv'); if (v) v.textContent = r.value + ' %';
+  });
+  document.addEventListener('change', e => {
+    const r = e.target.closest && e.target.closest('[data-mpvol]');
+    if (r) { mpHold = Date.now() + 2500; sendCtl({ action: 'media_vol', entity: mpEnt, value: +r.value / 100 }, true); return; }
+    const sel = e.target.closest && e.target.closest('[data-mpsrc]');
+    if (sel) sendCtl({ action: 'media_source', entity: mpEnt, value: sel.value }, true);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && mpEl && !mpEl.hidden) mpClose(); });
   // ---------- Music Assistant: Radio / Spellistor / Sök, spela på valda högtalare (0.51.0) ----------
   const MUS_KEY = 'obs-music-sel';
   const mus = { tab: 'radio', q: '', lib: {}, libAt: 0, res: null, busy: false, err: '', sel: null, targets: [] };

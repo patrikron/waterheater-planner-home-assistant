@@ -48,10 +48,12 @@ const PICS = new Map();
 const SPORT_CFG = (CONFIG.calendar || {}).sports || null;
 const SPORT_IDS = new Set(((SPORT_CFG && SPORT_CFG.sensors) || []).map(x => x.entity));
 const SPORT = new Map();
+const MEDIA_PIC_IDS = new Set((((CONFIG.house || {}).media || {}).players || []).map(p => p.entity));
 function keepPic(s) {
   if (!s) return;
   if (PEOPLE.has(s.entity_id)) PICS.set(s.entity_id, s.attributes && s.attributes.entity_picture);
   if (SPORT_IDS.has(s.entity_id)) SPORT.set(s.entity_id, s);
+  if (MEDIA_PIC_IDS.has(s.entity_id)) PICS.set(s.entity_id, s.attributes && (s.attributes.entity_picture_local || s.attributes.entity_picture));
 }
 function slim(s) {
   if (!s) return null;
@@ -504,7 +506,7 @@ async function maSearch(q) {
 }
 const COVER_CMD = { open: 'open_cover', close: 'close_cover', stop: 'stop_cover' };
 const VAC_CMD = ['return_to_base', 'pause', 'stop', 'locate'];
-const MEDIA_CMD = ['media_play_pause', 'media_next_track', 'media_previous_track', 'volume_up', 'volume_down', 'turn_off', 'media_stop'];
+const MEDIA_CMD = ['media_play_pause', 'media_next_track', 'media_previous_track', 'volume_up', 'volume_down', 'turn_off', 'turn_on', 'media_stop'];
 async function control(body) {
   // Sidor med egen styrning (FTX, laddbox, bilen, spabad, varmvatten): bara entiteter som står i respektive vitlista
   const PAGES = [CONFIG.ftx, CONFIG.charger, CONFIG.car, CONFIG.spa, CONFIG.water, CONFIG.radiators, CONFIG.house && CONFIG.house.door, CONFIG.house && CONFIG.house.lights, CONFIG.house && CONFIG.house.vacuum, MEDIA].filter(x => x && x.controls);
@@ -513,7 +515,7 @@ async function control(body) {
   const ftxOk = (act0 === 'toggle' && allow('toggles').has(ent0)) || (act0 === 'number' && allow('numbers').has(ent0)) || (act0 === 'select' && allow('selects').has(ent0))
     || (act0 === 'script' && allow('scripts').has(ent0)) || (act0 === 'lock' && allow('locks').has(ent0))
     || ((act0 === 'climate_mode' || act0 === 'climate_temp') && allow('climates').has(ent0))
-    || (act0 === 'cover' && allow('covers').has(ent0)) || (act0 === 'media' && allow('media').has(ent0))
+    || (act0 === 'cover' && allow('covers').has(ent0)) || (['media', 'media_vol', 'media_mute', 'media_source'].includes(act0) && allow('media').has(ent0))
     || (act0 === 'radio' && !!MEDIA)
     || (act0 === 'music' && !!(MEDIA && MA))
     || (act0 === 'vacuum' && !!(VAC && VAC.controls && VAC.entity === ent0))
@@ -584,6 +586,10 @@ async function control(body) {
   }
   else if (action === 'button' && ftxOk) call = ['button', 'press', entity, {}];
   else if (action === 'media' && ftxOk && MEDIA_CMD.includes(value)) call = ['media_player', value, entity, {}];
+  // Spelarpopupen (Patrik 2026-11-20): volym 0–100 %, ljud av/på och källa ur spelarens egen lista
+  else if (action === 'media_vol' && ftxOk && typeof value === 'number' && value >= 0 && value <= 1) call = ['media_player', 'volume_set', entity, { volume_level: Math.round(value * 100) / 100 }];
+  else if (action === 'media_mute' && ftxOk && typeof value === 'boolean') call = ['media_player', 'volume_mute', entity, { is_volume_muted: value }];
+  else if (action === 'media_source' && ftxOk && typeof value === 'string' && ((states.get(entity) || {}).attributes || {}).source_list && states.get(entity).attributes.source_list.includes(value)) call = ['media_player', 'select_source', entity, { source: value }];
   else if (action === 'radio' && ftxOk) {
     const v = value || {}, stn = (MCFG.stations || []).find(x => x.id === v.station);
     const to = Array.isArray(v.targets) ? [...new Set(v.targets)] : [];
@@ -921,6 +927,22 @@ async function sportImage(res, entity, k) {
   res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'private, max-age=86400', 'Content-Length': c.body.length });
   res.end(c.body);
 }
+// Omslag för spelarpopupen: HA:s media_player_proxy hämtas med token här, bara för spelarna i config
+const mediaImgCache = new Map();
+async function mediaImage(res, entity) {
+  const pic = MEDIA_PIC_IDS.has(entity) ? PICS.get(entity) : null;
+  if (typeof pic !== 'string' || !/^\/api\/(media_player_proxy|image_proxy|image\/serve)\/[^\s]{1,400}$/.test(pic)) throw Object.assign(new Error('Inget omslag'), { code: 404 });
+  let c = mediaImgCache.get(entity);
+  if (!c || c.pic !== pic) {
+    const r = await fetch(HA_URL + pic, { headers: { Authorization: `Bearer ${HA_TOKEN}` }, signal: AbortSignal.timeout(8000) });
+    const type = r.headers.get('content-type') || '';
+    if (!r.ok || !/^image\//.test(type)) throw Object.assign(new Error('Kunde inte hämta omslaget'), { code: 404 });
+    const body = Buffer.from(await r.arrayBuffer()); if (body.length > 3000000) throw Object.assign(new Error('För stort'), { code: 404 });
+    c = { pic, type, body }; mediaImgCache.set(entity, c);
+  }
+  res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'no-store', 'Content-Length': c.body.length });
+  res.end(c.body);
+}
 function sendImg(res, c) {
   if (!/^image\//.test(c.type || '')) throw Object.assign(new Error('Ingen bild'), { code: 404 });
   res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'no-store', 'Content-Length': c.body.length });
@@ -1034,6 +1056,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === '/api/camera_stream') return await cameraStream(req, res, url.searchParams.get('entity') || '');
     if (url.pathname === '/api/sport_img') return await sportImage(res, url.searchParams.get('e') || '', url.searchParams.get('k') || '');
+    if (url.pathname === '/api/media_img') return await mediaImage(res, url.searchParams.get('e') || '');
     if (url.pathname === '/api/person_img') return await personImage(res, url.searchParams.get('entity') || '');
     if (url.pathname === '/api/camera') return await cameraImage(res, url.searchParams.get('entity') || '', Number(url.searchParams.get('w')) || 640);
     // Statiska filer från public/
