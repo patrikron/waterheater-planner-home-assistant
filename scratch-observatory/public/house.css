@@ -714,7 +714,6 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 @keyframes fxIn{from{opacity:0;filter:blur(14px);transform:translateY(10px) scale(.975)}to{opacity:1;filter:none;transform:none}}
 @keyframes fxFade{from{opacity:0}to{opacity:1}}
 @keyframes fxDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
-@keyframes fxTick{0%{text-shadow:0 0 0 transparent}25%{text-shadow:0 0 14px currentColor,0 0 2px currentColor}100%{text-shadow:0 0 0 transparent}}
 /* Rutorna på bilden tonar fram en och en när sidan laddas */
 .fx.fxboot .box{animation:fxIn .75s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--i,0) * 70ms + 150ms)}
 /* Glasad panel och mjukt suddig bakgrund */
@@ -722,13 +721,10 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .fx .drawer{background:color-mix(in srgb,var(--c-111612) 80%,transparent);backdrop-filter:blur(22px) saturate(1.25);-webkit-backdrop-filter:blur(22px) saturate(1.25);
   transition:transform .42s cubic-bezier(.2,.8,.2,1)}
 /* Panelinnehållet växer fram ur oskärpa, del för del */
-.fx .drawer.fxin :is(#drawer-stats > *,#drawer-charts > *){animation:fxIn .6s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--i,0) * 60ms + 140ms)}
-.fx .drawer.fxin .dstat{animation:fxIn .55s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:.25s}
+.fx .drawer :is(#drawer-stats,#drawer-charts) > .fxa{animation:fxIn .6s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--i,0) * 60ms + 140ms)}
 /* Grafer ritas fram */
-.fx .dchart path.ln[pathLength]{stroke-dasharray:1;animation:fxDraw 1.2s cubic-bezier(.3,.6,.2,1) both}
-.fx .dchart path.ar{animation:fxFade 1.2s ease both}
-/* Kort sken när ett värde ändras */
-.fx .box.fxtick .v{animation:fxTick 1s ease-out}
+.fx #drawer-charts .dchart path.ln[pathLength]{stroke-dasharray:1;animation:fxDraw 1.2s cubic-bezier(.3,.6,.2,1) both}
+.fx #drawer-charts .dchart path.ar{animation:fxFade 1.2s ease both}
 
 /* ---------- Effekter på undersidorna (html.fxp, sätts av theme.js) ---------- */
 .fxp.fxboot main.wgrid > *{animation:fxIn .7s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--fi,0) * 65ms + 60ms)}

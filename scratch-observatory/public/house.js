@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.48.0';
+  const VERSION = '0.48.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -130,9 +130,11 @@
   function fxDrawer() {
     const dr = $('drawer'); if (!fxOn() || !dr) return;
     let i = 0;
-    for (const el of [...$('drawer-stats').children, ...$('drawer-charts').children]) el.style.setProperty('--i', Math.min(i++, 10));
-    dr.classList.remove('fxin'); void dr.offsetWidth; dr.classList.add('fxin');
-    clearTimeout(fxT); fxT = setTimeout(() => dr.classList.remove('fxin'), 1700);
+    // Bara det som finns när panelen öppnas tonar fram. Det som ritas om eller laddas in efteråt
+    // (grafer, liveuppdateringar) visas direkt, annars ser det ut som att panelen laddas om.
+    const els = [...$('drawer-stats').children, ...$('drawer-charts').children];
+    for (const el of els) { el.style.setProperty('--i', Math.min(i++, 10)); el.classList.add('fxa'); }
+    clearTimeout(fxT); fxT = setTimeout(() => els.forEach(el => el.classList.remove('fxa')), 1700);
   }
   // Färg på värdet: sol = gul när panelerna producerar, huset och nätet efter hur mycket det är
   const level = (kwv, low, high, max) => kwv == null ? '' : kwv < low ? 'c-low' : kwv < high ? '' : kwv < max ? 'c-warn' : 'c-high';
@@ -564,7 +566,7 @@
   }
   function renderBoxes() {
     for (const el of boxesEl.children) {
-      const def = BOX[el.dataset.id], r = def.render(), oldV = fxOn() && el.querySelector('.v') ? el.querySelector('.v').textContent : null;
+      const def = BOX[el.dataset.id], r = def.render();
       el._flow = r.flow || null;
       el.hidden = !!r.hide && !editing;
       if (r.custom) el.innerHTML = r.custom;
@@ -574,9 +576,6 @@
       const k = el.querySelector('.k'), id = el.dataset.id;
       const ic = id === 'vader' ? (st(cfg.outdoor) ? wxIcon(st(cfg.outdoor).state, 'bi wx') : '') : BOX_ICON[id];
       if (k && ic) k.insertAdjacentHTML('afterbegin', ic);
-      // Kort sken på värdet när det ändras
-      const nv = el.querySelector('.v');
-      if (oldV != null && nv && nv.textContent !== oldV) { el.classList.remove('fxtick'); void el.offsetWidth; el.classList.add('fxtick'); clearTimeout(el._fxT); el._fxT = setTimeout(() => el.classList.remove('fxtick'), 1000); }
     }
     fitBoxes(); drawWires(); renderLocks(); renderTemps(); renderSmoke();
     window.dispatchEvent(new CustomEvent('obs-render'));
