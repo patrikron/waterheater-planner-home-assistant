@@ -29,7 +29,7 @@ if (!HA_URL || !HA_TOKEN) {
 const ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 // Alla strängvärden (även i nästlade objekt) som ser ut som entitets-id i card, house och water.
 const collectIds = (o, out = []) => { for (const v of Object.values(o || {})) { if (typeof v === 'string') { if (ID_RE.test(v)) out.push(v); } else if (v && typeof v === 'object') collectIds(v, out); } return out; };
-const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger), ...collectIds(CONFIG.car), ...collectIds(CONFIG.temps), ...collectIds(CONFIG.spa), ...collectIds(CONFIG.radiators)]);
+const ALLOWED = new Set([...collectIds(CONFIG.card), ...collectIds(CONFIG.house), ...collectIds(CONFIG.water), ...collectIds(CONFIG.heatpump), ...collectIds(CONFIG.solar), ...collectIds(CONFIG.ftx), ...collectIds(CONFIG.charger), ...collectIds(CONFIG.car), ...collectIds(CONFIG.temps), ...collectIds(CONFIG.spa), ...collectIds(CONFIG.radiators), ...(((CONFIG.calendar || {}).sports || {}).sensors || []).map(x => x.entity).filter(id => ID_RE.test(id || ''))]);
 const DATA_DIR = process.env.DATA_DIR || join(ROOT, 'data');
 const LAYOUT_FILE = join(DATA_DIR, 'layout.json');
 const THEME_DIR = join(DATA_DIR, 'themes'), THEME_DEFAULT = join(DATA_DIR, 'theme-default.json');
@@ -44,7 +44,15 @@ const clients = new Set();
 // Personernas bildsökväg stannar på servern (skickas inte till webbläsaren), se personImage
 const PEOPLE = new Set(((CONFIG.house && CONFIG.house.people) || []).map(p => p.entity));
 const PICS = new Map();
-function keepPic(s) { if (s && PEOPLE.has(s.entity_id)) PICS.set(s.entity_id, s.attributes && s.attributes.entity_picture); }
+// Matcher från Team Tracker (Patrik 2026-11-20): hela tillståndet sparas här, bara det som behövs blir kalenderhändelser
+const SPORT_CFG = (CONFIG.calendar || {}).sports || null;
+const SPORT_IDS = new Set(((SPORT_CFG && SPORT_CFG.sensors) || []).map(x => x.entity));
+const SPORT = new Map();
+function keepPic(s) {
+  if (!s) return;
+  if (PEOPLE.has(s.entity_id)) PICS.set(s.entity_id, s.attributes && s.attributes.entity_picture);
+  if (SPORT_IDS.has(s.entity_id)) SPORT.set(s.entity_id, s);
+}
 function slim(s) {
   if (!s) return null;
   const keep = [...BASE_ATTRS, ...(ATTR_ALLOW[s.entity_id] || [])];
@@ -270,7 +278,29 @@ async function weatherForecast() {
   if (data.hourly.length || data.daily.length) wxCache = { at: Date.now(), data };
   return data;
 }
-async function calendar() {
+async function calendar() { return withSports(await calendar0()); }
+// Nästa match per sensor som kalenderhändelse, byggs vid varje anrop så att resultat under match är färska
+function withSports(data) {
+  if (!SPORT_CFG || !SPORT_IDS.size) return data;
+  const id = 'sport.' + String(SPORT_CFG.name || 'lag').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  const now = Date.now(), d0 = localStart('day').t, until = d0 + data.days * 864e5, ev = [];
+  for (const sc of SPORT_CFG.sensors) {
+    const s = SPORT.get(sc.entity), a = s && s.attributes; if (!a || !a.date) continue;
+    const t = Date.parse(a.date); if (!Number.isFinite(t) || t > until || t < d0) continue;
+    const st = String(a.state || s.state || '').toUpperCase();
+    const us = String(a.team_name || ''), them = String(a.opponent_name || ''), home = a.team_homeaway !== 'away';
+    const [h, aw] = home ? [us, them] : [them, us];
+    const [hs, as] = home ? [a.team_score, a.opponent_score] : [a.opponent_score, a.team_score];
+    const score = st === 'IN' || st === 'POST' ? ` ${hs ?? 0}–${as ?? 0} ` : ' – ';
+    const extra = st === 'IN' ? ' · pågår' + (a.clock ? ' ' + String(a.clock).slice(0, 12) : '') : st === 'POST' ? ' · slut' : (a.venue ? ' · ' + String(a.venue).slice(0, 60) : '');
+    ev.push({ cal: id, title: (h + score + aw).slice(0, 120), all_day: false, start: new Date(t).toISOString(), end: new Date(t + 2 * 3600e3).toISOString(),
+      location: String(sc.label || a.league || '').slice(0, 40) + extra });
+  }
+  if (!ev.length) return data;
+  return { ...data, calendars: [...data.calendars, { entity: id, name: SPORT_CFG.name || 'Sport', color: SPORT_CFG.color || 'red' }],
+    events: [...data.events, ...ev].sort((x, y) => String(x.start).localeCompare(String(y.start))) };
+}
+async function calendar0() {
   if (calCache && Date.now() - calCache.at < 5 * 60 * 1000) return calCache.data;
   const days = Math.max(1, Math.min(31, Number(CAL.days) || 14));
   const t0 = localStart('day').t, start = new Date(t0).toISOString(), end = new Date(t0 + days * 864e5).toISOString();

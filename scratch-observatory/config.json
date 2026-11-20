@@ -3065,6 +3065,7 @@
         "color": "gold"
       }
     ],
+    "sports": {"name": "Arsenal", "color": "red", "sensors": [{"entity": "sensor.epl_arsenal", "label": "Premier League"}, {"entity": "sensor.cl_arsenal", "label": "Champions League"}]},
     "bins": {
       "calendar": "calendar.gemensam",
       "days": 45,
