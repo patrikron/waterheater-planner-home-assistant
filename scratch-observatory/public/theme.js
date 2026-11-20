@@ -136,4 +136,56 @@
       side.insertBefore(b, minor || null);
     }
   });
+
+  // ---------- Effekter på undersidorna (Inställningar → Effekter, Patrik 2026-11-20) ----------
+  // Rutorna tonar fram ur oskärpa en i taget, grafer ritas fram och sidan tonar ut när man byter sida.
+  // Valet cachas per enhet så att det gäller direkt vid nästa sidladdning. Av i kioskens lite-läge
+  // och när enheten ber om mindre rörelse.
+  (function () {
+    var FX = 'obs-fx';
+    var rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function allowed() { return get(FX) !== '0' && get('obs-lite') !== '1' && !rm; }
+    if (!allowed()) return refreshSetting();
+    root.classList.add('fxp', 'fxboot');
+    setTimeout(function () { root.classList.remove('fxboot'); }, 4000);
+    refreshSetting();
+    function refreshSetting() {
+      fetch('api/settings', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (!j) return;
+        set(FX, j.effects === false ? '0' : null);
+        if (j.effects === false) root.classList.remove('fxp', 'fxboot');
+      }).catch(function () {});
+    }
+    // Grafer som ritas under de första sekunderna får pathLength så att linjen kan ritas fram
+    function mark(n) {
+      if (!root.classList.contains('fxboot') || !n.querySelectorAll) return;
+      var ps = n.matches && n.matches('path.ln') ? [n] : n.querySelectorAll('path.ln');
+      for (var i = 0; i < ps.length; i++) if (!ps[i].classList.contains('dash') && !ps[i].hasAttribute('stroke-dasharray')) ps[i].setAttribute('pathLength', '1');
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      var main = document.querySelector('main.wgrid');
+      if (!main || !window.MutationObserver) return;
+      var cards = main.children;
+      for (var i = 0; i < cards.length; i++) cards[i].style.setProperty('--fi', Math.min(i, 12));
+      var mo = new MutationObserver(function (ms) { for (var a = 0; a < ms.length; a++) for (var b = 0; b < ms[a].addedNodes.length; b++) mark(ms[a].addedNodes[b]); });
+      mo.observe(main, { childList: true, subtree: true });
+      setTimeout(function () { mo.disconnect(); }, 4000);
+      mark(main);
+    });
+    // Byte till en annan sida: innehållet tonar ut i oskärpa innan nästa sida laddas
+    if (!EMBED) document.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a || a.target || a.hasAttribute('download')) return;
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) === '#' || /^(mailto|tel|javascript):/i.test(href)) return;
+      var u; try { u = new URL(a.href, location.href); } catch (x) { return; }
+      if (u.origin !== location.origin || (u.pathname === location.pathname && u.search === location.search)) return;
+      if (!root.classList.contains('fxp')) return;
+      e.preventDefault();
+      root.classList.add('fxleave');
+      setTimeout(function () { location.href = u.href; }, 200);
+    });
+    window.addEventListener('pageshow', function () { root.classList.remove('fxleave'); });
+  })();
 })();
