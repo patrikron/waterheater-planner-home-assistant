@@ -6,7 +6,7 @@ import { readFile, writeFile, rename, mkdir, readdir, unlink } from 'node:fs/pro
 import { readFileSync } from 'node:fs';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual, createHash } from 'node:crypto';
 import { Readable } from 'node:stream';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -387,8 +387,39 @@ const MA_TARGETS = new Set(MA ? [...(MA.players || []), ...(MA.groups || [])].ma
 const MA_TYPES = ['track', 'album', 'artist', 'playlist', 'radio'];
 const MA_URI = /^[a-z0-9]+(--[A-Za-z0-9]+)?:\/\/[A-Za-z0-9_.\/%:=?&+-]{1,300}$/;
 const maCache = new Map();
+// Omslagsbilder: sidans CSP tillåter bara egna bilder, så servern hämtar dem. Bara adresser som MA själv
+// har gett oss (id -> url) går att hämta, så det går inte att be servern hämta godtyckliga adresser.
+const maImgUrl = new Map(), maImgCache = new Map(); let maImgBusy = 0;
+function maImgId(u) {
+  if (typeof u !== 'string' || !/^https?:\/\/[^\s]{1,600}$/.test(u)) return null;
+  if (/\/imageproxy\//.test(u)) u = u.replace(/([?&])size=\d+/, '$1size=256');
+  const id = createHash('sha1').update(u).digest('hex').slice(0, 20);
+  if (!maImgUrl.has(id)) { if (maImgUrl.size > 5000) maImgUrl.delete(maImgUrl.keys().next().value); maImgUrl.set(id, u); }
+  return '/api/music/img?id=' + id;
+}
+async function maImage(res, id) {
+  const u = maImgUrl.get(id || '');
+  if (!u) throw Object.assign(new Error('Okänd bild'), { code: 404 });
+  let c = maImgCache.get(id);
+  if (!c) {
+    if (maImgBusy >= 6) throw Object.assign(new Error('Upptaget, försök igen'), { code: 429 });
+    c = {}; maImgBusy++;
+    c.p = fetch(u, { signal: AbortSignal.timeout(8000), redirect: 'follow' })
+      .then(async r => {
+        const type = r.headers.get('content-type') || '';
+        if (!r.ok || !/^image\/(jpeg|png|webp|gif)/.test(type)) throw new Error('ingen bild');
+        const body = Buffer.from(await r.arrayBuffer()); if (body.length > 1500000) throw new Error('för stor');
+        c.type = type; c.body = body;
+      }).finally(() => { maImgBusy--; c.p = null; });
+    maImgCache.set(id, c);
+    if (maImgCache.size > 400) maImgCache.delete(maImgCache.keys().next().value);
+  }
+  if (c.p) { try { await c.p; } catch { maImgCache.delete(id); throw Object.assign(new Error('Kunde inte hämta bilden'), { code: 404 }); } }
+  res.writeHead(200, { ...SEC, 'Content-Type': c.type, 'Cache-Control': 'private, max-age=86400', 'Content-Length': c.body.length });
+  res.end(c.body);
+}
 function maItem(x) {
-  const img = typeof x.image === 'string' && x.image.startsWith('https://') ? x.image : null; // MA:s egen bildproxy är http i hemnätet
+  const img = maImgId(x.image);
   const by = (x.artists || []).map(a => a.name).filter(Boolean).join(', ');
   return { uri: x.uri, name: x.name, type: x.media_type, img, by, fav: !!x.favorite };
 }
@@ -888,6 +919,7 @@ const server = http.createServer(async (req, res) => {
       hist_cache: histCache.size, uptime_s: Math.round(process.uptime()), rss_mb: Math.round(process.memoryUsage().rss / 1e6), ha_slow: haSlow.slice(-10) });
     if (url.pathname === '/api/money') return json(res, 200, await money());
     if (url.pathname === '/api/music/library') return json(res, 200, await maLibrary(url.searchParams.get('type') || ''));
+    if (url.pathname === '/api/music/img') return await maImage(res, url.searchParams.get('id'));
     if (url.pathname === '/api/music/search') return json(res, 200, await maSearch(url.searchParams.get('q')));
     if (url.pathname === '/api/stats') return json(res, 200, await stats(Number(url.searchParams.get('hours'))));
     if (url.pathname === '/api/stream') {

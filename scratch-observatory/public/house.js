@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.52.0';
+  const VERSION = '0.54.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1758,6 +1758,7 @@
     $('drawer').classList.toggle('wide', !!d.wide);
     $('drawer').classList.toggle('framed', !!d.frame);
     $('drawer').classList.toggle('cams', d.cls === 'cams');
+    $('drawer').classList.toggle('mcols', id === 'media' && !!(cfg.media && cfg.media.ma));
     if (d.frame) {
       $('drawer-stats').innerHTML = '';
       const cur = $('drawer-charts').querySelector('iframe');

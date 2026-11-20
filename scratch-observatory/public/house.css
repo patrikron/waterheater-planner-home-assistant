@@ -811,3 +811,11 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .mtx small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mmusic .msub:first-of-type{margin-top:12px}
 .dnote.warn{color:var(--orange,#d07a4f)}
+
+/* Media: musik till vänster, alla enheter i en egen kolumn till höger (0.54) */
+.drawer.mcols{width:min(1080px,100vw)}
+@media (min-width:900px){
+  .drawer.mcols #drawer-charts{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:0 26px;align-items:start}
+  .drawer.mcols #dctl,.drawer.mcols #dafter{min-width:0}
+  .drawer.mcols #dafter{border-left:1px solid var(--line);padding-left:24px;margin-top:0}
+}
