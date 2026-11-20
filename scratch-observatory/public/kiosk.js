@@ -170,10 +170,15 @@
     const txt = JSON.parse(lastSchool || '["",""]')[i]; if (!txt) return '';
     return `<div class="kschool">${SCHOOL_SVG}<div><span>Skolmat</span>${txt.split(/\s*•\s*/).map(x => `<b>${esc(x)}</b>`).join('')}</div></div>`;
   }
+  // Hälsning efter tid på dygnet (Patrik 2026-11-20)
+  function greeting(d) {
+    const h = d.getHours();
+    return h < 5 ? 'God natt' : h < 10 ? 'God morgon' : h < 12 ? 'God förmiddag' : h < 18 ? 'God eftermiddag' : h < 23 ? 'God kväll' : 'God natt';
+  }
   function renderCal() {
     if (!kcal) return;
     const now = new Date();
-    let html = `<div><div class="khead"><div class="kclock">${hm(now)}</div><div class="know" id="know">${nowWx()}</div></div><div class="kdrow"><div class="kdl"><div class="kdate">${now.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
+    let html = `<div><div class="kgreet">${greeting(now)}</div><div class="khead"><div class="kclock">${hm(now)}</div><div class="know" id="know">${nowWx()}</div></div><div class="kdrow"><div class="kdl"><div class="kdate">${now.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>`;
     const evs = (cal && cal.events) || [];
     const name = evs.find(e => e.cal === (cal && cal.namedays) && dayKey(startOf(e)) === dayKey(now));
     if (name) html += `<div class="kname">Namnsdag: <b>${esc(name.title.replace(/\s+[–-]\s+\d.*$/, ''))}</b></div>`;
