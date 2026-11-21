@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.60.0';
+  const VERSION = '0.60.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -204,7 +204,7 @@
         flow: w > 50 ? { cls: '', dir: 'in', w } : null };
     } },
     ev6: { title: 'EV6', drawer: 'car', render() {
-      const soc = num(CARC.soc || cfg.ev_soc), range = num(CARC.range), chg = st(CARC.charging), plug = st(CARC.plug);
+      const soc = num(CARC.soc_kia || CARC.soc || cfg.ev_soc), range = num(CARC.range), chg = st(CARC.charging), plug = st(CARC.plug);
       // Laddboxen vet oftast före Kia-molnet om bilen laddar eller är ansluten
       const cs = st(CHC.car_state) ? st(CHC.car_state).state : null;
       const charging = (chg && chg.state === 'on') || cs === 'Charging';

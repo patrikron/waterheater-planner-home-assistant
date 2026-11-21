@@ -848,7 +848,7 @@
     "load": "sensor.growatt_tl_x_xh_tl3_xh_load_power",
     "grid": "sensor.growatt_tl_x_xh_tl3_xh_grid_power",
     "charger": "sensor.go_echarger_404702_power_total",
-    "ev_soc": "sensor.ev6_laddningsniva_soc",
+    "ev_soc": "sensor.ev6_ev_battery_level",
     "hot_water": "sensor.varmvattenberedare_status",
     "heatpump": "sensor.shellypmminig3_48f6eeb4a5d4_effekt",
     "indoor": "sensor.daikinap97060_climatecontrol_rumstemperatur",
