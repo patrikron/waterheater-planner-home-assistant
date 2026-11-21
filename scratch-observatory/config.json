@@ -2680,7 +2680,7 @@
     "balancing": "input_boolean.element_laddning_balansering",
     "water_heater": "binary_sensor.shelly_shem_3_485519d75132_2_active",
     "price": "sensor.tibber_elpris",
-    "car_soc": "sensor.ev6_laddningsniva_soc",
+    "car_soc": "sensor.ev6_ev_battery_level",
     "car_target": "sensor.ev6_malladdningsniva",
     "car_soc_kia": "sensor.ev6_ev_battery_level",
     "car_range": "sensor.ev6_ev_range",

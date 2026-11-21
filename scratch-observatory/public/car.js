@@ -118,7 +118,7 @@
     </svg>`;
   }
   function renderHero() {
-    const soc = num(C.soc), kia = num(C.soc_kia), target = num(C.target_soc), ac = num(C.ac_limit);
+    const soc = num(C.soc_kia) ?? num(C.soc), kia = num(C.soc_kia), target = num(C.target_soc), ac = num(C.ac_limit);
     const plugged = on(C.plug) || (sv(C.charger_state) && sv(C.charger_state) !== 'Idle');
     const live = on(C.charging) || sv(C.charger_state) === 'Charging';
     const lock = sv(C.lock), loc = sv(C.location), eng = on(C.engine), clim = on(C.air_conditioner) || (sv(C.climate) && sv(C.climate) !== 'off');
@@ -142,7 +142,7 @@
         </div>
       </div>
       <div class="hside">
-        ${kv('Kia säger', kia == null ? '–' : Math.round(kia), '%')}
+        ${kv('Tibber säger', num(C.soc) == null ? '–' : Math.round(num(C.soc)), '%')}
         ${kv('Mål', target == null ? '–' : Math.round(target), '%')}
         ${kv('AC-gräns', nf(ac, 0), '%')}
         ${kv('12 V', nf(num(C.battery_12v), 0), '%', num(C.battery_12v) != null && num(C.battery_12v) < 70 ? 'warnc' : '')}
@@ -218,9 +218,9 @@
 
   // ---------- Batteri ----------
   function renderBattery() {
-    const soc = num(C.soc), soh = num(C.soh), cap = +C.battery_kwh || 77.4;
+    const soc = num(C.soc_kia) ?? num(C.soc), soh = num(C.soh), cap = +C.battery_kwh || 77.4;
     $('battery').innerHTML = `<div class="eyebrow">Batteriet</div><h3>${soc == null ? '–' : Math.round(soc)} % · ${nf(num(C.range), 0)} km</h3>
-      ${srow('Laddnivå Tibber / Kia', `${soc == null ? '–' : Math.round(soc)} / ${num(C.soc_kia) == null ? '–' : Math.round(num(C.soc_kia))}`, '%')}
+      ${srow('Laddnivå Tibber / Kia', `${num(C.soc) == null ? '–' : Math.round(num(C.soc))} / ${num(C.soc_kia) == null ? '–' : Math.round(num(C.soc_kia))}`, '%')}
       ${srow('Energi i batteriet', soc == null ? '–' : nf(soc / 100 * cap, 1), `av ${nf(cap, 1)} kWh`)}
       ${srow('Räckvidd nu', nf(num(C.range), 0), 'km')}
       ${srow('Räckvidd vid AC-gräns', nf(num(C.target_range_ac), 0), `km · ${nf(num(C.ac_limit), 0)} %`)}
