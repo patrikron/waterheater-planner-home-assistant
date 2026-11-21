@@ -245,3 +245,10 @@ body.ov-cal:not(.kiosk) #kcal .kclock{font-size:clamp(36px,3.2vw,54px)}
   .kmhead{gap:8px}
   .kmleg{margin-left:0}
 }
+.kmenu button.iconly{padding:0 14px}
+body.menu-icons .kmenu button{padding:0 14px;gap:6px}
+body.menu-icons .kmenu button>span{display:none}
+.kmenu{gap:6px;max-width:calc(100vw - var(--kcol) - 24px)}
+.kmenu button{padding:0 12px;gap:6px;font-size:14px}
+.kmenu{padding:5px}
+body.menu-icons .kmenu button{padding:0 14px}

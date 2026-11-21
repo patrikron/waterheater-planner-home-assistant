@@ -375,6 +375,14 @@
   document.addEventListener('click', e => { if (e.target.closest('.kmmore') && window.ObsHouse) window.ObsHouse.open('media'); if (e.target.closest('#kalarm') && window.ObsHouse) window.ObsHouse.open('alarm'); });
   // Meny längst ner: Lampor och barnens poäng öppnas i panelen från höger
   const kmenu = document.getElementById('kmenu');
+  // Menyn: bara ikoner om inställningen säger så, annars automatiskt när texten inte får plats (kiosk).
+  function fitMenu() {
+    const H = window.ObsHouse, b = document.body, only = !!(H && H.set && H.set().menu_icons === true);
+    if (only) { b.classList.add('menu-icons'); return; }
+    b.classList.remove('menu-icons');
+    if (kmenu && b.classList.contains('kiosk') && kmenu.scrollWidth > kmenu.clientWidth + 1) b.classList.add('menu-icons');
+  }
+  window.addEventListener('resize', () => fitMenu());
   if (kmenu) {
     kmenu.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b && window.ObsHouse && window.ObsHouse.open) window.ObsHouse.open(b.dataset.open); });
     const cnt = document.getElementById('kmenu-lights');
@@ -390,12 +398,13 @@
       if (rb && H && H.rads) { const n = H.rads(); rb.textContent = n ? String(n) : ''; rb.hidden = !n; }
       const inf = document.getElementById('kmenu-info');
       if (inf && H && H.alerts) { const a = H.alerts(); inf.textContent = a ? String(a) : ''; inf.hidden = !a; }
+      fitMenu();
       const al = H && H.alarm ? H.alarm() : null, ab = document.getElementById('kmenu-alarmbtn'), ai = document.getElementById('kmenu-alarm'), ban = document.getElementById('kalarm');
       if (ab) {
         ab.hidden = !al;
         if (al) {
           const short = { disarmed: '', armed_home: 'Hemma', armed_away: 'Borta', armed_night: 'Natt', armed_vacation: 'Semester', arming: '…', disarming: '…', pending: '!', triggered: 'LARM' }[al.state] ?? '?';
-          ai.textContent = short; ai.className = 'al-' + al.cls; ab.className = 'al-' + al.cls; ab.title = 'Larm: ' + al.label; ab.setAttribute('aria-label', 'Larm, ' + al.label);
+          ai.textContent = (al.state === 'triggered' || al.state === 'pending') ? short : ''; ai.className = 'al-' + al.cls; ab.className = 'iconly al-' + al.cls; ab.title = 'Larm: ' + al.label; ab.setAttribute('aria-label', 'Larm, ' + al.label);
         }
       }
       if (ban) { const on = !!al && (al.state === 'triggered' || al.state === 'pending'); ban.hidden = !on; if (on) ban.textContent = al.label + ' – tryck för att avlarma'; }

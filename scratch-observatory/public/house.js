@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.59.0';
+  const VERSION = '0.60.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -116,7 +116,7 @@
 
   // ---------- Rutornas innehåll ----------
   // Inställningar från inställningssidan (gäller alla skärmar), hämtas vid start och varje minut
-  let SET = { value_colors: true, solar_shimmer: true, effects: true, kiosk_people: true, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5, media_hidden: [], match_hidden: [] };
+  let SET = { value_colors: true, solar_shimmer: true, effects: true, kiosk_people: true, menu_icons: false, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5, media_hidden: [], match_hidden: [] };
   async function loadSettings() {
     try { const r = await fetch('api/settings', { cache: 'no-store' }); if (r.ok) { SET = { ...SET, ...(await r.json()) }; applyFx(); refresh(); } } catch {}
   }
@@ -968,7 +968,7 @@
       open: vacMapStart, close: camStop },
     weather: { eyebrow: 'Ute / väder', title: 'Vädret', wide: true, stats: () => [], rich: weatherRich, charts: () => [], open: wxLoad },
     cameras: { eyebrow: 'Säkerhet / kameror', title: 'Kameror', wide: true, cls: 'cams', rich: () => '', stats: () => [], charts: () => [], extra: camGrid, open: camStart, close: camStop },
-    info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus-info', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
+    info: { eyebrow: 'Huset / säkerhet och luft', title: 'Hus', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: infoCtl },
     lights: { eyebrow: 'Styrning / belysning', title: 'Lampor', wide: true, rich: () => '', stats: () => [], charts: () => [], ctl: lightsCtl },
     kamin: { eyebrow: 'Vardagsrum / kamin', title: 'Kaminen', stats: () => [], rich: kaminRich, ctl: stoveCtl, charts: () => cfg.stove ? [[cfg.stove.temp, 'Temperatur vid utblåset', TC('orange'), 1, '°C']] : [] },
     temps: { eyebrow: 'Inomhus och byggnader', title: 'Temperaturer', wide: true, rich: () => '', stats: () => [], ctl: tempsCtl,
