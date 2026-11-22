@@ -881,3 +881,16 @@ body:not(.kiosk) .pa{left:auto;right:max(20px,env(safe-area-inset-right));bottom
 .mpfoot .mpb.wide span{font-size:13.5px}
 .mpvol.novol{justify-content:center;gap:14px}
 .mpvl{font-size:13px;color:var(--muted)}
+.drawer .dlist{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.drawer .drow{display:grid;grid-template-columns:minmax(0,1.4fr) 82px 74px minmax(40px,1fr);gap:10px;align-items:center;font-size:13.5px}
+.drawer .drow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.drawer .drow b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.drawer .drow b small{font-weight:400;color:var(--muted);font-size:11px}
+.drawer .drow i{display:block;height:6px;background:color-mix(in srgb,var(--text) 8%,transparent);border-radius:3px;overflow:hidden}
+.drawer .drow i em{display:block;height:100%;background:var(--gold);border-radius:3px}
+.drawer .drow.dh{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.drawer .drow.dh span,.drawer .drow.dh b{color:var(--muted);font-weight:500}
+.drawer .drow.rest span,.drawer .drow.rest b{color:var(--muted)}
+.drawer .drow.sum{border-top:1px solid var(--line);padding-top:7px}
+@media (max-width:480px){.drawer .drow{grid-template-columns:minmax(0,1fr) 72px 64px}.drawer .drow i{display:none}}
+.drawer .drow.dh i,.drawer .drow.sum i{visibility:hidden}

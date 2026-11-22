@@ -782,6 +782,58 @@ function localStart(kind) { // lokal midnatt idag eller 1 januari, som UTC-tid
   const guess = kind === 'year' ? Date.UTC(d[0], 0, 1) : Date.UTC(d[0], d[1] - 1, d[2]);
   return { t: guess - tzOffset(guess), day: d.join('-'), year: d[0] };
 }
+// Enheter som dragit mest el idag: enhetslistan i HA:s energipanel, 5-minutersstatistik sedan midnatt,
+// kostnad = förbrukning varje femminutersperiod × elpriset (inkl. avgifter) då. Solel räknas som köpt.
+let devPrefs = null, devCache = null;
+async function devicePrefs() {
+  if (devPrefs && Date.now() - devPrefs.at < 30 * 60 * 1000) return devPrefs.list;
+  const D = (CONFIG.house || {}).device_costs || {};
+  let list = [];
+  try {
+    const pr = await haCall({ type: 'energy/get_prefs' });
+    list = (pr.device_consumption || []).filter(d => d && typeof d.stat_consumption === 'string').map(d => ({ id: d.stat_consumption, name: d.name || '' }));
+  } catch (e) { console.warn('Kunde inte läsa energipanelens enheter:', e.message); }
+  if (!list.length && Array.isArray(D.devices)) list = D.devices.map(d => ({ id: d.entity, name: d.name || '' }));
+  const noName = list.filter(d => !d.name).map(d => d.id);
+  if (noName.length) {
+    try {
+      const md = await haCall({ type: 'recorder/get_statistics_metadata', statistic_ids: noName });
+      const nm = new Map((md || []).map(m => [m.statistic_id, m.name]));
+      for (const d of list) if (!d.name) d.name = nm.get(d.id) || (states.get(d.id) || {}).attributes?.friendly_name || d.id;
+    } catch { for (const d of list) if (!d.name) d.name = d.id; }
+  }
+  for (const d of list) d.name = String(d.name).replace(/\s+(energi|energy|förbrukad energi)$/i, '').slice(0, 60);
+  devPrefs = { at: Date.now(), list };
+  return list;
+}
+function devicesToday() { return shared('devtoday', devicesToday0); }
+async function devicesToday0() {
+  const today = localStart('day');
+  if (devCache && devCache.day === today.day && Date.now() - devCache.at < 3 * 60 * 1000) return devCache.data;
+  const D = (CONFIG.house || {}).device_costs || {};
+  const priceId = D.price || 'sensor.tibber_elpris_total';
+  const list = await devicePrefs();
+  const data = { day: today.day, price: priceId, devices: [], updated: Date.now() };
+  if (list.length) {
+    const r = await haCall({ type: 'recorder/statistics_during_period', start_time: new Date(today.t).toISOString(),
+      statistic_ids: [...list.map(d => d.id), priceId], period: '5minute', types: ['change', 'mean'], units: { energy: 'kWh' } });
+    const tOf = x => typeof x === 'number' ? x : Date.parse(x);
+    const price = new Map((r[priceId] || []).filter(x => x.mean != null).map(x => [tOf(x.start), x.mean]));
+    const pts = [...price.keys()].sort((a, b) => a - b);
+    const priceAt = t => { if (price.has(t)) return price.get(t); let best = null; for (const k of pts) { if (k <= t) best = price.get(k); else break; } return best ?? (pts.length ? price.get(pts[0]) : null); };
+    for (const d of list) {
+      let kwh = 0, kr = 0, ok = false;
+      for (const row of r[d.id] || []) {
+        const v = Number(row.change); if (!Number.isFinite(v) || v < 0 || v > 50) continue; // mätaren nollställd eller hoppade
+        ok = true; kwh += v; const p = priceAt(tOf(row.start)); if (p != null) kr += v * p;
+      }
+      if (ok) data.devices.push({ name: d.name, kwh, kr });
+    }
+    data.devices.sort((a, b) => b.kwh - a.kwh);
+  }
+  devCache = { at: Date.now(), day: today.day, data };
+  return data;
+}
 let moneyCache = null;
 async function money() {
   const H = CONFIG.house || {};
@@ -1039,6 +1091,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/diag') return json(res, 200, { streams: clients.size, ha_pending: pending.size, shared_inflight: inflight.size,
       hist_cache: histCache.size, uptime_s: Math.round(process.uptime()), rss_mb: Math.round(process.memoryUsage().rss / 1e6), ha_slow: haSlow.slice(-10) });
     if (url.pathname === '/api/money') return json(res, 200, await money());
+    if (url.pathname === '/api/devices_today') return json(res, 200, await devicesToday());
     if (url.pathname === '/api/music/library') return json(res, 200, await maLibrary(url.searchParams.get('type') || ''));
     if (url.pathname === '/api/music/img') return await maImage(res, url.searchParams.get('id'));
     if (url.pathname === '/api/music/search') return json(res, 200, await maSearch(url.searchParams.get('q')));

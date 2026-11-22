@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.60.3';
+  const VERSION = '0.61.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -393,6 +393,27 @@
         ${stat('Idag', today, '')}${stat('Igår', yday, '')}${stat('Denna vecka', week, '')}
         ${stat(now.toLocaleDateString('sv-SE', { month: 'long' }).replace(/^./, c => c.toUpperCase()), month, lyMonth != null ? `Förra året ${f(lyMonth)} kWh` : '')}${stat('Förra månaden', pmonth, '')}${stat('I år', year, '')}</div>
         <div class="ebars">${bars}</div><div class="enote">Senaste 14 dagarna${avgV != null ? ` · snitt ${f(avgV)} kWh/dag` : ''}</div></section>`;
+  }
+  // Enheter som dragit mest el idag (energipanelens enhetslista i HA), kWh och kostnad
+  let devToday = null, devErr = '';
+  async function loadDevToday() {
+    try { const r = await fetch('api/devices_today', { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status); devToday = await r.json(); devErr = ''; }
+    catch (e) { devErr = e.message; }
+    if (drawerOpen === 'money') renderDrawerStats();
+  }
+  setInterval(() => { if (drawerOpen === 'money') loadDevToday(); }, 3 * 60 * 1000);
+  function devTodayHtml() {
+    const head = '<div class="eyebrow">Mest el idag</div>';
+    if (!devToday) return head + `<p class="dnote">${devErr ? 'Kunde inte hämta (' + esc(devErr) + ').' : 'Hämtar …'}</p>`;
+    const all = devToday.devices.filter(d => d.kwh >= 0.005), top = all.slice(0, 12);
+    if (!top.length) return head + '<p class="dnote">Inga mätta enheter har dragit el idag ännu.</p>';
+    const mx = Math.max(top[0].kwh, 0.001), sumK = all.reduce((a, d) => a + d.kwh, 0), sumR = all.reduce((a, d) => a + d.kr, 0);
+    const load = num(cfg.load_today);
+    const row = (n, k, r, cls) => `<div class="drow${cls ? ' ' + cls : ''}"><span>${esc(n)}</span><b>${nf(k, k < 10 ? 2 : 1)} <small>kWh</small></b><b class="money">${nf(r, r < 10 ? 2 : 1)} <small>kr</small></b><i><em style="width:${Math.max(1, Math.round(k / mx * 100))}%"></em></i></div>`;
+    return head + `<div class="dlist"><div class="drow dh"><span>Enhet</span><b>Energi</b><b>Kostnad</b><i></i></div>${top.map(d => row(d.name, d.kwh, d.kr)).join('')}
+      ${all.length > top.length ? row(`${all.length - top.length} till`, all.slice(12).reduce((a, d) => a + d.kwh, 0), all.slice(12).reduce((a, d) => a + d.kr, 0), 'rest') : ''}
+      <div class="drow sum"><span>Summa mätta enheter</span><b>${nf(sumK, 1)} <small>kWh</small></b><b class="money">${nf(sumR, 1)} <small>kr</small></b><i></i></div></div>
+      <p class="dnote">Från enheterna i Home Assistants energipanel sedan midnatt.${load != null ? ` Huset har förbrukat ${nf(load, 1)} kWh${load - sumK > 0.1 ? `, ${nf(load - sumK, 1)} kWh av det är inte mätt per enhet` : ''}.` : ''} Kostnaden är elpriset med avgifter varje femminutersperiod gånger förbrukningen, så solel räknas som köpt.</p>`;
   }
   // Största förbrukarna just nu, från de effektsensorer som står i config.house.consumers
   function consumersCtl() {
@@ -981,7 +1002,7 @@
       return [['Faktisk kostnad', kr(num(cfg.cost_today)), 'kr'], ['Prognos hela dagen', m.fc ? kr(m.fc.total, 0) : '–', 'kr'], ['Sparat med solel', kr(m.savedToday), 'kr'],
         ['Förbrukat', nf(num(cfg.load_today)), 'kWh'], ['Sol', nf(num(cfg.pv_today)), 'kWh'], ['Egen sol använd', nf(m.self), 'kWh'],
         ['Köpt', nf(num(cfg.grid_in_today)), 'kWh'], ['Sålt', nf(num(cfg.grid_out_today)), 'kWh']];
-    }, extra: () => `<div class="dmoney">${detailPage()}</div>`, charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']] },
+    }, extra: () => `<div class="dmoney">${detailPage()}</div>`, charts: () => [[cfg.grid, 'Nät (+ köp / − sälj)', TC('blue'), 1000, 'kW']], after: () => `<section class="sx">${devTodayHtml()}</section>` },
     ftx: { eyebrow: 'Ventilation / FTX', title: 'FTX-aggregatet', ctl: ctlFtx, stats: () => [
       ['Tilluft', nf(num(FX.supply)), '°C'], ['Frånluft', nf(num(FX.extract)), '°C'], ['Ute', nf(num(FX.outdoor)), '°C'],
       ['Verkningsgrad', nf(num(FX.efficiency), 0), '%'], ['Fläktnivå', num(FX.fan_level) == null ? '–' : Math.round(num(FX.fan_level)), ''], ['Effekt', num(FX.power) == null ? '–' : Math.round(num(FX.power)), 'W']],
@@ -1855,6 +1876,7 @@
     const d = DRAWERS[id]; if (!d) return;
     if (drawerOpen && drawerOpen !== id && DRAWERS[drawerOpen].close) DRAWERS[drawerOpen].close();
     drawerOpen = id;
+    if (id === 'money') loadDevToday();
     $('drawer-eyebrow').textContent = d.eyebrow; $('drawer-title').textContent = d.title;
     $('drawer').classList.toggle('wide', !!d.wide);
     $('drawer').classList.toggle('framed', !!d.frame);
