@@ -220,7 +220,7 @@
     const items = B.filter(b => b.next).map(b => {
       const t = new Date(b.next.length <= 10 ? b.next + 'T00:00:00' : b.next); t.setHours(0, 0, 0, 0);
       const n = Math.round((t - d0) / 864e5);
-      return `<span class="kbin${n <= 1 ? ' soon' : ''}">${BIN_SVG}<span>${esc(b.name)} <b>${n <= 0 ? 'idag' : n === 1 ? 'imorgon' : n + ' dagar'}</b></span></span>`;
+      return `<span class="kbin${n <= 1 ? ' soon' : ''}">${BIN_SVG}<span>${esc(b.name)} <b>${n <= 0 ? 'idag' : n === 1 ? 'imorgon' : `${n}<i class="bl"> dagar</i><i class="bs"> d</i>`}</b></span></span>`;
     });
     return items.length ? `<div class="kbins">${items.join('')}</div>` : '';
   }

@@ -252,3 +252,11 @@ body.menu-icons .kmenu button>span{display:none}
 .kmenu button{padding:0 12px;gap:6px;font-size:14px}
 .kmenu{padding:5px}
 body.menu-icons .kmenu button{padding:0 14px}
+.kcal .kbins{flex-wrap:nowrap;gap:10px;font-size:12.5px;white-space:nowrap;min-width:0}
+.kcal .kbin{gap:5px;min-width:0}
+.kcal .kbin svg{width:16px;height:16px}
+.kcal{container:kcal/inline-size}
+.kcal .kbin i{font-style:normal}.kcal .kbin .bs{display:none}
+@container kcal (max-width:340px){.kcal .kbin .bl{display:none}.kcal .kbin .bs{display:inline}}
+@container kcal (max-width:250px){.kcal .kbins{font-size:11.5px;gap:8px}.kcal .kbin svg{width:14px;height:14px}}
+.kcal .kbins{overflow:hidden}
