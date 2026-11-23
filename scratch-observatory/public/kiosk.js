@@ -26,7 +26,12 @@
     const f = el.requestFullscreen || el.webkitRequestFullscreen;
     if (f) try { const p = f.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (e) {}
   }
-  document.addEventListener('pointerdown', fullscreen, { once: true });
+  // Helskärm vid dubbeltryck (två tryck inom 350 ms på ungefär samma ställe), inte vid första trycket
+  let lastTap = { t: 0, x: 0, y: 0 };
+  document.addEventListener('pointerup', e => {
+    const now = Date.now(), near = Math.abs(e.clientX - lastTap.x) < 40 && Math.abs(e.clientY - lastTap.y) < 40;
+    if (now - lastTap.t < 350 && near) { lastTap.t = 0; fullscreen(); } else lastTap = { t: now, x: e.clientX, y: e.clientY };
+  });
 
   // Format för mindre/fyrkantigare skärmar: kiosk.html?10 beskär bilden 10 % på var sida (passar 10" 16:10),
   // kiosk.html?crop=15 väljer egen procent, kiosk.html?crop=0 tillbaka till hela bilden. Valet sparas på enheten.
