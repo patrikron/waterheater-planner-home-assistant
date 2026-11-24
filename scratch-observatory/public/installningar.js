@@ -13,6 +13,7 @@
     ['effects', 'Effekter', 'Rutor och paneler tonar fram ur oskärpa, glasad panel och grafer som ritas fram. Alltid av i kioskens lite-läge.'],
     ['menu_icons', 'Menyn utan text', 'Menyn längst ned visar bara ikoner, med antal igång som bricka. Gäller kiosken och översiktens meny.'],
     ['kiosk_people', 'Hemma/borta i kiosken', 'Bild och namn längst ned i kioskens kalenderkolumn som visar vem som är hemma och sedan när.'],
+    ['weather_fx', 'Vädret på bilden', 'Regn, snö, moln, dimma, åska och sol ritas över husbilden efter vädret i Home Assistant. Stillbild om systemet ber om mindre rörelse.'],
     ['solar_shimmer', 'Skimmer på solpanelerna', 'Ett svagt sken och en ljusstrimma över taket på bilden när panelerna producerar.'],
   ];
   const LIMITS = [

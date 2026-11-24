@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.61.1';
+  const VERSION = '0.62.0';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -116,7 +116,7 @@
 
   // ---------- Rutornas innehåll ----------
   // Inställningar från inställningssidan (gäller alla skärmar), hämtas vid start och varje minut
-  let SET = { value_colors: true, solar_shimmer: true, effects: true, kiosk_people: true, menu_icons: false, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5, media_hidden: [], match_hidden: [] };
+  let SET = { value_colors: true, solar_shimmer: true, effects: true, kiosk_people: true, menu_icons: false, weather_fx: true, house_low_kw: 1, house_high_kw: 3, house_max_kw: 6, import_high_kw: 2, import_max_kw: 5, media_hidden: [], match_hidden: [] };
   async function loadSettings() {
     try { const r = await fetch('api/settings', { cache: 'no-store' }); if (r.ok) { SET = { ...SET, ...(await r.json()) }; applyFx(); refresh(); } } catch {}
   }
