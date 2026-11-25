@@ -4,7 +4,7 @@
   'use strict';
   // Temafärg från CSS-variabel (temat sätts av theme.js)
   const TC = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim() || '#888';
-  const VERSION = '0.62.0';
+  const VERSION = '0.62.1';
   const $ = id => document.getElementById(id);
   const stage = $('stage'), boxesEl = $('boxes'), hot = $('hot'), wires = $('wires'), handles = $('handles');
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1630,7 +1630,7 @@
   function choresCtl() {
     const C = cfg.chores; if (!C) return '<p class="dnote">Inga sysslor i config.</p>';
     const goal = num(C.threshold) || 50;
-    if (!choreKid || !C.kids.some(k => k.id === choreKid)) choreKid = C.kids[0].id;
+    if (!choreKid || !C.kids.some(k => k.id === choreKid)) choreKid = (C.kids.find(k => k.id === C.default_kid) || C.kids[0]).id;
     const kids = `<div class="ckids">${C.kids.map(k => {
       const p = num(k.points) || 0, w = num(k.pending) || 0, pct = Math.min(100, p / goal * 100);
       return `<button class="ckid ${k.id === choreKid ? 'sel' : ''}" data-kid="${esc(k.id)}"><div class="cname">${esc(k.name)}</div>

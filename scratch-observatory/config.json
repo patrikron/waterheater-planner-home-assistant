@@ -1241,6 +1241,7 @@
     "chores": {
       "controls": true,
       "script": "script.syssla_utford",
+      "default_kid": "ludvig",
       "threshold": "input_number.sysslor_beloningsgrans",
       "last": "input_text.sysslor_senaste",
       "kids": [
@@ -1311,6 +1312,11 @@
         {
           "id": "laslaxa",
           "name": "Läsläxa",
+          "points": 1
+        },
+        {
+          "id": "morgon",
+          "name": "Morgon utan tjat",
           "points": 1
         },
         {
@@ -2076,7 +2082,7 @@
           "icon": "fan"
         }
       ],
-      "heat_kw": 6,
+      "heat_kw": 5.5,
       "max_kw": 9,
       "full_temp": 90,
       "efficiency": 0.8,
